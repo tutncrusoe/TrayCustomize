@@ -3,164 +3,180 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bento 3D Inspired Showcase</title>
+  <title>Bento3d inspired · 2D mock</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="glow-overlay"></div>
-  <header class="hero">
-    <div class="hero__copy">
-      <p class="eyebrow">Concept mock · 2D pseudo 3D</p>
-      <h1>Bento-style control console</h1>
-      <p class="lede">A playful landing layout inspired by layered cards, softened shadows, and neon gradients. Everything here is flat HTML/CSS with subtle depth tricks—no WebGL required.</p>
-      <div class="hero__actions">
-        <a class="button button--primary" href="#panels">Explore panels</a>
-        <a class="button button--ghost" href="#about">How it works</a>
-      </div>
-      <div class="tags">
-        <span>Grid bento</span>
-        <span>Soft 3D edges</span>
-        <span>Micro-interactions</span>
-      </div>
+  <div class="grain"></div>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand__dot"></span>
+      <span class="brand__name">Bento3d</span>
+      <span class="brand__tag">2D only</span>
     </div>
-    <div class="hero__visual">
-      <div class="stack stack--pink">
-        <div class="stack__layer"></div>
-        <div class="stack__layer"></div>
-        <div class="stack__card">
-          <p class="label">Pseudo-depth</p>
-          <h2>Layered cards</h2>
-          <p>Offset shadows, gradient borders, and glow rings hint at volume while staying in 2D.</p>
-        </div>
-      </div>
-      <div class="stack stack--cyan">
-        <div class="stack__layer"></div>
-        <div class="stack__card mini">
-          <p class="label">Interaction</p>
-          <h3>Hover lift</h3>
-          <p>Cards rise slightly with sharper highlights.</p>
-        </div>
-      </div>
-    </div>
+    <nav class="nav">
+      <a href="#grid">Showcase</a>
+      <a href="#how">Technique</a>
+      <a href="#cta" class="pill">Get mockup</a>
+    </nav>
   </header>
 
-  <main>
-    <section id="panels" class="grid">
-      <article class="panel highlight">
-        <div class="panel__header">
+  <main class="shell">
+    <section class="hero">
+      <div class="hero__copy">
+        <p class="eyebrow">Pseudo 3D · HTML + CSS</p>
+        <h1>Ui lấy cảm hứng từ Bento3d</h1>
+        <p class="lede">Bố cục thẻ dạng bento được nâng bằng bóng mềm, viền phát sáng và lớp chồng đan nhau. Tất cả đều là 2D,
+          không canvas hay WebGL.</p>
+        <div class="actions">
+          <a href="#grid" class="button primary">Khám phá layout</a>
+          <a href="#cta" class="button ghost">Tải template</a>
+        </div>
+        <div class="badges">
+          <span>Neon rim light</span>
+          <span>Inset shadow</span>
+          <span>Micro depth</span>
+        </div>
+      </div>
+      <div class="hero__visual">
+        <div class="device">
+          <div class="device__ring"></div>
+          <div class="device__body">
+            <div class="device__tabs">
+              <span class="on">Live</span>
+              <span>Focus</span>
+              <span>Sleep</span>
+            </div>
+            <div class="device__dial">
+              <div class="dial__face"></div>
+              <div class="dial__pointer"></div>
+            </div>
+            <div class="device__meta">
+              <div>
+                <p class="label">Soft depth</p>
+                <p class="value">2D illusion</p>
+              </div>
+              <div class="chip">Glow</div>
+            </div>
+          </div>
+          <div class="device__shadow"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="grid" class="grid">
+      <article class="card hero-card">
+        <div class="card__head">
+          <p class="label">Gradient tray</p>
           <span class="dot"></span>
-          <p class="label">Overview</p>
         </div>
-        <h3>Soft neon surface</h3>
-        <p>Layered gradients and blurred backplates make the cards float above the canvas while keeping everything crisp.</p>
-        <div class="chips">
-          <span>Gradient glow</span>
-          <span>Glass edge</span>
-          <span>Ambient shadow</span>
-        </div>
-      </article>
-
-      <article class="panel">
-        <div class="panel__header">
-          <span class="dot dot--pink"></span>
-          <p class="label">Isometric hint</p>
-        </div>
-        <h3>Offset planes</h3>
-        <p>Using before/after layers with slight skew and blur gives the illusion of a tilted surface without real perspective.</p>
-        <div class="bar">
-          <span style="--w: 82%"></span>
-          <span style="--w: 64%"></span>
-          <span style="--w: 38%"></span>
-        </div>
-      </article>
-
-      <article class="panel large">
-        <div class="panel__header">
-          <span class="dot dot--cyan"></span>
-          <p class="label">Micro charts</p>
-        </div>
-        <h3>Color-coded tiles</h3>
-        <p>Rounded modules hold tiny stats. They sit on a recessed tray with a soft inner shadow.</p>
-        <div class="tile-grid">
-          <div class="tile tile--pink">
-            <p class="label">Status</p>
-            <h4>Active</h4>
-            <p class="muted">Smooth edges + glow ring</p>
-          </div>
-          <div class="tile tile--blue">
-            <p class="label">Latency</p>
-            <h4>12 ms</h4>
-            <p class="muted">Inset ambient shadow</p>
-          </div>
-          <div class="tile tile--green">
-            <p class="label">Quality</p>
-            <h4>99%</h4>
-            <p class="muted">Light bevel highlight</p>
-          </div>
-          <div class="tile tile--gold">
-            <p class="label">Sessions</p>
-            <h4>245</h4>
-            <p class="muted">Stacked chip accents</p>
+        <h3>Layered bento</h3>
+        <p>Thẻ được xếp chồng và lệch nhẹ như phiên bản gốc, tạo cảm giác nổi trên nền mờ.</p>
+        <div class="stagger">
+          <div class="stagger__plate"></div>
+          <div class="stagger__plate"></div>
+          <div class="stagger__card">
+            <p class="label">Depth</p>
+            <h4>±12px</h4>
+            <p class="muted">Bóng mờ + viền sáng</p>
           </div>
         </div>
       </article>
 
-      <article class="panel tall">
-        <div class="panel__header">
-          <span class="dot dot--blue"></span>
+      <article class="card pill-card">
+        <div class="card__head">
           <p class="label">Controls</p>
+          <span class="dot dot--pink"></span>
         </div>
-        <h3>3-step toggle</h3>
-        <div class="toggle">
-          <span class="tick active">Live</span>
-          <span class="tick">Focus</span>
-          <span class="tick">Sleep</span>
-          <div class="toggle__glow"></div>
+        <h3>Slider giả 3D</h3>
+        <div class="slider">
+          <div class="slider__track"></div>
+          <div class="slider__thumb"></div>
         </div>
-        <p class="muted">Bright edge + blurred drop shadow creates the lifted knob look.</p>
-        <div class="pill-row">
-          <span>Depth masks</span>
-          <span>Neon rim</span>
+        <p class="muted">Bóng lõm và phản quang viền giúp nút trượt trông có độ dày.</p>
+      </article>
+
+      <article class="card stats-card">
+        <div class="card__head">
+          <p class="label">Snapshot</p>
+          <span class="dot dot--cyan"></span>
+        </div>
+        <div class="stats">
+          <div>
+            <p class="muted">Ping</p>
+            <h4>12 ms</h4>
+          </div>
+          <div>
+            <p class="muted">Flux</p>
+            <h4>0.82</h4>
+          </div>
+          <div>
+            <p class="muted">Load</p>
+            <h4>42%</h4>
+          </div>
+        </div>
+        <div class="bars">
+          <span style="--w:88%"></span>
+          <span style="--w:64%"></span>
+          <span style="--w:38%"></span>
         </div>
       </article>
 
-      <article class="panel">
-        <div class="panel__header">
+      <article class="card grid-card">
+        <div class="card__head">
+          <p class="label">Mini tiles</p>
           <span class="dot dot--gold"></span>
-          <p class="label">Texture</p>
         </div>
-        <h3>Paper grain</h3>
-        <p>Fine noise overlays keep surfaces from looking too sterile, helping the 2D-to-3D illusion.</p>
-        <div class="stacks">
-          <span class="stack-chip">Noise</span>
-          <span class="stack-chip">Blur</span>
-          <span class="stack-chip">Shadow</span>
-          <span class="stack-chip">Highlight</span>
+        <div class="mini-grid">
+          <div class="tile warm">
+            <p class="label">Status</p>
+            <h5>Active</h5>
+          </div>
+          <div class="tile cool">
+            <p class="label">Signal</p>
+            <h5>92%</h5>
+          </div>
+          <div class="tile lime">
+            <p class="label">Quality</p>
+            <h5>99%</h5>
+          </div>
+          <div class="tile amber">
+            <p class="label">Sessions</p>
+            <h5>241</h5>
+          </div>
         </div>
       </article>
 
-      <article id="about" class="panel text">
-        <div class="panel__header">
+      <article class="card text-card" id="how">
+        <div class="card__head">
+          <p class="label">Cách làm</p>
           <span class="dot dot--green"></span>
-          <p class="label">Process</p>
         </div>
-        <h3>Flat assets, volumetric vibes</h3>
         <ul>
-          <li>Use multiple layers with slight offsets and different blur radii.</li>
-          <li>Combine gradients for edge lighting: one soft for ambience, one sharp for rim light.</li>
-          <li>Apply subtle noise textures to avoid banding and give tactile feel.</li>
-          <li>Animate elevation on hover using transforms and brighter highlights.</li>
+          <li>Giữ mọi thứ 2D nhưng thêm lớp giả: outline phát sáng, bóng chồng, noise mịn.</li>
+          <li>Dùng gradient đối lập (ấm/lạnh) cho cảm giác ánh sáng đổ.</li>
+          <li>Biến đổi nhỏ (translate, scale) khi hover để gợi khối.</li>
+          <li>Bo tròn lớn + khoảng cách thoáng giúp giống Bento3d nguyên bản.</li>
         </ul>
-        <p class="muted">Everything is pure HTML/CSS—no canvas, no 3D engine.</p>
+      </article>
+
+      <article class="card cta-card" id="cta">
+        <div class="card__head">
+          <p class="label">Template</p>
+          <span class="dot dot--blue"></span>
+        </div>
+        <h3>Tải mockup 2D</h3>
+        <p>HTML/CSS thuần, dễ chỉnh sửa. Sao chép cảm giác Bento3d nhưng không cần 3D thực.</p>
+        <a class="button primary" href="#">Download</a>
       </article>
     </section>
   </main>
 
   <footer class="footer">
-    <p>Concept demo inspired by bento3d.design — recreated as 2D pseudo-3D cards.</p>
+    <p>Rebuild phong cách Bento3d bằng 2D giả lập. Sử dụng tự do cho demo hoặc ý tưởng.</p>
   </footer>
 </body>
 </html>
