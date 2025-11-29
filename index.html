@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Isometric Box Configurator</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <div class="logo">TrayCustomizer</div>
+      <div class="top-actions">
+        <button class="icon-btn">
+          <span class="icon" aria-hidden="true">⬜</span>
+          <span>Size</span>
+        </button>
+        <button class="icon-btn" id="toggleGridBtn">
+          <span class="icon" aria-hidden="true">#</span>
+          <span>Grid</span>
+        </button>
+      </div>
+      <div class="top-actions right">
+        <button class="icon-btn" aria-label="Export">⬆️</button>
+        <button class="icon-btn" aria-label="Download">⬇️</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="side-panel">
+        <button class="pill">Box</button>
+        <button class="pill ghost">Tray</button>
+        <button class="pill ghost">Insert</button>
+      </aside>
+
+      <section class="canvas" id="canvas">
+        <div class="grid-overlay"></div>
+        <div class="scene">
+          <div class="dimension dimension-width">
+            <div class="badge">Width<br><span id="widthLabel">100</span> mm</div>
+          </div>
+          <div class="dimension dimension-height">
+            <div class="badge">Height<br><span id="heightLabel">20</span> mm</div>
+          </div>
+          <div class="dimension dimension-depth">
+            <div class="badge">Depth<br><span id="depthLabel">100</span> mm</div>
+          </div>
+
+          <div class="box" id="isoBox">
+            <div class="face top"></div>
+            <div class="face side side-x"></div>
+            <div class="face side side-y"></div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <label class="control">
+            <span>Width (mm)</span>
+            <input type="number" id="widthInput" min="40" max="200" value="100" />
+          </label>
+          <label class="control">
+            <span>Depth (mm)</span>
+            <input type="number" id="depthInput" min="40" max="200" value="100" />
+          </label>
+          <label class="control">
+            <span>Height (mm)</span>
+            <input type="number" id="heightInput" min="10" max="120" value="20" />
+          </label>
+        </div>
+      </section>
+
+      <aside class="quick-actions">
+        <button class="floating-btn">🔧</button>
+        <button class="floating-btn">📄</button>
+        <button class="floating-btn primary">➕</button>
+      </aside>
+    </main>
+  </div>
+  <script src="main.js"></script>
+</body>
+</html>
