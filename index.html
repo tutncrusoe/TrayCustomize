@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bento 3D Inspired Showcase</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="glow-overlay"></div>
+  <header class="hero">
+    <div class="hero__copy">
+      <p class="eyebrow">Concept mock · 2D pseudo 3D</p>
+      <h1>Bento-style control console</h1>
+      <p class="lede">A playful landing layout inspired by layered cards, softened shadows, and neon gradients. Everything here is flat HTML/CSS with subtle depth tricks—no WebGL required.</p>
+      <div class="hero__actions">
+        <a class="button button--primary" href="#panels">Explore panels</a>
+        <a class="button button--ghost" href="#about">How it works</a>
+      </div>
+      <div class="tags">
+        <span>Grid bento</span>
+        <span>Soft 3D edges</span>
+        <span>Micro-interactions</span>
+      </div>
+    </div>
+    <div class="hero__visual">
+      <div class="stack stack--pink">
+        <div class="stack__layer"></div>
+        <div class="stack__layer"></div>
+        <div class="stack__card">
+          <p class="label">Pseudo-depth</p>
+          <h2>Layered cards</h2>
+          <p>Offset shadows, gradient borders, and glow rings hint at volume while staying in 2D.</p>
+        </div>
+      </div>
+      <div class="stack stack--cyan">
+        <div class="stack__layer"></div>
+        <div class="stack__card mini">
+          <p class="label">Interaction</p>
+          <h3>Hover lift</h3>
+          <p>Cards rise slightly with sharper highlights.</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="panels" class="grid">
+      <article class="panel highlight">
+        <div class="panel__header">
+          <span class="dot"></span>
+          <p class="label">Overview</p>
+        </div>
+        <h3>Soft neon surface</h3>
+        <p>Layered gradients and blurred backplates make the cards float above the canvas while keeping everything crisp.</p>
+        <div class="chips">
+          <span>Gradient glow</span>
+          <span>Glass edge</span>
+          <span>Ambient shadow</span>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel__header">
+          <span class="dot dot--pink"></span>
+          <p class="label">Isometric hint</p>
+        </div>
+        <h3>Offset planes</h3>
+        <p>Using before/after layers with slight skew and blur gives the illusion of a tilted surface without real perspective.</p>
+        <div class="bar">
+          <span style="--w: 82%"></span>
+          <span style="--w: 64%"></span>
+          <span style="--w: 38%"></span>
+        </div>
+      </article>
+
+      <article class="panel large">
+        <div class="panel__header">
+          <span class="dot dot--cyan"></span>
+          <p class="label">Micro charts</p>
+        </div>
+        <h3>Color-coded tiles</h3>
+        <p>Rounded modules hold tiny stats. They sit on a recessed tray with a soft inner shadow.</p>
+        <div class="tile-grid">
+          <div class="tile tile--pink">
+            <p class="label">Status</p>
+            <h4>Active</h4>
+            <p class="muted">Smooth edges + glow ring</p>
+          </div>
+          <div class="tile tile--blue">
+            <p class="label">Latency</p>
+            <h4>12 ms</h4>
+            <p class="muted">Inset ambient shadow</p>
+          </div>
+          <div class="tile tile--green">
+            <p class="label">Quality</p>
+            <h4>99%</h4>
+            <p class="muted">Light bevel highlight</p>
+          </div>
+          <div class="tile tile--gold">
+            <p class="label">Sessions</p>
+            <h4>245</h4>
+            <p class="muted">Stacked chip accents</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel tall">
+        <div class="panel__header">
+          <span class="dot dot--blue"></span>
+          <p class="label">Controls</p>
+        </div>
+        <h3>3-step toggle</h3>
+        <div class="toggle">
+          <span class="tick active">Live</span>
+          <span class="tick">Focus</span>
+          <span class="tick">Sleep</span>
+          <div class="toggle__glow"></div>
+        </div>
+        <p class="muted">Bright edge + blurred drop shadow creates the lifted knob look.</p>
+        <div class="pill-row">
+          <span>Depth masks</span>
+          <span>Neon rim</span>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel__header">
+          <span class="dot dot--gold"></span>
+          <p class="label">Texture</p>
+        </div>
+        <h3>Paper grain</h3>
+        <p>Fine noise overlays keep surfaces from looking too sterile, helping the 2D-to-3D illusion.</p>
+        <div class="stacks">
+          <span class="stack-chip">Noise</span>
+          <span class="stack-chip">Blur</span>
+          <span class="stack-chip">Shadow</span>
+          <span class="stack-chip">Highlight</span>
+        </div>
+      </article>
+
+      <article id="about" class="panel text">
+        <div class="panel__header">
+          <span class="dot dot--green"></span>
+          <p class="label">Process</p>
+        </div>
+        <h3>Flat assets, volumetric vibes</h3>
+        <ul>
+          <li>Use multiple layers with slight offsets and different blur radii.</li>
+          <li>Combine gradients for edge lighting: one soft for ambience, one sharp for rim light.</li>
+          <li>Apply subtle noise textures to avoid banding and give tactile feel.</li>
+          <li>Animate elevation on hover using transforms and brighter highlights.</li>
+        </ul>
+        <p class="muted">Everything is pure HTML/CSS—no canvas, no 3D engine.</p>
+      </article>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>Concept demo inspired by bento3d.design — recreated as 2D pseudo-3D cards.</p>
+  </footer>
+</body>
+</html>
