@@ -3,180 +3,268 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bento3d inspired · 2D mock</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css" />
+  <title>Bento-style Box Preview</title>
+  <style>
+    :root {
+      --bg: #f3f4f6;
+      --card: #ffffff;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+      --text: #111827;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: var(--bg);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      color: var(--text);
+    }
+
+    .app-shell {
+      width: 80%;
+      max-width: 1100px;
+      background: var(--card);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+      display: grid;
+      gap: 20px;
+    }
+
+    .tab-bar {
+      display: inline-flex;
+      align-items: center;
+      background: var(--line);
+      border-radius: 999px;
+      padding: 6px;
+      gap: 6px;
+    }
+
+    .tab {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+    }
+
+    .tab:hover {
+      background: #eef0f4;
+    }
+
+    .tab.active {
+      background: #ffffff;
+      color: var(--text);
+      box-shadow: 0 6px 14px rgba(17, 24, 39, 0.12);
+    }
+
+    .preview-card {
+      display: grid;
+      gap: 18px;
+    }
+
+    .preview-box {
+      position: relative;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      min-height: 520px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .grid-surface {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 30%, rgba(17, 24, 39, 0.06), transparent 55%);
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.9), rgba(0,0,0,0.5));
+      pointer-events: none;
+    }
+
+    .grid-lines {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(transparent calc(100% - 1px), rgba(107, 114, 128, 0.18) 1px),
+        linear-gradient(90deg, transparent calc(100% - 1px), rgba(107, 114, 128, 0.18) 1px);
+      background-size: 120px 120px;
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    .cube {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      transform: translateY(-10px);
+      filter: drop-shadow(0 18px 24px rgba(17, 24, 39, 0.12));
+    }
+
+    .cube .top {
+      position: absolute;
+      inset: 0;
+      background: #e5e7eb;
+      border-radius: 16px;
+    }
+
+    .cube .side {
+      position: absolute;
+      inset: 14px;
+      background: linear-gradient(145deg, #d1d5db, #e5e7eb);
+      border-radius: 14px;
+      transform: skewY(-6deg) translateY(22px);
+      box-shadow: inset 0 1px 2px rgba(255,255,255,0.6);
+    }
+
+    .cube::after {
+      content: "";
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: -18px;
+      height: 22px;
+      border-radius: 12px;
+      background: rgba(17, 24, 39, 0.12);
+      filter: blur(12px);
+      z-index: 0;
+    }
+
+    .control-pill {
+      position: absolute;
+      bottom: 24px;
+      width: 190px;
+      height: 62px;
+      background: #111827;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      color: #fff;
+      box-shadow: 0 10px 20px rgba(17, 24, 39, 0.28);
+    }
+
+    .control-pill.left { left: 24px; }
+    .control-pill.right { right: 24px; }
+
+    .pill-button {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      font-size: 16px;
+      display: grid;
+      place-items: center;
+    }
+
+    .pill-label {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+
+    .pill-label span:first-child {
+      text-transform: lowercase;
+      color: #9ca3af;
+      font-size: 11px;
+      letter-spacing: 0.3px;
+    }
+
+    .pill-label span:last-child {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .mode-switch {
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      background: var(--line);
+      border-radius: 999px;
+      padding: 4px;
+      gap: 4px;
+    }
+
+    .mode-btn {
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .mode-btn:hover {
+      background: #eef0f4;
+    }
+
+    .mode-btn.active {
+      background: #ffffff;
+      color: var(--text);
+      box-shadow: 0 8px 14px rgba(17, 24, 39, 0.12);
+    }
+  </style>
 </head>
 <body>
-  <div class="grain"></div>
-  <header class="topbar">
-    <div class="brand">
-      <span class="brand__dot"></span>
-      <span class="brand__name">Bento3d</span>
-      <span class="brand__tag">2D only</span>
+  <div class="app-shell">
+    <div class="tab-bar">
+      <button class="tab active">Size</button>
+      <button class="tab">Grid</button>
+      <button class="tab">Download</button>
     </div>
-    <nav class="nav">
-      <a href="#grid">Showcase</a>
-      <a href="#how">Technique</a>
-      <a href="#cta" class="pill">Get mockup</a>
-    </nav>
-  </header>
 
-  <main class="shell">
-    <section class="hero">
-      <div class="hero__copy">
-        <p class="eyebrow">Pseudo 3D · HTML + CSS</p>
-        <h1>Ui lấy cảm hứng từ Bento3d</h1>
-        <p class="lede">Bố cục thẻ dạng bento được nâng bằng bóng mềm, viền phát sáng và lớp chồng đan nhau. Tất cả đều là 2D,
-          không canvas hay WebGL.</p>
-        <div class="actions">
-          <a href="#grid" class="button primary">Khám phá layout</a>
-          <a href="#cta" class="button ghost">Tải template</a>
+    <div class="preview-card">
+      <div class="preview-box">
+        <div class="grid-lines"></div>
+        <div class="grid-surface"></div>
+        <div class="cube">
+          <div class="top"></div>
+          <div class="side"></div>
         </div>
-        <div class="badges">
-          <span>Neon rim light</span>
-          <span>Inset shadow</span>
-          <span>Micro depth</span>
+        <div class="control-pill left">
+          <div class="pill-button">−</div>
+          <div class="pill-label">
+            <span>depth</span>
+            <span>108 mm</span>
+          </div>
+          <div class="pill-button">+</div>
+        </div>
+        <div class="control-pill right">
+          <div class="pill-button">−</div>
+          <div class="pill-label">
+            <span>width</span>
+            <span>240 mm</span>
+          </div>
+          <div class="pill-button">+</div>
         </div>
       </div>
-      <div class="hero__visual">
-        <div class="device">
-          <div class="device__ring"></div>
-          <div class="device__body">
-            <div class="device__tabs">
-              <span class="on">Live</span>
-              <span>Focus</span>
-              <span>Sleep</span>
-            </div>
-            <div class="device__dial">
-              <div class="dial__face"></div>
-              <div class="dial__pointer"></div>
-            </div>
-            <div class="device__meta">
-              <div>
-                <p class="label">Soft depth</p>
-                <p class="value">2D illusion</p>
-              </div>
-              <div class="chip">Glow</div>
-            </div>
-          </div>
-          <div class="device__shadow"></div>
-        </div>
+      <div class="mode-switch">
+        <button class="mode-btn active">Partitions only</button>
+        <button class="mode-btn">Box + lid</button>
       </div>
-    </section>
-
-    <section id="grid" class="grid">
-      <article class="card hero-card">
-        <div class="card__head">
-          <p class="label">Gradient tray</p>
-          <span class="dot"></span>
-        </div>
-        <h3>Layered bento</h3>
-        <p>Thẻ được xếp chồng và lệch nhẹ như phiên bản gốc, tạo cảm giác nổi trên nền mờ.</p>
-        <div class="stagger">
-          <div class="stagger__plate"></div>
-          <div class="stagger__plate"></div>
-          <div class="stagger__card">
-            <p class="label">Depth</p>
-            <h4>±12px</h4>
-            <p class="muted">Bóng mờ + viền sáng</p>
-          </div>
-        </div>
-      </article>
-
-      <article class="card pill-card">
-        <div class="card__head">
-          <p class="label">Controls</p>
-          <span class="dot dot--pink"></span>
-        </div>
-        <h3>Slider giả 3D</h3>
-        <div class="slider">
-          <div class="slider__track"></div>
-          <div class="slider__thumb"></div>
-        </div>
-        <p class="muted">Bóng lõm và phản quang viền giúp nút trượt trông có độ dày.</p>
-      </article>
-
-      <article class="card stats-card">
-        <div class="card__head">
-          <p class="label">Snapshot</p>
-          <span class="dot dot--cyan"></span>
-        </div>
-        <div class="stats">
-          <div>
-            <p class="muted">Ping</p>
-            <h4>12 ms</h4>
-          </div>
-          <div>
-            <p class="muted">Flux</p>
-            <h4>0.82</h4>
-          </div>
-          <div>
-            <p class="muted">Load</p>
-            <h4>42%</h4>
-          </div>
-        </div>
-        <div class="bars">
-          <span style="--w:88%"></span>
-          <span style="--w:64%"></span>
-          <span style="--w:38%"></span>
-        </div>
-      </article>
-
-      <article class="card grid-card">
-        <div class="card__head">
-          <p class="label">Mini tiles</p>
-          <span class="dot dot--gold"></span>
-        </div>
-        <div class="mini-grid">
-          <div class="tile warm">
-            <p class="label">Status</p>
-            <h5>Active</h5>
-          </div>
-          <div class="tile cool">
-            <p class="label">Signal</p>
-            <h5>92%</h5>
-          </div>
-          <div class="tile lime">
-            <p class="label">Quality</p>
-            <h5>99%</h5>
-          </div>
-          <div class="tile amber">
-            <p class="label">Sessions</p>
-            <h5>241</h5>
-          </div>
-        </div>
-      </article>
-
-      <article class="card text-card" id="how">
-        <div class="card__head">
-          <p class="label">Cách làm</p>
-          <span class="dot dot--green"></span>
-        </div>
-        <ul>
-          <li>Giữ mọi thứ 2D nhưng thêm lớp giả: outline phát sáng, bóng chồng, noise mịn.</li>
-          <li>Dùng gradient đối lập (ấm/lạnh) cho cảm giác ánh sáng đổ.</li>
-          <li>Biến đổi nhỏ (translate, scale) khi hover để gợi khối.</li>
-          <li>Bo tròn lớn + khoảng cách thoáng giúp giống Bento3d nguyên bản.</li>
-        </ul>
-      </article>
-
-      <article class="card cta-card" id="cta">
-        <div class="card__head">
-          <p class="label">Template</p>
-          <span class="dot dot--blue"></span>
-        </div>
-        <h3>Tải mockup 2D</h3>
-        <p>HTML/CSS thuần, dễ chỉnh sửa. Sao chép cảm giác Bento3d nhưng không cần 3D thực.</p>
-        <a class="button primary" href="#">Download</a>
-      </article>
-    </section>
-  </main>
-
-  <footer class="footer">
-    <p>Rebuild phong cách Bento3d bằng 2D giả lập. Sử dụng tự do cho demo hoặc ý tưởng.</p>
-  </footer>
+    </div>
+  </div>
 </body>
 </html>
