@@ -1,0 +1,3 @@
+## 2024-04-12 - [Accessible Form Controls in Canvas App]
+**Learning:** Even in a custom canvas-heavy app, standard form controls are often used for parameters. These are frequently implemented as `div`s or `span`s for layout reasons, neglecting semantic HTML. Replacing them with `<label>` and associating them via `for`/`id` or `aria-labelledby` is a high-impact, low-risk accessibility win that preserves the visual design if classes are copied correctly.
+**Action:** When auditing canvas apps, immediately check the "sidebar" or "overlay" controls for semantic structure. They are the easiest entry point for accessibility improvements.
