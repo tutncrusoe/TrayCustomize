@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parameterized Tray - Pro Segment Designer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Thêm thư viện STLExporter -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/STLExporter.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #050505; color: white; margin: 0; overflow: hidden; }
+        .floating-panel { background: rgba(15, 15, 15, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); }
+        .input-group { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.2s ease; }
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #ffffff; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: rgba(255,255,255,0.2); border-radius: 2px; }
+        .view-label { position: absolute; top: 1rem; left: 1rem; background: rgba(255,255,255,0.1); padding: 6px 14px; border-radius: 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; color: rgba(255,255,255,0.8); z-index: 20; pointer-events: none; }
+        #main-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        .viewport-placeholder { position: relative; flex: 1; height: 100%; z-index: 2; }
+        .dim-label { position: absolute; font-size: 11px; font-weight: 800; color: #ffffff; z-index: 2000; background: #27272a; padding: 4px 10px; border-radius: 6px; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.8); cursor: pointer; pointer-events: auto; transition: transform 0.15s, background 0.2s; border: 1px solid rgba(255,255,255,0.2); user-select: none; }
+        .dim-label:hover { background: #3b82f6; border-color: #ffffff; transform: scale(1.1); }
+        .dim-input { width: 50px; background: #fff; color: #000; border: none; border-radius: 4px; font-size: 12px; font-weight: 800; text-align: center; outline: none; padding: 2px 0; }
+        #add-indicator { position: fixed; width: 36px; height: 36px; background: white; color: black; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 24px; pointer-events: none; z-index: 100; opacity: 0; transform: scale(0); transition: opacity 0.2s, transform 0.2s; box-shadow: 0 0 20px rgba(255,255,255,0.5); }
+        #add-indicator.active { opacity: 1; transform: scale(1); }
+        #add-indicator.remove-confirm { background: #ef4444; color: white; box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); }
+        #add-indicator.move { background: #3b82f6; color: white; font-size: 16px; }
+        #preview-line { position: fixed; background: rgba(255,255,255,0.6); pointer-events: none; z-index: 90; display: none; }
+        #global-dim-input { position: fixed; z-index: 9999; width: 60px; height: 26px; background: #fff; color: #000; border: 2px solid #3b82f6; border-radius: 6px; font-size: 11px; font-weight: 800; text-align: center; outline: none; padding: 0; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.5); transform: translate(-50%, -50%); font-family: 'Plus Jakarta Sans', sans-serif; }
+        .dim-label-3d { background: rgba(24, 24, 27, 0.85); border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(8px); }
+        .cursor-grab { cursor: grab; }
+        .cursor-grabbing { cursor: grabbing; }
+    </style>
+</head>
+<body class="relative h-screen w-screen">
+    <canvas id="main-canvas"></canvas>
+    <div id="add-indicator">+</div>
+    <div id="preview-line"></div>
+    <input type="number" id="global-dim-input" />
+    <div class="absolute inset-0 z-10 flex flex-col pointer-events-none">
+        <header class="w-full p-6 flex justify-between items-center pointer-events-none">
+            <div class="flex items-center gap-3 pointer-events-auto">
+                <div class="w-10 h-10 bg-white rounded-2xl flex items-center justify-center shadow-xl"><div class="w-5 h-5 bg-black rotate-45 rounded-sm"></div></div>
+                <div><h1 class="font-bold text-lg leading-none text-white">Parameterized Tray</h1><p class="text-[10px] text-zinc-500 font-medium uppercase tracking-widest mt-1">Smart Editing Mode</p></div>
+            </div>
+            <div class="flex gap-3 pointer-events-auto">
+                <button id="export-btn" class="bg-white text-black font-bold px-6 py-3 rounded-2xl text-sm flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg"><i data-lucide="download" class="w-4 h-4"></i>Xuất file STL</button>
+            </div>
+        </header>
+        <main id="viewports-container" class="flex-1 flex flex-row">
+            <div id="view-3d-placeholder" class="viewport-placeholder border-r border-white/10 pointer-events-auto cursor-grab active:cursor-grabbing"><div class="view-label">3D View</div><div id="dim-container-3d" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
+            <div id="view-top-placeholder" class="viewport-placeholder pointer-events-auto"><div class="view-label">Mặt bằng</div><div id="dim-container" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
+        </main>
+        <div class="w-full p-8 flex justify-center pointer-events-none">
+            <div class="floating-panel rounded-[2.5rem] p-8 flex flex-col md:flex-row gap-8 items-center justify-between pointer-events-auto w-full max-w-4xl">
+                <div class="flex gap-4 items-center">
+                    <div class="flex flex-col gap-1"><span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider ml-1">Kích thước (mm)</span><div class="flex gap-2"><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><span class="text-[10px] text-zinc-600 font-bold">L</span><input type="number" id="dim-l" value="120" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><span class="text-[10px] text-zinc-600 font-bold">W</span><input type="number" id="dim-w" value="120" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><span class="text-[10px] text-zinc-600 font-bold">H</span><input type="number" id="dim-h" value="40" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div></div></div>
+                </div>
+                <div class="w-px h-10 bg-white/10 mx-2"></div>
+                <div class="flex flex-col gap-1 w-32"><div class="flex justify-between items-center mb-1"><span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Bo góc</span><span id="radius-val" class="text-[10px] text-white font-bold">8mm</span></div><input type="range" id="radius" min="2" max="30" value="8" step="1"></div>
+                <div class="w-px h-10 bg-white/10 mx-2"></div>
+                <div class="flex flex-col gap-1 flex-1"><div class="flex justify-between items-center mb-1"><span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider ml-1">Quản lý ngăn</span><button id="clear-dividers" class="text-[9px] text-red-400 hover:text-red-300 uppercase font-bold tracking-tighter">Xóa tất cả</button></div><div class="text-xs text-white/60 font-medium" id="divider-stats">Dọc: 0 | Ngang: 0</div></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        lucide.createIcons();
+        let scene, renderer, boxGroup, camera3D, cameraTop;
+        const canvas = document.getElementById('main-canvas'), view3D = document.getElementById('view-3d-placeholder'), viewTop = document.getElementById('view-top-placeholder'), dimContainer = document.getElementById('dim-container'), dimContainer3D = document.getElementById('dim-container-3d'), indicator = document.getElementById('add-indicator'), previewLine = document.getElementById('preview-line'), globalInput = document.getElementById('global-dim-input');
+        let dividersX = [], dividersZ = [], hiddenSegments = {}, pendingAction = null, draggingDivider = null, selectedForRemoval = null, isEditing = false, currentEditCallback = null;
+        const FRUSTUM_SIZE = 250;
+
+        function init() {
+            scene = new THREE.Scene(); scene.background = new THREE.Color(0x050505);
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true }); renderer.setPixelRatio(window.devicePixelRatio);
+            camera3D = new THREE.PerspectiveCamera(40, 1, 1, 1000); camera3D.position.set(160, 160, 160); camera3D.lookAt(0, 0, 0);
+            cameraTop = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 1000); cameraTop.position.set(0, 200, 0); cameraTop.lookAt(0, 0, 0);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); scene.add(ambientLight);
+            const spotLight = new THREE.SpotLight(0xffffff, 1); spotLight.position.set(100, 250, 100); scene.add(spotLight);
+            boxGroup = new THREE.Group(); scene.add(boxGroup);
+            let isDragging3D = false, prevX3D = 0;
+            view3D.addEventListener('mousedown', (e) => { if (isEditing) return; if (e.target.closest('.dim-label')) return; isDragging3D = true; prevX3D = e.clientX; });
+            window.addEventListener('mouseup', () => { isDragging3D = false; });
+            window.addEventListener('mousemove', (e) => { if (isDragging3D && !isEditing) { boxGroup.rotation.y += (e.clientX - prevX3D) * 0.01; prevX3D = e.clientX; } });
+            viewTop.addEventListener('mousedown', onTopMouseDown); viewTop.addEventListener('mousemove', onTopMouseMove); window.addEventListener('mouseup', onTopMouseUp);
+            document.getElementById('clear-dividers').addEventListener('click', () => { dividersX = []; dividersZ = []; hiddenSegments = {}; updateBox(); });
+            document.getElementById('export-btn').addEventListener('click', exportSTL);
+            ['dim-l', 'dim-w', 'dim-h'].forEach(id => { document.getElementById(id).addEventListener('input', () => { if(!isEditing) updateBox(); }); });
+            document.getElementById('radius').addEventListener('input', (e) => { updateBox(); });
+            setupGlobalInput(); updateBox(); animate();
+        }
+
+        // Logic xuất file STL
+        function exportSTL() {
+            const exporter = new THREE.STLExporter();
+            // Tạm thời reset xoay về 0 để file xuất ra thẳng hàng với trục toạ độ
+            const currentRotation = boxGroup.rotation.y;
+            boxGroup.rotation.y = 0;
+            boxGroup.updateMatrixWorld();
+
+            const result = exporter.parse(boxGroup, { binary: true });
+            
+            // Khôi phục lại góc xoay
+            boxGroup.rotation.y = currentRotation;
+            boxGroup.updateMatrixWorld();
+
+            const blob = new Blob([result], { type: 'application/octet-stream' });
+            const link = document.createElement('a');
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.href = URL.createObjectURL(blob);
+            
+            // Đặt tên file theo kích thước
+            const l = document.getElementById('dim-l').value;
+            const w = document.getElementById('dim-w').value;
+            const h = document.getElementById('dim-h').value;
+            link.download = `BentoBox_${l}x${w}x${h}.stl`;
+            
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function createRoundedRectShape(w, h, r) {
+            const ctx = new THREE.Shape(); const x = -w/2, y = -h/2; const radius = Math.min(r, Math.min(w, h)/2);
+            ctx.moveTo(x + radius, y); ctx.lineTo(x + w - radius, y); ctx.quadraticCurveTo(x + w, y, x + w, y + radius); ctx.lineTo(x + w, y + h - radius); ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h); ctx.lineTo(x + radius, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - radius); ctx.lineTo(x, y + radius); ctx.quadraticCurveTo(x, y, x + radius, y); return ctx;
+        }
+
+        function createAdaptiveHoleShape(x, z, w, h, radii) {
+            const shape = new THREE.Shape(); const startX = x - w/2, startY = z - h/2;
+            const r_br = Math.min(radii[2], Math.min(w, h)/2), r_tr = Math.min(radii[1], Math.min(w, h)/2), r_tl = Math.min(radii[0], Math.min(w, h)/2), r_bl = Math.min(radii[3], Math.min(w, h)/2);
+            shape.moveTo(startX + r_bl, startY); shape.lineTo(startX + w - r_br, startY); shape.quadraticCurveTo(startX + w, startY, startX + w, startY + r_br); shape.lineTo(startX + w, startY + h - r_tr); shape.quadraticCurveTo(startX + w, startY + h, startX + w - r_tr, startY + h); shape.lineTo(startX + r_tl, startY + h); shape.quadraticCurveTo(startX, startY + h, startX, startY + h - r_tl); shape.lineTo(startX, startY + r_bl); shape.quadraticCurveTo(startX, startY, startX + r_bl, startY); return shape;
+        }
+
+        function setupGlobalInput() { globalInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') finishEditing(); else if (e.key === 'Escape') cancelEditing(); }); globalInput.addEventListener('blur', () => setTimeout(finishEditing, 100)); globalInput.addEventListener('mousedown', (e) => e.stopPropagation()); }
+        function startEditing(x, y, val, cb) { isEditing = true; currentEditCallback = cb; globalInput.style.display = 'block'; globalInput.style.left = `${x}px`; globalInput.style.top = `${y}px`; globalInput.value = val; globalInput.focus(); globalInput.select(); }
+        function finishEditing() { if (!isEditing) return; const val = parseFloat(globalInput.value); if (!isNaN(val) && currentEditCallback) currentEditCallback(val); isEditing = false; globalInput.style.display = 'none'; currentEditCallback = null; updateBox(); }
+        function cancelEditing() { isEditing = false; globalInput.style.display = 'none'; currentEditCallback = null; }
+
+        function getTopWorldCoords(e) { const rect = viewTop.getBoundingClientRect(); const x = e.clientX - rect.left, y = e.clientY - rect.top; const mouseX = (x / rect.width) * 2 - 1, mouseY = -(y / rect.height) * 2 + 1, aspect = rect.width / rect.height; return { x: mouseX * (FRUSTUM_SIZE * aspect / 2), z: -mouseY * (FRUSTUM_SIZE / 2), isInside: x >= 0 && x <= rect.width && y >= 0 && y <= rect.height }; }
+
+        function onTopMouseDown(e) {
+            if (e.target.closest('.dim-label')) return; if (isEditing) return;
+            const world = getTopWorldCoords(e); if (!world.isInside) return;
+            const l = parseFloat(document.getElementById('dim-l').value), w = parseFloat(document.getElementById('dim-w').value), hitMargin = 10;
+            let hit = null;
+            for (let i = 0; i < dividersX.length; i++) { if (Math.abs(world.x - dividersX[i]) < hitMargin && Math.abs(world.z) < w/2) { const sortedZ = [-w/2, ...[...dividersZ].sort((a,b)=>a-b), w/2]; let segIdx = 0; for(let j=0; j<sortedZ.length-1; j++) { if(world.z >= sortedZ[j] && world.z <= sortedZ[j+1]) { segIdx = j; break; } } hit = { type: 'X', index: i, segment: segIdx }; break; } }
+            if (!hit) { for (let i = 0; i < dividersZ.length; i++) { if (Math.abs(world.z - dividersZ[i]) < hitMargin && Math.abs(world.x) < l/2) { const sortedX = [-l/2, ...[...dividersX].sort((a,b)=>a-b), l/2]; let segIdx = 0; for(let j=0; j<sortedX.length-1; j++) { if(world.x >= sortedX[j] && world.x <= sortedX[j+1]) { segIdx = j; break; } } hit = { type: 'Z', index: i, segment: segIdx }; break; } } }
+            if (hit) { draggingDivider = { ...hit, hasMoved: false }; viewTop.classList.add('cursor-grabbing'); } else { if (selectedForRemoval) { selectedForRemoval = null; updateBox(); } if (pendingAction && (pendingAction.type === 'addX' || pendingAction.type === 'addZ')) { if (pendingAction.type === 'addX') dividersX.push(pendingAction.pos); else dividersZ.push(pendingAction.pos); updateBox(); } }
+        }
+
+        function onTopMouseMove(e) {
+            if (isEditing) return; const world = getTopWorldCoords(e); const l = parseFloat(document.getElementById('dim-l').value), w = parseFloat(document.getElementById('dim-w').value), rect = viewTop.getBoundingClientRect(), aspect = rect.width / rect.height;
+            if (draggingDivider) { draggingDivider.hasMoved = true; if (draggingDivider.type === 'X') dividersX[draggingDivider.index] = Math.max(-l/2 + 5, Math.min(l/2 - 5, world.x)); else dividersZ[draggingDivider.index] = Math.max(-w/2 + 5, Math.min(w/2 - 5, world.z)); updateBox(); indicator.style.left = `${e.clientX-18}px`; indicator.style.top = `${e.clientY-18}px`; indicator.innerText = '↔'; indicator.className = 'active move'; return; }
+            if (!world.isInside) { indicator.classList.remove('active'); previewLine.style.display = 'none'; return; }
+            const hitMargin = 10, edgeMargin = 35; let hit = null;
+            for (let i = 0; i < dividersX.length; i++) { if (Math.abs(world.x - dividersX[i]) < hitMargin && Math.abs(world.z) < w/2) { const sortedZ = [-w/2, ...[...dividersZ].sort((a,b)=>a-b), w/2]; for(let j=0; j<sortedZ.length-1; j++) { if(world.z >= sortedZ[j] && world.z <= sortedZ[j+1]) { hit = { type: 'X', index: i, segment: j }; break; } } break; } }
+            if (!hit) { for (let i = 0; i < dividersZ.length; i++) { if (Math.abs(world.z - dividersZ[i]) < hitMargin && Math.abs(world.x) < l/2) { const sortedX = [-l/2, ...[...dividersX].sort((a,b)=>a-b), l/2]; for(let j=0; j<sortedX.length-1; j++) { if(world.x >= sortedX[j] && world.x <= sortedX[j+1]) { hit = { type: 'Z', index: i, segment: j }; break; } } break; } } }
+            if (hit) { pendingAction = { type: 'remove', axis: hit.type, lineIdx: hit.index, segIdx: hit.segment }; const isConfirming = selectedForRemoval && selectedForRemoval.axis === hit.type && selectedForRemoval.lineIdx === hit.index && selectedForRemoval.segIdx === hit.segment; indicator.style.left = `${e.clientX-18}px`; indicator.style.top = `${e.clientY-18}px`; indicator.innerText = '-'; indicator.className = 'active' + (isConfirming ? ' remove-confirm' : ' move'); previewLine.style.display = 'none'; }
+            else { const isInsideW = Math.abs(world.x) < (l/2 - 5), isNearH = Math.abs(world.z - w/2) < edgeMargin || Math.abs(world.z + w/2) < edgeMargin, isInsideD = Math.abs(world.z) < (w/2 - 5), isNearV = Math.abs(world.x - l/2) < edgeMargin || Math.abs(world.x + l/2) < edgeMargin; if (isNearH && isInsideW) { pendingAction = { type: 'addX', pos: world.x }; indicator.innerText = '+'; indicator.className = 'active'; previewLine.style.display = 'block'; previewLine.style.width = '2px'; previewLine.style.height = `${(w/FRUSTUM_SIZE)*rect.height}px`; previewLine.style.left = `${e.clientX-1}px`; previewLine.style.top = `${rect.top + rect.height/2 - (w/FRUSTUM_SIZE)*rect.height/2}px`; } else if (isNearV && isInsideD) { pendingAction = { type: 'addZ', pos: world.z }; indicator.innerText = '+'; indicator.className = 'active'; previewLine.style.display = 'block'; previewLine.style.height = '2px'; previewLine.style.width = `${(l/FRUSTUM_SIZE)*aspect*rect.width}px`; previewLine.style.top = `${e.clientY-1}px`; previewLine.style.left = `${rect.left + rect.width/2 - (l/FRUSTUM_SIZE)*aspect*rect.width/2}px`; } else { indicator.classList.remove('active'); previewLine.style.display = 'none'; pendingAction = null; } indicator.style.left = `${e.clientX-18}px`; indicator.style.top = `${e.clientY-18}px`; }
+        }
+
+        function onTopMouseUp() { viewTop.classList.remove('cursor-grabbing'); if (draggingDivider) { if (!draggingDivider.hasMoved) { const hit = { axis: draggingDivider.type, lineIdx: draggingDivider.index, segIdx: draggingDivider.segment }; if (selectedForRemoval && selectedForRemoval.axis === hit.axis && selectedForRemoval.lineIdx === hit.lineIdx && selectedForRemoval.segIdx === hit.segIdx) { const key = `${hit.axis}_${hit.lineIdx}_${hit.segIdx}`; hiddenSegments[key] = true; selectedForRemoval = null; updateBox(); } else { selectedForRemoval = hit; updateBox(); } } else { selectedForRemoval = null; } draggingDivider = null; } }
+
+        function getMinSegmentSize(totalSize, dividers) {
+            const points = [-totalSize/2, ...[...dividers].sort((a,b)=>a-b), totalSize/2];
+            let minSize = totalSize;
+            for(let i = 0; i < points.length - 1; i++) {
+                const dist = points[i+1] - points[i];
+                if (dist < minSize) minSize = dist;
+            }
+            return minSize;
+        }
+
+        function updateBox() {
+            while(boxGroup.children.length > 0) boxGroup.remove(boxGroup.children[0]);
+            
+            const l = parseFloat(document.getElementById('dim-l').value)||120;
+            const w = parseFloat(document.getElementById('dim-w').value)||120;
+            const h = parseFloat(document.getElementById('dim-h').value)||40;
+            const inputR = parseFloat(document.getElementById('radius').value)||8;
+
+            dividersX = dividersX.filter(x => Math.abs(x) < l/2 - 5);
+            dividersZ = dividersZ.filter(z => Math.abs(z) < w/2 - 5);
+
+            // Logic mới để giới hạn radius
+            const minSegX = getMinSegmentSize(l, dividersX);
+            const minSegZ = getMinSegmentSize(w, dividersZ);
+            const minSegment = Math.min(minSegX, minSegZ);
+            
+            // Radius an toàn = 1/2 đoạn nhỏ nhất - 0.5mm
+            const maxSafeRadius = (minSegment / 2) - 0.5;
+            
+            // Giới hạn bán kính thực tế (r) sử dụng cho model, tối thiểu là 1
+            const effectiveR = Math.max(1, Math.min(inputR, maxSafeRadius));
+
+            // Cập nhật text hiển thị để người dùng biết giá trị thực tế đang dùng
+            document.getElementById('radius-val').innerText = `${Math.round(effectiveR * 10) / 10}mm`;
+
+            boxGroup.add(createModel(l, h, w, effectiveR, dividersX, dividersZ));
+            updateDimensions();
+        }
+
+        function createEditableLabel(text, cb) { const el = document.createElement('div'); el.className = 'dim-label'; el.innerText = text; el.addEventListener('mousedown', (e) => { e.stopPropagation(); e.preventDefault(); const r = el.getBoundingClientRect(); startEditing(r.left + r.width/2, r.top + r.height/2, text, cb); }); return el; }
+
+        function createModel(l, h, w, r, dX, dZ) {
+            const group = new THREE.Group(), mat = new THREE.MeshPhongMaterial({ color: 0x222222, shininess: 40 }), thick = 2, outerShape = createRoundedRectShape(l, w, r);
+            const sortedX = [-l/2, ...[...dX].sort((a,b)=>a-b), l/2], sortedZ = [-w/2, ...[...dZ].sort((a,b)=>a-b), w/2], visited = new Set(), rooms = [];
+            const getCellId = (i, j) => `${i},${j}`;
+            for(let i=0; i<sortedX.length-1; i++) {
+                for(let j=0; j<sortedZ.length-1; j++) {
+                    if(visited.has(getCellId(i,j))) continue;
+                    let roomCells = [], queue = [{i, j}]; visited.add(getCellId(i,j));
+                    let minI=i, maxI=i, minJ=j, maxJ=j;
+                    while(queue.length > 0) {
+                        const curr = queue.pop(); roomCells.push(curr);
+                        minI = Math.min(minI, curr.i); maxI = Math.max(maxI, curr.i); minJ = Math.min(minJ, curr.j); maxJ = Math.max(maxJ, curr.j);
+                        [[1,0,'X'],[-1,0,'X'],[0,1,'Z'],[0,-1,'Z']].forEach(d => {
+                            const ni = curr.i + d[0], nj = curr.j + d[1];
+                            if(ni >= 0 && ni < sortedX.length-1 && nj >= 0 && nj < sortedZ.length-1) {
+                                let hasWall = true;
+                                if(d[2] === 'X') { const wallIdx = Math.max(curr.i, ni), rawIdx = dX.indexOf(sortedX[wallIdx]); if(rawIdx !== -1 && hiddenSegments[`X_${rawIdx}_${Math.min(curr.j, nj)}`]) hasWall = false; }
+                                else { const wallIdx = Math.max(curr.j, nj), rawIdx = dZ.indexOf(sortedZ[wallIdx]); if(rawIdx !== -1 && hiddenSegments[`Z_${rawIdx}_${Math.min(curr.i, ni)}`]) hasWall = false; }
+                                if(!hasWall && !visited.has(getCellId(ni,nj))) { visited.add(getCellId(ni,nj)); queue.push({i: ni, j: nj}); }
+                            }
+                        });
+                    }
+                    rooms.push({bounds: {minI, maxI, minJ, maxJ}});
+                }
+            }
+            rooms.forEach(room => {
+                const xStart = sortedX[room.bounds.minI], xEnd = sortedX[room.bounds.maxI + 1], zStart = sortedZ[room.bounds.minJ], zEnd = sortedZ[room.bounds.maxJ + 1];
+                const roomW = xEnd - xStart, roomH = zEnd - zStart, centerX = xStart + roomW/2, centerZ = zStart + roomH/2;
+                const holeW = roomW - thick, holeH = roomH - thick;
+                if(holeW > 0 && holeH > 0) {
+                    const touchingL = Math.abs(xStart - (-l/2)) < 0.1, touchingR = Math.abs(xEnd - (l/2)) < 0.1, touchingT = Math.abs(zStart - (-w/2)) < 0.1, touchingB = Math.abs(zEnd - (w/2)) < 0.1;
+                    const stdR = 4, bigR = Math.max(stdR, r - thick);
+                    const radii = [
+                        (touchingL && touchingT) ? bigR : (touchingL || touchingT ? bigR : stdR), // TL
+                        (touchingR && touchingT) ? bigR : (touchingR || touchingT ? bigR : stdR), // TR
+                        (touchingR && touchingB) ? bigR : (touchingR || touchingB ? bigR : stdR), // BR
+                        (touchingL && touchingB) ? bigR : (touchingL || touchingB ? bigR : stdR)  // BL
+                    ];
+                    outerShape.holes.push(createAdaptiveHoleShape(centerX, centerZ, holeW, holeH, radii));
+                }
+            });
+            const geo = new THREE.ExtrudeGeometry(outerShape, { depth: h, bevelEnabled: false, curveSegments: 24 }); geo.rotateX(Math.PI / 2);
+            const mesh = new THREE.Mesh(geo, mat); mesh.position.y = -h/2 + h;
+            const baseShape = createRoundedRectShape(l, w, r), baseGeo = new THREE.ExtrudeGeometry(baseShape, { depth: 2, bevelEnabled: false, curveSegments: 24 }); baseGeo.rotateX(Math.PI / 2);
+            const base = new THREE.Mesh(baseGeo, mat); base.position.y = -h/2 + 2; group.add(mesh); group.add(base); return group;
+        }
+
+        function updateDimensions() {
+            if (isEditing) return; dimContainer.innerHTML = ''; dimContainer3D.innerHTML = '';
+            const rect = viewTop.getBoundingClientRect(), aspect = rect.width / rect.height, l = parseFloat(document.getElementById('dim-l').value), w = parseFloat(document.getElementById('dim-w').value), h = parseFloat(document.getElementById('dim-h').value);
+            const w2pX = (wx) => rect.width/2 + (wx / (FRUSTUM_SIZE * aspect / 2)) * (rect.width/2), w2pZ = (wz) => rect.height/2 + (wz / (FRUSTUM_SIZE / 2)) * (rect.height/2);
+            const sortedX = [-l/2, ...[...dividersX].sort((a,b) => a-b), l/2];
+            for(let i=0; i < sortedX.length - 1; i++) { const dist = sortedX[i+1] - sortedX[i]; if(dist < 1) continue; const el = createEditableLabel(Math.round(dist), (nd) => { const diff = nd - dist; for(let k=0; k<dividersX.length; k++) if(dividersX[k] >= sortedX[i+1] - 0.1) dividersX[k] += diff; }); el.style.left = `${w2pX((sortedX[i] + sortedX[i+1]) / 2)}px`; el.style.top = `${w2pZ(-w/2) - 25}px`; el.style.transform = 'translateX(-50%)'; dimContainer.appendChild(el); }
+            const sortedZ = [-w/2, ...[...dividersZ].sort((a,b) => a-b), w/2];
+            for(let i=0; i < sortedZ.length - 1; i++) { const dist = sortedZ[i+1] - sortedZ[i]; if(dist < 1) continue; const el = createEditableLabel(Math.round(dist), (nd) => { const diff = nd - dist; for(let k=0; k<dividersZ.length; k++) if(dividersZ[k] >= sortedZ[i+1] - 0.1) dividersZ[k] += diff; }); el.style.left = `${w2pX(-l/2) - 35}px`; el.style.top = `${w2pZ((sortedZ[i] + sortedZ[i+1]) / 2)}px`; el.style.transform = 'translateY(-50%)'; dimContainer.appendChild(el); }
+            const labels3D = [ { text: Math.round(l), pos: new THREE.Vector3(0, -h/2 - 10, w/2 + 10), target: 'dim-l' }, { text: Math.round(w), pos: new THREE.Vector3(l/2 + 15, -h/2 - 10, 0), target: 'dim-w' }, { text: Math.round(h), pos: new THREE.Vector3(-l/2 - 15, 0, w/2 + 15), target: 'dim-h' } ];
+            labels3D.forEach(info => { const el = createEditableLabel(info.text, (nv) => { document.getElementById(info.target).value = nv; }); el.classList.add('dim-label-3d'); el.dataset.worldPos = JSON.stringify(info.pos); dimContainer3D.appendChild(el); });
+            document.getElementById('divider-stats').innerText = `Dọc: ${dividersX.length} | Ngang: ${dividersZ.length}`;
+        }
+
+        function update3DLabels() {
+            if (isEditing) return; const rect3D = view3D.getBoundingClientRect(), labels = dimContainer3D.querySelectorAll('.dim-label-3d');
+            labels.forEach(el => { if (el.querySelector('input')) return; const worldPos = JSON.parse(el.dataset.worldPos), vector = new THREE.Vector3(worldPos.x, worldPos.y, worldPos.z); vector.applyQuaternion(boxGroup.quaternion); vector.project(camera3D); const x = (vector.x * 0.5 + 0.5) * rect3D.width, y = (-(vector.y) * 0.5 + 0.5) * rect3D.height; if (vector.z < 1) { el.style.display = 'block'; el.style.left = `${x}px`; el.style.top = `${y}px`; el.style.transform = 'translate(-50%, -50%)'; } else { el.style.display = 'none'; } });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate); const width = canvas.clientWidth, height = canvas.clientHeight; if (canvas.width !== width || canvas.height !== height) { renderer.setSize(width, height, false); updateDimensions(); } renderer.setScissorTest(true);
+            const rect3D = view3D.getBoundingClientRect(); renderer.setViewport(rect3D.left, height - rect3D.bottom, rect3D.width, rect3D.height); renderer.setScissor(rect3D.left, height - rect3D.bottom, rect3D.width, rect3D.height); camera3D.aspect = rect3D.width / rect3D.height; camera3D.updateProjectionMatrix(); renderer.render(scene, camera3D); update3DLabels();
+            const curRot = boxGroup.rotation.y; boxGroup.rotation.y = 0; boxGroup.updateMatrixWorld();
+            const rectTop = viewTop.getBoundingClientRect(); renderer.setViewport(rectTop.left, height - rectTop.bottom, rectTop.width, rectTop.height); renderer.setScissor(rectTop.left, height - rectTop.bottom, rectTop.width, rectTop.height); const aspectTop = rectTop.width / rectTop.height; cameraTop.left = FRUSTUM_SIZE * aspectTop / -2; cameraTop.right = FRUSTUM_SIZE * aspectTop / 2; cameraTop.top = FRUSTUM_SIZE / 2; cameraTop.bottom = FRUSTUM_SIZE / -2; cameraTop.updateProjectionMatrix(); renderer.render(scene, cameraTop);
+            boxGroup.rotation.y = curRot; boxGroup.updateMatrixWorld();
+        }
+        window.onload = init;
+    </script>
+</body>
+</html>
