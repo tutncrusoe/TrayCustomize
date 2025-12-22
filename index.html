@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -46,22 +46,22 @@
                 <div><h1 class="font-bold text-lg leading-none text-white">Parameterized Tray</h1><p class="text-[10px] text-zinc-500 font-medium uppercase tracking-widest mt-1">Smart Editing Mode</p></div>
             </div>
             <div class="flex gap-3 pointer-events-auto">
-                <button id="export-btn" class="bg-white text-black font-bold px-6 py-3 rounded-2xl text-sm flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg"><i data-lucide="download" class="w-4 h-4"></i>Xuất file STL</button>
+                <button id="export-btn" class="bg-white text-black font-bold px-6 py-3 rounded-2xl text-sm flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg"><i data-lucide="download" class="w-4 h-4"></i>Export STL</button>
             </div>
         </header>
         <main id="viewports-container" class="flex-1 flex flex-row">
             <div id="view-3d-placeholder" class="viewport-placeholder border-r border-white/10 pointer-events-auto cursor-grab active:cursor-grabbing"><div class="view-label">3D View</div><div id="dim-container-3d" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
-            <div id="view-top-placeholder" class="viewport-placeholder pointer-events-auto"><div class="view-label">Mặt bằng</div><div id="dim-container" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
+            <div id="view-top-placeholder" class="viewport-placeholder pointer-events-auto"><div class="view-label">Top View</div><div id="dim-container" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
         </main>
         <div class="w-full p-8 flex justify-center pointer-events-none">
             <div class="floating-panel rounded-[2.5rem] p-8 flex flex-col md:flex-row gap-8 items-center justify-between pointer-events-auto w-full max-w-4xl">
                 <div class="flex gap-4 items-center">
-                    <div class="flex flex-col gap-1"><span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider ml-1">Kích thước (mm)</span><div class="flex gap-2"><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><span class="text-[10px] text-zinc-600 font-bold">L</span><input type="number" id="dim-l" value="120" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><span class="text-[10px] text-zinc-600 font-bold">W</span><input type="number" id="dim-w" value="120" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><span class="text-[10px] text-zinc-600 font-bold">H</span><input type="number" id="dim-h" value="40" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div></div></div>
+                    <div class="flex flex-col gap-1"><span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider ml-1">Dimensions (mm)</span><div class="flex gap-2"><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><span class="text-[10px] text-zinc-600 font-bold">L</span><input type="number" id="dim-l" value="120" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><span class="text-[10px] text-zinc-600 font-bold">W</span><input type="number" id="dim-w" value="120" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><span class="text-[10px] text-zinc-600 font-bold">H</span><input type="number" id="dim-h" value="40" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div></div></div>
                 </div>
                 <div class="w-px h-10 bg-white/10 mx-2"></div>
-                <div class="flex flex-col gap-1 w-32"><div class="flex justify-between items-center mb-1"><span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Bo góc</span><span id="radius-val" class="text-[10px] text-white font-bold">8mm</span></div><input type="range" id="radius" min="2" max="30" value="8" step="1"></div>
+                <div class="flex flex-col gap-1 w-32"><div class="flex justify-between items-center mb-1"><span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Corner Radius</span><span id="radius-val" class="text-[10px] text-white font-bold">8mm</span></div><input type="range" id="radius" min="2" max="30" value="8" step="1"></div>
                 <div class="w-px h-10 bg-white/10 mx-2"></div>
-                <div class="flex flex-col gap-1 flex-1"><div class="flex justify-between items-center mb-1"><span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider ml-1">Quản lý ngăn</span><button id="clear-dividers" class="text-[9px] text-red-400 hover:text-red-300 uppercase font-bold tracking-tighter">Xóa tất cả</button></div><div class="text-xs text-white/60 font-medium" id="divider-stats">Dọc: 0 | Ngang: 0</div></div>
+                <div class="flex flex-col gap-1 flex-1"><div class="flex justify-between items-center mb-1"><span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider ml-1">Dividers</span><button id="clear-dividers" class="text-[9px] text-red-400 hover:text-red-300 uppercase font-bold tracking-tighter">Clear All</button></div><div class="text-xs text-white/60 font-medium" id="divider-stats">Vert: 0 | Horiz: 0</div></div>
             </div>
         </div>
     </div>
@@ -261,7 +261,7 @@
             for(let i=0; i < sortedZ.length - 1; i++) { const dist = sortedZ[i+1] - sortedZ[i]; if(dist < 1) continue; const el = createEditableLabel(Math.round(dist), (nd) => { const diff = nd - dist; for(let k=0; k<dividersZ.length; k++) if(dividersZ[k] >= sortedZ[i+1] - 0.1) dividersZ[k] += diff; }); el.style.left = `${w2pX(-l/2) - 35}px`; el.style.top = `${w2pZ((sortedZ[i] + sortedZ[i+1]) / 2)}px`; el.style.transform = 'translateY(-50%)'; dimContainer.appendChild(el); }
             const labels3D = [ { text: Math.round(l), pos: new THREE.Vector3(0, -h/2 - 10, w/2 + 10), target: 'dim-l' }, { text: Math.round(w), pos: new THREE.Vector3(l/2 + 15, -h/2 - 10, 0), target: 'dim-w' }, { text: Math.round(h), pos: new THREE.Vector3(-l/2 - 15, 0, w/2 + 15), target: 'dim-h' } ];
             labels3D.forEach(info => { const el = createEditableLabel(info.text, (nv) => { document.getElementById(info.target).value = nv; }); el.classList.add('dim-label-3d'); el.dataset.worldPos = JSON.stringify(info.pos); dimContainer3D.appendChild(el); });
-            document.getElementById('divider-stats').innerText = `Dọc: ${dividersX.length} | Ngang: ${dividersZ.length}`;
+            document.getElementById('divider-stats').innerText = `Vert: ${dividersX.length} | Horiz: ${dividersZ.length}`;
         }
 
         function update3DLabels() {
