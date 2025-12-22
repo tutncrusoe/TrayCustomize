@@ -101,7 +101,7 @@
             boxGroup.updateMatrixWorld();
 
             const result = exporter.parse(boxGroup, { binary: true });
-            
+
             // Khôi phục lại góc xoay
             boxGroup.rotation.y = currentRotation;
             boxGroup.updateMatrixWorld();
@@ -111,13 +111,13 @@
             link.style.display = 'none';
             document.body.appendChild(link);
             link.href = URL.createObjectURL(blob);
-            
+
             // Đặt tên file theo kích thước
             const l = document.getElementById('dim-l').value;
             const w = document.getElementById('dim-w').value;
             const h = document.getElementById('dim-h').value;
             link.download = `BentoBox_${l}x${w}x${h}.stl`;
-            
+
             link.click();
             document.body.removeChild(link);
         }
@@ -161,7 +161,7 @@
             else { const isInsideW = Math.abs(world.x) < (l/2 - 5), isNearH = Math.abs(world.z - w/2) < edgeMargin || Math.abs(world.z + w/2) < edgeMargin, isInsideD = Math.abs(world.z) < (w/2 - 5), isNearV = Math.abs(world.x - l/2) < edgeMargin || Math.abs(world.x + l/2) < edgeMargin; if (isNearH && isInsideW) { pendingAction = { type: 'addX', pos: world.x }; indicator.innerText = '+'; indicator.className = 'active'; previewLine.style.display = 'block'; previewLine.style.width = '2px'; previewLine.style.height = `${(w/FRUSTUM_SIZE)*rect.height}px`; previewLine.style.left = `${e.clientX-1}px`; previewLine.style.top = `${rect.top + rect.height/2 - (w/FRUSTUM_SIZE)*rect.height/2}px`; } else if (isNearV && isInsideD) { pendingAction = { type: 'addZ', pos: world.z }; indicator.innerText = '+'; indicator.className = 'active'; previewLine.style.display = 'block'; previewLine.style.height = '2px'; previewLine.style.width = `${(l/FRUSTUM_SIZE)*aspect*rect.width}px`; previewLine.style.top = `${e.clientY-1}px`; previewLine.style.left = `${rect.left + rect.width/2 - (l/FRUSTUM_SIZE)*aspect*rect.width/2}px`; } else { indicator.classList.remove('active'); previewLine.style.display = 'none'; pendingAction = null; } indicator.style.left = `${e.clientX-18}px`; indicator.style.top = `${e.clientY-18}px`; }
         }
 
-        function onTopMouseUp() { viewTop.classList.remove('cursor-grabbing'); if (draggingDivider) { if (!draggingDivider.hasMoved) { const hit = { axis: draggingDivider.type, lineIdx: draggingDivider.index, segIdx: draggingDivider.segment }; if (selectedForRemoval && selectedForRemoval.axis === hit.axis && selectedForRemoval.lineIdx === hit.lineIdx && selectedForRemoval.segIdx === hit.segIdx) { const key = `${hit.axis}_${hit.lineIdx}_${hit.segIdx}`; hiddenSegments[key] = true; selectedForRemoval = null; updateBox(); } else { selectedForRemoval = hit; updateBox(); } } else { selectedForRemoval = null; } draggingDivider = null; } }
+        function onTopMouseUp() { viewTop.classList.remove('cursor-grabbing'); if (draggingDivider) { if (!draggingDivider.hasMoved) { const hit = { axis: draggingDivider.type, lineIdx: draggingDivider.index, segIdx: draggingDivider.segment }; if (selectedForRemoval && selectedForRemoval.axis === hit.axis && selectedForRemoval.lineIdx === hit.lineIdx && selectedForRemoval.segIdx === hit.segIdx) { if(hit.axis === 'X') dividersX.splice(hit.lineIdx, 1); else dividersZ.splice(hit.lineIdx, 1); hiddenSegments = {}; selectedForRemoval = null; updateBox(); } else { selectedForRemoval = hit; updateBox(); } } else { selectedForRemoval = null; } draggingDivider = null; } }
 
         function getMinSegmentSize(totalSize, dividers) {
             const points = [-totalSize/2, ...[...dividers].sort((a,b)=>a-b), totalSize/2];
@@ -175,7 +175,7 @@
 
         function updateBox() {
             while(boxGroup.children.length > 0) boxGroup.remove(boxGroup.children[0]);
-            
+
             const l = parseFloat(document.getElementById('dim-l').value)||120;
             const w = parseFloat(document.getElementById('dim-w').value)||120;
             const h = parseFloat(document.getElementById('dim-h').value)||40;
@@ -188,10 +188,10 @@
             const minSegX = getMinSegmentSize(l, dividersX);
             const minSegZ = getMinSegmentSize(w, dividersZ);
             const minSegment = Math.min(minSegX, minSegZ);
-            
+
             // Radius an toàn = 1/2 đoạn nhỏ nhất - 0.5mm
             const maxSafeRadius = (minSegment / 2) - 0.5;
-            
+
             // Giới hạn bán kính thực tế (r) sử dụng cho model, tối thiểu là 1
             const effectiveR = Math.max(1, Math.min(inputR, maxSafeRadius));
 
