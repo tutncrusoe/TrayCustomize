@@ -161,7 +161,94 @@
             else { const isInsideW = Math.abs(world.x) < (l/2 - 5), isNearH = Math.abs(world.z - w/2) < edgeMargin || Math.abs(world.z + w/2) < edgeMargin, isInsideD = Math.abs(world.z) < (w/2 - 5), isNearV = Math.abs(world.x - l/2) < edgeMargin || Math.abs(world.x + l/2) < edgeMargin; if (isNearH && isInsideW) { pendingAction = { type: 'addX', pos: world.x }; indicator.innerText = '+'; indicator.className = 'active'; previewLine.style.display = 'block'; previewLine.style.width = '2px'; previewLine.style.height = `${(w/FRUSTUM_SIZE)*rect.height}px`; previewLine.style.left = `${e.clientX-1}px`; previewLine.style.top = `${rect.top + rect.height/2 - (w/FRUSTUM_SIZE)*rect.height/2}px`; } else if (isNearV && isInsideD) { pendingAction = { type: 'addZ', pos: world.z }; indicator.innerText = '+'; indicator.className = 'active'; previewLine.style.display = 'block'; previewLine.style.height = '2px'; previewLine.style.width = `${(l/FRUSTUM_SIZE)*aspect*rect.width}px`; previewLine.style.top = `${e.clientY-1}px`; previewLine.style.left = `${rect.left + rect.width/2 - (l/FRUSTUM_SIZE)*aspect*rect.width/2}px`; } else { indicator.classList.remove('active'); previewLine.style.display = 'none'; pendingAction = null; } indicator.style.left = `${e.clientX-18}px`; indicator.style.top = `${e.clientY-18}px`; }
         }
 
-        function onTopMouseUp() { viewTop.classList.remove('cursor-grabbing'); if (draggingDivider) { if (!draggingDivider.hasMoved) { const hit = { axis: draggingDivider.type, lineIdx: draggingDivider.index, segIdx: draggingDivider.segment }; if (selectedForRemoval && selectedForRemoval.axis === hit.axis && selectedForRemoval.lineIdx === hit.lineIdx && selectedForRemoval.segIdx === hit.segIdx) { if(hit.axis === 'X') dividersX.splice(hit.lineIdx, 1); else dividersZ.splice(hit.lineIdx, 1); hiddenSegments = {}; selectedForRemoval = null; updateBox(); } else { selectedForRemoval = hit; updateBox(); } } else { selectedForRemoval = null; } draggingDivider = null; } }
+        function onTopMouseUp() {
+            viewTop.classList.remove('cursor-grabbing');
+            if (draggingDivider) {
+                if (!draggingDivider.hasMoved) {
+                    const hit = { axis: draggingDivider.type, lineIdx: draggingDivider.index, segIdx: draggingDivider.segment };
+                    if (selectedForRemoval && selectedForRemoval.axis === hit.axis && selectedForRemoval.lineIdx === hit.lineIdx && selectedForRemoval.segIdx === hit.segIdx) {
+                        const key = `${hit.axis}_${hit.lineIdx}_${hit.segIdx}`;
+                        hiddenSegments[key] = true;
+                        selectedForRemoval = null;
+                        cleanupDividers();
+                        updateBox();
+                    } else {
+                        selectedForRemoval = hit;
+                        updateBox();
+                    }
+                } else {
+                    selectedForRemoval = null;
+                }
+                draggingDivider = null;
+            }
+        }
+
+        function cleanupDividers() {
+            let changed = true;
+            while(changed) {
+                changed = false;
+                // Check X dividers
+                for(let i=0; i<dividersX.length; i++) {
+                    let allHidden = true;
+                    // X divider i has segments 0 to dividersZ.length (which is +1 segments than dividersZ lines)
+                    // But wait, the segment calculation in onTopMouseDown/Move iterates sortedZ points.
+                    // sortedZ = [-w/2, ...dividersZ, w/2]. Length is dividersZ.length + 2.
+                    // Loop j goes to length-1. So j goes from 0 to dividersZ.length.
+                    // So there are dividersZ.length + 1 segments. Correct.
+                    for(let j=0; j <= dividersZ.length; j++) {
+                        if(!hiddenSegments[`X_${i}_${j}`]) { allHidden = false; break; }
+                    }
+                    if(allHidden) {
+                        // Remove X[i]
+                        dividersX.splice(i, 1);
+                        hiddenSegments = updateHiddenSegmentsMap('X', i);
+                        changed = true;
+                        break; // Restart loop
+                    }
+                }
+                if(changed) continue;
+
+                // Check Z dividers
+                for(let i=0; i<dividersZ.length; i++) {
+                    let allHidden = true;
+                    for(let j=0; j <= dividersX.length; j++) {
+                        if(!hiddenSegments[`Z_${i}_${j}`]) { allHidden = false; break; }
+                    }
+                    if(allHidden) {
+                        // Remove Z[i]
+                        dividersZ.splice(i, 1);
+                        hiddenSegments = updateHiddenSegmentsMap('Z', i);
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        function updateHiddenSegmentsMap(removedAxis, removedIndex) {
+            const newHidden = {};
+            for (let key in hiddenSegments) {
+                const parts = key.split('_');
+                const axis = parts[0];
+                const lineIdx = parseInt(parts[1]);
+                const segIdx = parseInt(parts[2]);
+
+                if (axis === removedAxis) {
+                    if (lineIdx < removedIndex) {
+                        newHidden[key] = true;
+                    } else if (lineIdx > removedIndex) {
+                        newHidden[`${axis}_${lineIdx - 1}_${segIdx}`] = true;
+                    }
+                } else {
+                    if (segIdx < removedIndex) {
+                        newHidden[key] = true;
+                    } else if (segIdx > removedIndex + 1) {
+                        newHidden[`${axis}_${lineIdx}_${segIdx - 1}`] = true;
+                    }
+                }
+            }
+            return newHidden;
+        }
 
         function getMinSegmentSize(totalSize, dividers) {
             const points = [-totalSize/2, ...[...dividers].sort((a,b)=>a-b), totalSize/2];
