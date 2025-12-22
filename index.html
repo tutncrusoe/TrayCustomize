@@ -19,7 +19,7 @@
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: rgba(255,255,255,0.2); border-radius: 2px; }
         .view-label { position: absolute; top: 1rem; left: 1rem; background: rgba(255,255,255,0.1); padding: 6px 14px; border-radius: 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; color: rgba(255,255,255,0.8); z-index: 20; pointer-events: none; }
         #main-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        .viewport-placeholder { position: relative; flex: 1; height: 100%; z-index: 2; }
+        .viewport-placeholder { position: relative; flex: 1; z-index: 2; }
         .dim-label { position: absolute; font-size: 11px; font-weight: 800; color: #ffffff; z-index: 2000; background: #27272a; padding: 4px 10px; border-radius: 6px; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.8); cursor: pointer; pointer-events: auto; transition: transform 0.15s, background 0.2s; border: 1px solid rgba(255,255,255,0.2); user-select: none; }
         .dim-label:hover { background: #3b82f6; border-color: #ffffff; transform: scale(1.1); }
         .dim-input { width: 50px; background: #fff; color: #000; border: none; border-radius: 4px; font-size: 12px; font-weight: 800; text-align: center; outline: none; padding: 2px 0; }
@@ -49,12 +49,12 @@
                 <button id="export-btn" class="bg-white text-black font-bold px-6 py-3 rounded-2xl text-sm flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg"><i data-lucide="download" class="w-4 h-4"></i>Export STL</button>
             </div>
         </header>
-        <main id="viewports-container" class="flex-1 flex flex-row">
-            <div id="view-3d-placeholder" class="viewport-placeholder border-r border-white/10 pointer-events-auto cursor-grab active:cursor-grabbing"><div class="view-label">3D View</div><div id="dim-container-3d" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
+        <main id="viewports-container" class="flex-1 flex flex-col md:flex-row">
+            <div id="view-3d-placeholder" class="viewport-placeholder border-b md:border-b-0 md:border-r border-white/10 pointer-events-auto cursor-grab active:cursor-grabbing"><div class="view-label">3D View</div><div id="dim-container-3d" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
             <div id="view-top-placeholder" class="viewport-placeholder pointer-events-auto"><div class="view-label">Top View</div><div id="dim-container" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
         </main>
-        <div class="w-full p-8 flex justify-center pointer-events-none">
-            <div class="floating-panel rounded-[2.5rem] p-8 flex flex-col md:flex-row gap-8 items-center justify-between pointer-events-auto w-full max-w-4xl">
+        <div class="w-full p-4 md:p-8 flex justify-center pointer-events-none">
+            <div class="floating-panel rounded-[2.5rem] p-4 md:p-8 flex flex-col md:flex-row gap-8 items-center justify-between pointer-events-auto w-full max-w-4xl">
                 <div class="flex gap-4 items-center">
                     <div class="flex flex-col gap-1"><span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider ml-1">Dimensions (mm)</span><div class="flex gap-2"><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><label for="dim-l" class="text-[10px] text-zinc-600 font-bold cursor-pointer" title="Length">L</label><input type="number" id="dim-l" aria-label="Length" value="120" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><label for="dim-w" class="text-[10px] text-zinc-600 font-bold cursor-pointer" title="Width">W</label><input type="number" id="dim-w" aria-label="Width" value="120" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><label for="dim-h" class="text-[10px] text-zinc-600 font-bold cursor-pointer" title="Height">H</label><input type="number" id="dim-h" aria-label="Height" value="40" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div></div></div>
                 </div>
