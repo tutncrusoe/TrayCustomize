@@ -190,20 +190,18 @@
                 // Check X dividers
                 for(let i=0; i<dividersX.length; i++) {
                     let allHidden = true;
-                    // X divider i has segments 0 to dividersZ.length (which is +1 segments than dividersZ lines)
-                    // But wait, the segment calculation in onTopMouseDown/Move iterates sortedZ points.
-                    // sortedZ = [-w/2, ...dividersZ, w/2]. Length is dividersZ.length + 2.
-                    // Loop j goes to length-1. So j goes from 0 to dividersZ.length.
-                    // So there are dividersZ.length + 1 segments. Correct.
                     for(let j=0; j <= dividersZ.length; j++) {
                         if(!hiddenSegments[`X_${i}_${j}`]) { allHidden = false; break; }
                     }
                     if(allHidden) {
-                        // Remove X[i]
+                        const val = dividersX[i];
+                        const sortedX = [...dividersX].sort((a,b)=>a-b);
+                        const spatialIdx = sortedX.indexOf(val);
+
                         dividersX.splice(i, 1);
-                        hiddenSegments = updateHiddenSegmentsMap('X', i);
+                        hiddenSegments = updateHiddenSegmentsMap('X', i, spatialIdx);
                         changed = true;
-                        break; // Restart loop
+                        break;
                     }
                 }
                 if(changed) continue;
@@ -215,9 +213,12 @@
                         if(!hiddenSegments[`Z_${i}_${j}`]) { allHidden = false; break; }
                     }
                     if(allHidden) {
-                        // Remove Z[i]
+                        const val = dividersZ[i];
+                        const sortedZ = [...dividersZ].sort((a,b)=>a-b);
+                        const spatialIdx = sortedZ.indexOf(val);
+
                         dividersZ.splice(i, 1);
-                        hiddenSegments = updateHiddenSegmentsMap('Z', i);
+                        hiddenSegments = updateHiddenSegmentsMap('Z', i, spatialIdx);
                         changed = true;
                         break;
                     }
@@ -225,7 +226,7 @@
             }
         }
 
-        function updateHiddenSegmentsMap(removedAxis, removedIndex) {
+        function updateHiddenSegmentsMap(removedAxis, removedArrayIndex, removedSpatialIndex) {
             const newHidden = {};
             for (let key in hiddenSegments) {
                 const parts = key.split('_');
@@ -234,15 +235,17 @@
                 const segIdx = parseInt(parts[2]);
 
                 if (axis === removedAxis) {
-                    if (lineIdx < removedIndex) {
+                    // Same axis: shift lineIdx based on Array Index
+                    if (lineIdx < removedArrayIndex) {
                         newHidden[key] = true;
-                    } else if (lineIdx > removedIndex) {
+                    } else if (lineIdx > removedArrayIndex) {
                         newHidden[`${axis}_${lineIdx - 1}_${segIdx}`] = true;
                     }
                 } else {
-                    if (segIdx < removedIndex) {
+                    // Perpendicular axis: shift segIdx based on Spatial Index
+                    if (segIdx < removedSpatialIndex) {
                         newHidden[key] = true;
-                    } else if (segIdx > removedIndex + 1) {
+                    } else if (segIdx > removedSpatialIndex + 1) {
                         newHidden[`${axis}_${lineIdx}_${segIdx - 1}`] = true;
                     }
                 }
