@@ -53,15 +53,17 @@
             <div id="view-3d-placeholder" class="viewport-placeholder border-b md:border-b-0 md:border-r border-white/10 pointer-events-auto cursor-grab active:cursor-grabbing"><div class="view-label">3D View</div><div id="dim-container-3d" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
             <div id="view-top-placeholder" class="viewport-placeholder pointer-events-auto"><div class="view-label">Top View</div><div id="dim-container" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
         </main>
-        <div class="w-full p-4 md:p-8 flex justify-center pointer-events-none">
-            <div class="floating-panel rounded-[2.5rem] p-4 md:p-8 flex flex-col md:flex-row gap-8 items-center justify-between pointer-events-auto w-full max-w-4xl">
-                <div class="flex gap-4 items-center">
-                    <div class="flex flex-col gap-1"><span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider ml-1">Dimensions (mm)</span><div class="flex gap-2"><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><label for="dim-l" class="text-[10px] text-zinc-600 font-bold cursor-pointer" title="Length">L</label><input type="number" id="dim-l" aria-label="Length" value="120" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><label for="dim-w" class="text-[10px] text-zinc-600 font-bold cursor-pointer" title="Width">W</label><input type="number" id="dim-w" aria-label="Width" value="120" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><label for="dim-h" class="text-[10px] text-zinc-600 font-bold cursor-pointer" title="Height">H</label><input type="number" id="dim-h" aria-label="Height" value="40" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div></div></div>
+        <div class="w-full p-2 md:p-8 flex justify-center pointer-events-none">
+            <div class="floating-panel rounded-[2rem] md:rounded-[2.5rem] p-3 md:p-8 flex flex-col md:flex-row gap-3 md:gap-8 items-center justify-between pointer-events-auto w-full max-w-4xl">
+                <div class="flex flex-wrap justify-center gap-3 md:gap-4 items-center w-full md:w-auto">
+                    <div class="flex flex-col gap-1 w-full md:w-auto"><span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider ml-1 text-center md:text-left">Dimensions (mm)</span><div class="flex gap-2 justify-center"><div class="input-group px-2 py-2 rounded-xl flex items-center gap-1 md:gap-2"><label for="dim-l" class="text-[10px] text-zinc-600 font-bold cursor-pointer" title="Length">L</label><input type="number" id="dim-l" aria-label="Length" value="120" class="w-10 md:w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div><div class="input-group px-2 py-2 rounded-xl flex items-center gap-1 md:gap-2"><label for="dim-w" class="text-[10px] text-zinc-600 font-bold cursor-pointer" title="Width">W</label><input type="number" id="dim-w" aria-label="Width" value="120" class="w-10 md:w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div><div class="input-group px-2 py-2 rounded-xl flex items-center gap-1 md:gap-2"><label for="dim-h" class="text-[10px] text-zinc-600 font-bold cursor-pointer" title="Height">H</label><input type="number" id="dim-h" aria-label="Height" value="40" class="w-10 md:w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div></div></div>
                 </div>
-                <div class="w-px h-10 bg-white/10 mx-2"></div>
-                <div class="flex flex-col gap-1 w-32"><div class="flex justify-between items-center mb-1"><label for="radius" class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider cursor-pointer">Corner Radius</label><span id="radius-val" class="text-[10px] text-white font-bold">8mm</span></div><input type="range" id="radius" aria-label="Corner Radius" min="2" max="30" value="8" step="1"></div>
-                <div class="w-px h-10 bg-white/10 mx-2"></div>
-                <div class="flex flex-col gap-1 flex-1"><div class="flex justify-between items-center mb-1"><span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider ml-1">Dividers</span><button id="clear-dividers" class="text-[9px] text-red-400 hover:text-red-300 uppercase font-bold tracking-tighter">Clear All</button></div><div class="text-xs text-white/60 font-medium" id="divider-stats">Vert: 0 | Horiz: 0</div></div>
+                <div class="w-full h-px md:w-px md:h-10 bg-white/10 mx-2 md:block hidden"></div>
+                <div class="flex flex-row md:flex-col gap-4 md:gap-1 w-full md:w-32 justify-between md:justify-start">
+                     <div class="flex flex-col gap-1 flex-1"><div class="flex justify-between items-center mb-1"><label for="radius" class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider cursor-pointer">Radius</label><span id="radius-val" class="text-[10px] text-white font-bold">8mm</span></div><input type="range" id="radius" aria-label="Corner Radius" min="2" max="30" value="8" step="1"></div>
+                     <div class="w-px h-full bg-white/10 mx-2 md:hidden"></div>
+                     <div class="flex flex-col gap-1 flex-1"><div class="flex justify-between items-center mb-1"><span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider ml-1">Dividers</span><button id="clear-dividers" class="text-[9px] text-red-400 hover:text-red-300 uppercase font-bold tracking-tighter">Clear</button></div><div class="text-xs text-white/60 font-medium text-center" id="divider-stats">V: 0 | H: 0</div></div>
+                </div>
             </div>
         </div>
     </div>
@@ -85,6 +87,11 @@
             window.addEventListener('mouseup', () => { isDragging3D = false; });
             window.addEventListener('mousemove', (e) => { if (isDragging3D && !isEditing) { boxGroup.rotation.y += (e.clientX - prevX3D) * 0.01; prevX3D = e.clientX; } });
             viewTop.addEventListener('mousedown', onTopMouseDown); viewTop.addEventListener('mousemove', onTopMouseMove); window.addEventListener('mouseup', onTopMouseUp);
+            // Touch support for Top View
+            viewTop.addEventListener('touchstart', onTopTouchStart, {passive: false});
+            viewTop.addEventListener('touchmove', onTopTouchMove, {passive: false});
+            viewTop.addEventListener('touchend', onTopTouchEnd, {passive: false});
+
             document.getElementById('clear-dividers').addEventListener('click', () => { dividersX = []; dividersZ = []; hiddenSegments = {}; updateBox(); });
             document.getElementById('export-btn').addEventListener('click', exportSTL);
             ['dim-l', 'dim-w', 'dim-h'].forEach(id => { document.getElementById(id).addEventListener('input', () => { if(!isEditing) updateBox(); }); });
@@ -138,27 +145,94 @@
         function finishEditing() { if (!isEditing) return; const val = parseFloat(globalInput.value); if (!isNaN(val) && currentEditCallback) currentEditCallback(val); isEditing = false; globalInput.style.display = 'none'; currentEditCallback = null; updateBox(); }
         function cancelEditing() { isEditing = false; globalInput.style.display = 'none'; currentEditCallback = null; }
 
-        function getTopWorldCoords(e) { const rect = viewTop.getBoundingClientRect(); const x = e.clientX - rect.left, y = e.clientY - rect.top; const mouseX = (x / rect.width) * 2 - 1, mouseY = -(y / rect.height) * 2 + 1, aspect = rect.width / rect.height; return { x: mouseX * (FRUSTUM_SIZE * aspect / 2), z: -mouseY * (FRUSTUM_SIZE / 2), isInside: x >= 0 && x <= rect.width && y >= 0 && y <= rect.height }; }
+        function getEventCoords(e) {
+            if (e.touches && e.touches.length > 0) return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
+            if (e.changedTouches && e.changedTouches.length > 0) return { clientX: e.changedTouches[0].clientX, clientY: e.changedTouches[0].clientY };
+            return { clientX: e.clientX, clientY: e.clientY };
+        }
+        function getTopWorldCoords(e) { const coords = getEventCoords(e); const rect = viewTop.getBoundingClientRect(); const x = coords.clientX - rect.left, y = coords.clientY - rect.top; const mouseX = (x / rect.width) * 2 - 1, mouseY = -(y / rect.height) * 2 + 1, aspect = rect.width / rect.height; return { x: mouseX * (FRUSTUM_SIZE * aspect / 2), z: -mouseY * (FRUSTUM_SIZE / 2), isInside: x >= 0 && x <= rect.width && y >= 0 && y <= rect.height }; }
+
+        let touchStartPos = null;
+        let isTouchDragging = false;
+
+        function onTopTouchStart(e) {
+            if (e.target.closest('.dim-label')) return;
+            e.preventDefault();
+            const coords = getEventCoords(e);
+            touchStartPos = { x: coords.clientX, y: coords.clientY };
+            isTouchDragging = false;
+
+            // Trigger logic similar to mouse move to set pendingAction/hit
+            onTopMouseMove(e);
+
+            // If we hit a divider, start dragging immediately
+            const world = getTopWorldCoords(e);
+            if (world.isInside) {
+                // Check for hit (logic copied from mousedown but without modifying state yet, just detecting)
+                const l = parseFloat(document.getElementById('dim-l').value), w = parseFloat(document.getElementById('dim-w').value), hitMargin = 15; // Larger margin for touch
+                let hit = null;
+                for (let i = 0; i < dividersX.length; i++) { if (Math.abs(world.x - dividersX[i]) < hitMargin && Math.abs(world.z) < w/2) { const sortedZ = [-w/2, ...[...dividersZ].sort((a,b)=>a-b), w/2]; let segIdx = 0; for(let j=0; j<sortedZ.length-1; j++) { if(world.z >= sortedZ[j] && world.z <= sortedZ[j+1]) { segIdx = j; break; } } hit = { type: 'X', index: i, segment: segIdx }; break; } }
+                if (!hit) { for (let i = 0; i < dividersZ.length; i++) { if (Math.abs(world.z - dividersZ[i]) < hitMargin && Math.abs(world.x) < l/2) { const sortedX = [-l/2, ...[...dividersX].sort((a,b)=>a-b), l/2]; let segIdx = 0; for(let j=0; j<sortedX.length-1; j++) { if(world.x >= sortedX[j] && world.x <= sortedX[j+1]) { segIdx = j; break; } } hit = { type: 'Z', index: i, segment: segIdx }; break; } } }
+
+                if (hit) {
+                    draggingDivider = { ...hit, hasMoved: false };
+                    // Reset pendingAction so we don't add accidentally
+                    pendingAction = null;
+                }
+            }
+        }
+
+        function onTopTouchMove(e) {
+            e.preventDefault();
+            const coords = getEventCoords(e);
+            if (touchStartPos && (Math.abs(coords.clientX - touchStartPos.x) > 5 || Math.abs(coords.clientY - touchStartPos.y) > 5)) {
+                isTouchDragging = true;
+            }
+            onTopMouseMove(e);
+        }
+
+        function onTopTouchEnd(e) {
+            e.preventDefault();
+            if (draggingDivider) {
+                // End drag
+                onTopMouseUp();
+            } else {
+                // If it was a tap (not a drag), execute add/remove
+                if (!isTouchDragging) {
+                     onTopMouseDown(e);
+                }
+                // Clean up preview
+                indicator.classList.remove('active');
+                previewLine.style.display = 'none';
+                pendingAction = null;
+            }
+            touchStartPos = null;
+            isTouchDragging = false;
+        }
 
         function onTopMouseDown(e) {
             if (e.target.closest('.dim-label')) return; if (isEditing) return;
             const world = getTopWorldCoords(e); if (!world.isInside) return;
             const l = parseFloat(document.getElementById('dim-l').value), w = parseFloat(document.getElementById('dim-w').value), hitMargin = 10;
             let hit = null;
-            for (let i = 0; i < dividersX.length; i++) { if (Math.abs(world.x - dividersX[i]) < hitMargin && Math.abs(world.z) < w/2) { const sortedZ = [-w/2, ...[...dividersZ].sort((a,b)=>a-b), w/2]; let segIdx = 0; for(let j=0; j<sortedZ.length-1; j++) { if(world.z >= sortedZ[j] && world.z <= sortedZ[j+1]) { segIdx = j; break; } } hit = { type: 'X', index: i, segment: segIdx }; break; } }
-            if (!hit) { for (let i = 0; i < dividersZ.length; i++) { if (Math.abs(world.z - dividersZ[i]) < hitMargin && Math.abs(world.x) < l/2) { const sortedX = [-l/2, ...[...dividersX].sort((a,b)=>a-b), l/2]; let segIdx = 0; for(let j=0; j<sortedX.length-1; j++) { if(world.x >= sortedX[j] && world.x <= sortedX[j+1]) { segIdx = j; break; } } hit = { type: 'Z', index: i, segment: segIdx }; break; } } }
+            // Use existing hit logic or draggingDivider if set
+            if (!draggingDivider) {
+                for (let i = 0; i < dividersX.length; i++) { if (Math.abs(world.x - dividersX[i]) < hitMargin && Math.abs(world.z) < w/2) { const sortedZ = [-w/2, ...[...dividersZ].sort((a,b)=>a-b), w/2]; let segIdx = 0; for(let j=0; j<sortedZ.length-1; j++) { if(world.z >= sortedZ[j] && world.z <= sortedZ[j+1]) { segIdx = j; break; } } hit = { type: 'X', index: i, segment: segIdx }; break; } }
+                if (!hit) { for (let i = 0; i < dividersZ.length; i++) { if (Math.abs(world.z - dividersZ[i]) < hitMargin && Math.abs(world.x) < l/2) { const sortedX = [-l/2, ...[...dividersX].sort((a,b)=>a-b), l/2]; let segIdx = 0; for(let j=0; j<sortedX.length-1; j++) { if(world.x >= sortedX[j] && world.x <= sortedX[j+1]) { segIdx = j; break; } } hit = { type: 'Z', index: i, segment: segIdx }; break; } } }
+            }
+
             if (hit) { draggingDivider = { ...hit, hasMoved: false }; viewTop.classList.add('cursor-grabbing'); } else { if (selectedForRemoval) { selectedForRemoval = null; updateBox(); } if (pendingAction && (pendingAction.type === 'addX' || pendingAction.type === 'addZ')) { if (pendingAction.type === 'addX') dividersX.push(pendingAction.pos); else dividersZ.push(pendingAction.pos); updateBox(); } }
         }
 
         function onTopMouseMove(e) {
-            if (isEditing) return; const world = getTopWorldCoords(e); const l = parseFloat(document.getElementById('dim-l').value), w = parseFloat(document.getElementById('dim-w').value), rect = viewTop.getBoundingClientRect(), aspect = rect.width / rect.height;
-            if (draggingDivider) { draggingDivider.hasMoved = true; if (draggingDivider.type === 'X') dividersX[draggingDivider.index] = Math.max(-l/2 + 5, Math.min(l/2 - 5, world.x)); else dividersZ[draggingDivider.index] = Math.max(-w/2 + 5, Math.min(w/2 - 5, world.z)); updateBox(); indicator.style.left = `${e.clientX-18}px`; indicator.style.top = `${e.clientY-18}px`; indicator.innerText = '↔'; indicator.className = 'active move'; return; }
+            if (isEditing) return; const world = getTopWorldCoords(e); const coords = getEventCoords(e); const l = parseFloat(document.getElementById('dim-l').value), w = parseFloat(document.getElementById('dim-w').value), rect = viewTop.getBoundingClientRect(), aspect = rect.width / rect.height;
+            if (draggingDivider) { draggingDivider.hasMoved = true; if (draggingDivider.type === 'X') dividersX[draggingDivider.index] = Math.max(-l/2 + 5, Math.min(l/2 - 5, world.x)); else dividersZ[draggingDivider.index] = Math.max(-w/2 + 5, Math.min(w/2 - 5, world.z)); updateBox(); indicator.style.left = `${coords.clientX-18}px`; indicator.style.top = `${coords.clientY-18}px`; indicator.innerText = '↔'; indicator.className = 'active move'; return; }
             if (!world.isInside) { indicator.classList.remove('active'); previewLine.style.display = 'none'; return; }
-            const hitMargin = 10, edgeMargin = 35; let hit = null;
+            const hitMargin = 15, edgeMargin = 35; let hit = null;
             for (let i = 0; i < dividersX.length; i++) { if (Math.abs(world.x - dividersX[i]) < hitMargin && Math.abs(world.z) < w/2) { const sortedZ = [-w/2, ...[...dividersZ].sort((a,b)=>a-b), w/2]; for(let j=0; j<sortedZ.length-1; j++) { if(world.z >= sortedZ[j] && world.z <= sortedZ[j+1]) { hit = { type: 'X', index: i, segment: j }; break; } } break; } }
             if (!hit) { for (let i = 0; i < dividersZ.length; i++) { if (Math.abs(world.z - dividersZ[i]) < hitMargin && Math.abs(world.x) < l/2) { const sortedX = [-l/2, ...[...dividersX].sort((a,b)=>a-b), l/2]; for(let j=0; j<sortedX.length-1; j++) { if(world.x >= sortedX[j] && world.x <= sortedX[j+1]) { hit = { type: 'Z', index: i, segment: j }; break; } } break; } } }
-            if (hit) { pendingAction = { type: 'remove', axis: hit.type, lineIdx: hit.index, segIdx: hit.segment }; const isConfirming = selectedForRemoval && selectedForRemoval.axis === hit.type && selectedForRemoval.lineIdx === hit.index && selectedForRemoval.segIdx === hit.segment; indicator.style.left = `${e.clientX-18}px`; indicator.style.top = `${e.clientY-18}px`; indicator.innerText = '-'; indicator.className = 'active' + (isConfirming ? ' remove-confirm' : ' move'); previewLine.style.display = 'none'; }
-            else { const isInsideW = Math.abs(world.x) < (l/2 - 5), isNearH = Math.abs(world.z - w/2) < edgeMargin || Math.abs(world.z + w/2) < edgeMargin, isInsideD = Math.abs(world.z) < (w/2 - 5), isNearV = Math.abs(world.x - l/2) < edgeMargin || Math.abs(world.x + l/2) < edgeMargin; if (isNearH && isInsideW) { pendingAction = { type: 'addX', pos: world.x }; indicator.innerText = '+'; indicator.className = 'active'; previewLine.style.display = 'block'; previewLine.style.width = '2px'; previewLine.style.height = `${(w/FRUSTUM_SIZE)*rect.height}px`; previewLine.style.left = `${e.clientX-1}px`; previewLine.style.top = `${rect.top + rect.height/2 - (w/FRUSTUM_SIZE)*rect.height/2}px`; } else if (isNearV && isInsideD) { pendingAction = { type: 'addZ', pos: world.z }; indicator.innerText = '+'; indicator.className = 'active'; previewLine.style.display = 'block'; previewLine.style.height = '2px'; previewLine.style.width = `${(l/FRUSTUM_SIZE)*aspect*rect.width}px`; previewLine.style.top = `${e.clientY-1}px`; previewLine.style.left = `${rect.left + rect.width/2 - (l/FRUSTUM_SIZE)*aspect*rect.width/2}px`; } else { indicator.classList.remove('active'); previewLine.style.display = 'none'; pendingAction = null; } indicator.style.left = `${e.clientX-18}px`; indicator.style.top = `${e.clientY-18}px`; }
+            if (hit) { pendingAction = { type: 'remove', axis: hit.type, lineIdx: hit.index, segIdx: hit.segment }; const isConfirming = selectedForRemoval && selectedForRemoval.axis === hit.type && selectedForRemoval.lineIdx === hit.index && selectedForRemoval.segIdx === hit.segment; indicator.style.left = `${coords.clientX-18}px`; indicator.style.top = `${coords.clientY-18}px`; indicator.innerText = '-'; indicator.className = 'active' + (isConfirming ? ' remove-confirm' : ' move'); previewLine.style.display = 'none'; }
+            else { const isInsideW = Math.abs(world.x) < (l/2 - 5), isNearH = Math.abs(world.z - w/2) < edgeMargin || Math.abs(world.z + w/2) < edgeMargin, isInsideD = Math.abs(world.z) < (w/2 - 5), isNearV = Math.abs(world.x - l/2) < edgeMargin || Math.abs(world.x + l/2) < edgeMargin; if (isNearH && isInsideW) { pendingAction = { type: 'addX', pos: world.x }; indicator.innerText = '+'; indicator.className = 'active'; previewLine.style.display = 'block'; previewLine.style.width = '2px'; previewLine.style.height = `${(w/FRUSTUM_SIZE)*rect.height}px`; previewLine.style.left = `${coords.clientX-1}px`; previewLine.style.top = `${rect.top + rect.height/2 - (w/FRUSTUM_SIZE)*rect.height/2}px`; } else if (isNearV && isInsideD) { pendingAction = { type: 'addZ', pos: world.z }; indicator.innerText = '+'; indicator.className = 'active'; previewLine.style.display = 'block'; previewLine.style.height = '2px'; previewLine.style.width = `${(l/FRUSTUM_SIZE)*aspect*rect.width}px`; previewLine.style.top = `${coords.clientY-1}px`; previewLine.style.left = `${rect.left + rect.width/2 - (l/FRUSTUM_SIZE)*aspect*rect.width/2}px`; } else { indicator.classList.remove('active'); previewLine.style.display = 'none'; pendingAction = null; } indicator.style.left = `${coords.clientX-18}px`; indicator.style.top = `${coords.clientY-18}px`; }
         }
 
         function onTopMouseUp() {
