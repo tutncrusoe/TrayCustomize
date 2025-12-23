@@ -11,25 +11,26 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #050505; color: white; margin: 0; overflow: hidden; }
-        .floating-panel { background: rgba(15, 15, 15, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); }
-        .input-group { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.2s ease; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #ffffff; color: #18181b; margin: 0; overflow: hidden; }
+        .floating-panel { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(0, 0, 0, 0.1); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); }
+        .input-group { background: rgba(0, 0, 0, 0.05); border: 1px solid rgba(0, 0, 0, 0.1); transition: all 0.2s ease; }
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #ffffff; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
-        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: rgba(255,255,255,0.2); border-radius: 2px; }
-        .view-label { position: absolute; top: 1rem; left: 1rem; background: rgba(255,255,255,0.1); padding: 6px 14px; border-radius: 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; color: rgba(255,255,255,0.8); z-index: 20; pointer-events: none; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #3b82f6; cursor: pointer; margin-top: -6px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); border: 2px solid white; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: rgba(0,0,0,0.1); border-radius: 2px; }
+        .view-label { position: absolute; top: 1rem; left: 1rem; background: rgba(0,0,0,0.05); padding: 6px 14px; border-radius: 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; color: rgba(0,0,0,0.7); z-index: 20; pointer-events: none; border: 1px solid rgba(0,0,0,0.1); }
         #main-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
         .viewport-placeholder { position: relative; flex: 1; z-index: 2; }
         .dim-label { position: absolute; font-size: 11px; font-weight: 800; color: #ffffff; z-index: 2000; background: #27272a; padding: 4px 10px; border-radius: 6px; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.8); cursor: pointer; pointer-events: auto; transition: transform 0.15s, background 0.2s; border: 1px solid rgba(255,255,255,0.2); user-select: none; }
         .dim-label:hover { background: #3b82f6; border-color: #ffffff; transform: scale(1.1); }
         .dim-input { width: 50px; background: #fff; color: #000; border: none; border-radius: 4px; font-size: 12px; font-weight: 800; text-align: center; outline: none; padding: 2px 0; }
-        #add-indicator { position: fixed; width: 36px; height: 36px; background: white; color: black; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 24px; pointer-events: none; z-index: 100; opacity: 0; transform: scale(0); transition: opacity 0.2s, transform 0.2s; box-shadow: 0 0 20px rgba(255,255,255,0.5); }
+        #add-indicator { position: fixed; width: 36px; height: 36px; background: #18181b; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 24px; pointer-events: none; z-index: 100; opacity: 0; transform: scale(0); transition: opacity 0.2s, transform 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         #add-indicator.active { opacity: 1; transform: scale(1); }
-        #add-indicator.remove-confirm { background: #ef4444; color: white; box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); }
+        #add-indicator.remove-confirm { background: #ef4444; color: white; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4); }
         #add-indicator.move { background: #3b82f6; color: white; font-size: 16px; }
-        #preview-line { position: fixed; background: rgba(255,255,255,0.6); pointer-events: none; z-index: 90; display: none; }
-        #global-dim-input { position: fixed; z-index: 9999; width: 60px; height: 26px; background: #fff; color: #000; border: 2px solid #3b82f6; border-radius: 6px; font-size: 11px; font-weight: 800; text-align: center; outline: none; padding: 0; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.5); transform: translate(-50%, -50%); font-family: 'Plus Jakarta Sans', sans-serif; }
-        .dim-label-3d { background: rgba(24, 24, 27, 0.85); border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(8px); }
+        #preview-line { position: fixed; background: #3b82f6; pointer-events: none; z-index: 90; display: none; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+        #global-dim-input { position: fixed; z-index: 9999; width: 60px; height: 26px; background: #fff; color: #000; border: 2px solid #3b82f6; border-radius: 6px; font-size: 11px; font-weight: 800; text-align: center; outline: none; padding: 0; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.2); transform: translate(-50%, -50%); font-family: 'Plus Jakarta Sans', sans-serif; }
+        .dim-label-3d { background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(0,0,0,0.1); color: #000 !important; backdrop-filter: blur(8px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .dim-label-3d input { color: #000 !important; }
         .cursor-grab { cursor: grab; }
         .cursor-grabbing { cursor: grabbing; }
     </style>
@@ -42,26 +43,26 @@
     <div class="absolute inset-0 z-10 flex flex-col pointer-events-none">
         <header class="w-full p-6 flex justify-between items-center pointer-events-none">
             <div class="flex items-center gap-3 pointer-events-auto">
-                <div class="w-10 h-10 bg-white rounded-2xl flex items-center justify-center shadow-xl"><div class="w-5 h-5 bg-black rotate-45 rounded-sm"></div></div>
-                <div><h1 class="font-bold text-lg leading-none text-white">Parameterized Tray</h1><p class="text-[10px] text-zinc-500 font-medium uppercase tracking-widest mt-1">Smart Editing Mode</p></div>
+                <div class="w-10 h-10 bg-zinc-900 rounded-2xl flex items-center justify-center shadow-xl"><div class="w-5 h-5 bg-white rotate-45 rounded-sm"></div></div>
+                <div><h1 class="font-bold text-lg leading-none text-zinc-900">Parameterized Tray</h1><p class="text-[10px] text-zinc-500 font-medium uppercase tracking-widest mt-1">Smart Editing Mode</p></div>
             </div>
             <div class="flex gap-3 pointer-events-auto">
-                <button id="export-btn" class="bg-white text-black font-bold px-6 py-3 rounded-2xl text-sm flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg"><i data-lucide="download" class="w-4 h-4"></i>Export STL</button>
+                <button id="export-btn" class="bg-zinc-900 text-white font-bold px-6 py-3 rounded-2xl text-sm flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg hover:bg-zinc-800"><i data-lucide="download" class="w-4 h-4"></i>Export STL</button>
             </div>
         </header>
         <main id="viewports-container" class="flex-1 flex flex-col md:flex-row">
-            <div id="view-3d-placeholder" class="viewport-placeholder border-b md:border-b-0 md:border-r border-white/10 pointer-events-auto cursor-grab active:cursor-grabbing"><div class="view-label">3D View</div><div id="dim-container-3d" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
+            <div id="view-3d-placeholder" class="viewport-placeholder border-b md:border-b-0 md:border-r border-black/5 pointer-events-auto cursor-grab active:cursor-grabbing"><div class="view-label">3D View</div><div id="dim-container-3d" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
             <div id="view-top-placeholder" class="viewport-placeholder pointer-events-auto"><div class="view-label">Top View</div><div id="dim-container" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
         </main>
         <div class="w-full p-4 md:p-8 flex justify-center pointer-events-none">
             <div class="floating-panel rounded-[2.5rem] p-4 md:p-8 flex flex-col md:flex-row gap-8 items-center justify-between pointer-events-auto w-full max-w-4xl">
                 <div class="flex gap-4 items-center">
-                    <div class="flex flex-col gap-1"><span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider ml-1">Dimensions (mm)</span><div class="flex gap-2"><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><label for="dim-l" class="text-[10px] text-zinc-600 font-bold cursor-pointer" title="Length">L</label><input type="number" id="dim-l" aria-label="Length" value="120" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><label for="dim-w" class="text-[10px] text-zinc-600 font-bold cursor-pointer" title="Width">W</label><input type="number" id="dim-w" aria-label="Width" value="120" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><label for="dim-h" class="text-[10px] text-zinc-600 font-bold cursor-pointer" title="Height">H</label><input type="number" id="dim-h" aria-label="Height" value="40" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-white"></div></div></div>
+                    <div class="flex flex-col gap-1"><span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider ml-1">Dimensions (mm)</span><div class="flex gap-2"><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><label for="dim-l" class="text-[10px] text-zinc-500 font-bold cursor-pointer" title="Length">L</label><input type="number" id="dim-l" aria-label="Length" value="120" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-zinc-900"></div><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><label for="dim-w" class="text-[10px] text-zinc-500 font-bold cursor-pointer" title="Width">W</label><input type="number" id="dim-w" aria-label="Width" value="120" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-zinc-900"></div><div class="input-group px-3 py-2 rounded-xl flex items-center gap-2"><label for="dim-h" class="text-[10px] text-zinc-500 font-bold cursor-pointer" title="Height">H</label><input type="number" id="dim-h" aria-label="Height" value="40" class="w-12 bg-transparent text-sm font-semibold outline-none text-center text-zinc-900"></div></div></div>
                 </div>
-                <div class="w-px h-10 bg-white/10 mx-2"></div>
-                <div class="flex flex-col gap-1 w-32"><div class="flex justify-between items-center mb-1"><label for="radius" class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider cursor-pointer">Corner Radius</label><span id="radius-val" class="text-[10px] text-white font-bold">8mm</span></div><input type="range" id="radius" aria-label="Corner Radius" min="2" max="30" value="8" step="1"></div>
-                <div class="w-px h-10 bg-white/10 mx-2"></div>
-                <div class="flex flex-col gap-1 flex-1"><div class="flex justify-between items-center mb-1"><span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider ml-1">Dividers</span><button id="clear-dividers" class="text-[9px] text-red-400 hover:text-red-300 uppercase font-bold tracking-tighter">Clear All</button></div><div class="text-xs text-white/60 font-medium" id="divider-stats">Vert: 0 | Horiz: 0</div></div>
+                <div class="w-px h-10 bg-black/10 mx-2"></div>
+                <div class="flex flex-col gap-1 w-32"><div class="flex justify-between items-center mb-1"><label for="radius" class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider cursor-pointer">Corner Radius</label><span id="radius-val" class="text-[10px] text-zinc-900 font-bold">8mm</span></div><input type="range" id="radius" aria-label="Corner Radius" min="2" max="30" value="8" step="1"></div>
+                <div class="w-px h-10 bg-black/10 mx-2"></div>
+                <div class="flex flex-col gap-1 flex-1"><div class="flex justify-between items-center mb-1"><span class="text-[10px] text-zinc-500 font-bold uppercase tracking-wider ml-1">Dividers</span><button id="clear-dividers" class="text-[9px] text-red-500 hover:text-red-600 uppercase font-bold tracking-tighter">Clear All</button></div><div class="text-xs text-zinc-500 font-medium" id="divider-stats">Vert: 0 | Horiz: 0</div></div>
             </div>
         </div>
     </div>
@@ -73,12 +74,13 @@
         const FRUSTUM_SIZE = 250;
 
         function init() {
-            scene = new THREE.Scene(); scene.background = new THREE.Color(0x050505);
+            scene = new THREE.Scene(); scene.background = new THREE.Color(0xffffff);
             renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true }); renderer.setPixelRatio(window.devicePixelRatio);
             camera3D = new THREE.PerspectiveCamera(40, 1, 1, 1000); camera3D.position.set(160, 160, 160); camera3D.lookAt(0, 0, 0);
             cameraTop = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 1000); cameraTop.position.set(0, 200, 0); cameraTop.lookAt(0, 0, 0);
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); scene.add(ambientLight);
-            const spotLight = new THREE.SpotLight(0xffffff, 1); spotLight.position.set(100, 250, 100); scene.add(spotLight);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); scene.add(ambientLight);
+            const spotLight = new THREE.SpotLight(0xffffff, 0.8); spotLight.position.set(100, 250, 100); scene.add(spotLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.5); dirLight.position.set(-100, 100, -50); scene.add(dirLight);
             boxGroup = new THREE.Group(); scene.add(boxGroup);
             let isDragging3D = false, prevX3D = 0;
             view3D.addEventListener('mousedown', (e) => { if (isEditing) return; if (e.target.closest('.dim-label')) return; isDragging3D = true; prevX3D = e.clientX; });
@@ -295,7 +297,7 @@
         function createEditableLabel(text, cb) { const el = document.createElement('div'); el.className = 'dim-label'; el.innerText = text; el.addEventListener('mousedown', (e) => { e.stopPropagation(); e.preventDefault(); const r = el.getBoundingClientRect(); startEditing(r.left + r.width/2, r.top + r.height/2, text, cb); }); return el; }
 
         function createModel(l, h, w, r, dX, dZ) {
-            const group = new THREE.Group(), mat = new THREE.MeshPhongMaterial({ color: 0x222222, shininess: 40 }), thick = 2, outerShape = createRoundedRectShape(l, w, r);
+            const group = new THREE.Group(), mat = new THREE.MeshPhongMaterial({ color: 0xe4e4e7, shininess: 60, specular: 0x444444 }), thick = 2, outerShape = createRoundedRectShape(l, w, r);
             const sortedX = [-l/2, ...[...dX].sort((a,b)=>a-b), l/2], sortedZ = [-w/2, ...[...dZ].sort((a,b)=>a-b), w/2], visited = new Set(), rooms = [];
             const getCellId = (i, j) => `${i},${j}`;
             for(let i=0; i<sortedX.length-1; i++) {
