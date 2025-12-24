@@ -297,7 +297,10 @@
         function createEditableLabel(text, cb) { const el = document.createElement('div'); el.className = 'dim-label'; el.innerText = text; el.addEventListener('mousedown', (e) => { e.stopPropagation(); e.preventDefault(); const r = el.getBoundingClientRect(); startEditing(r.left + r.width/2, r.top + r.height/2, text, cb); }); return el; }
 
         function createModel(l, h, w, r, dX, dZ) {
-            const group = new THREE.Group(), mat = new THREE.MeshPhongMaterial({ color: 0xffffff, shininess: 30, specular: 0x111111 }), thick = 2, outerShape = createRoundedRectShape(l, w, r);
+            const group = new THREE.Group();
+            const matWall = new THREE.MeshPhongMaterial({ color: 0xffffff, shininess: 30, specular: 0x111111 });
+            const matBase = new THREE.MeshPhongMaterial({ color: 0xcfae84, shininess: 5, specular: 0x000000 }); // Warm Cork/Wood
+            const thick = 2, outerShape = createRoundedRectShape(l, w, r);
             const sortedX = [-l/2, ...[...dX].sort((a,b)=>a-b), l/2], sortedZ = [-w/2, ...[...dZ].sort((a,b)=>a-b), w/2], visited = new Set(), rooms = [];
             const getCellId = (i, j) => `${i},${j}`;
             for(let i=0; i<sortedX.length-1; i++) {
@@ -338,9 +341,9 @@
                 }
             });
             const geo = new THREE.ExtrudeGeometry(outerShape, { depth: h, bevelEnabled: false, curveSegments: 24 }); geo.rotateX(Math.PI / 2);
-            const mesh = new THREE.Mesh(geo, mat); mesh.position.y = -h/2 + h;
+            const mesh = new THREE.Mesh(geo, matWall); mesh.position.y = -h/2 + h;
             const baseShape = createRoundedRectShape(l, w, r), baseGeo = new THREE.ExtrudeGeometry(baseShape, { depth: 2, bevelEnabled: false, curveSegments: 24 }); baseGeo.rotateX(Math.PI / 2);
-            const base = new THREE.Mesh(baseGeo, mat); base.position.y = -h/2 + 2; group.add(mesh); group.add(base); return group;
+            const base = new THREE.Mesh(baseGeo, matBase); base.position.y = -h/2 + 2; group.add(mesh); group.add(base); return group;
         }
 
         function updateDimensions() {
