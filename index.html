@@ -298,8 +298,8 @@
 
         function createModel(l, h, w, r, dX, dZ) {
             const group = new THREE.Group();
-            const matWall = new THREE.MeshPhongMaterial({ color: 0xffffff, shininess: 30, specular: 0x111111 });
-            const matBase = new THREE.MeshPhongMaterial({ color: 0xcfae84, shininess: 5, specular: 0x000000 }); // Warm Cork/Wood
+            const matWall = new THREE.MeshPhongMaterial({ color: 0xe5d3b3, shininess: 30, specular: 0x111111 });
+            const matBase = new THREE.MeshPhongMaterial({ color: 0x6f4e37, shininess: 5, specular: 0x000000 }); // Warm Cork/Wood
             const thick = 2, outerShape = createRoundedRectShape(l, w, r);
             const sortedX = [-l/2, ...[...dX].sort((a,b)=>a-b), l/2], sortedZ = [-w/2, ...[...dZ].sort((a,b)=>a-b), w/2], visited = new Set(), rooms = [];
             const getCellId = (i, j) => `${i},${j}`;
