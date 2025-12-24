@@ -37,37 +37,64 @@
         /* Tutorial Overlay Styles */
         #tutorial-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 9999; display: none; }
         .tutorial-active #tutorial-overlay { display: block; }
-        .tutorial-blob { position: absolute; width: 220px; transition: all 0.5s ease-out; }
-        .tutorial-blob svg { width: 100%; height: auto; filter: drop-shadow(4px 4px 0px rgba(0,0,0,0.2)); }
-        .tutorial-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; font-family: 'Patrick Hand', cursive; font-size: 18px; line-height: 1.2; color: #000; font-weight: bold; transform: rotate(-2deg); }
-        .tutorial-arrow { position: absolute; width: 60px; height: 60px; transition: all 0.5s ease-out; }
-        .tutorial-arrow svg { width: 100%; height: 100%; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.2)); }
-        .ghost-cursor { position: absolute; width: 32px; height: 32px; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 10000; }
 
-        /* Animations */
-        @keyframes cursor-scan {
-            0% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
-            10% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            30% { transform: translate(-50%, -150px) scale(1); } /* Top edge */
-            50% { transform: translate(150px, -150px) scale(1); } /* Top Right */
-            70% { transform: translate(-150px, -150px) scale(1); } /* Top Left */
-            100% { opacity: 0; transform: translate(-150px, -150px) scale(1); }
+        .tutorial-skip-btn { position: fixed; bottom: 30px; right: 30px; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.7); padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; pointer-events: auto; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.05em; }
+        .tutorial-skip-btn:hover { background: rgba(255, 255, 255, 0.2); color: white; transform: scale(1.05); }
+
+        .tutorial-blob { position: absolute; width: 220px; transition: all 0.5s ease-out; z-index: 10001; }
+        /* Soft Yellow color #fef08a (similar to sticky note/Whisk) */
+        .tutorial-blob svg path { fill: #fef08a; stroke: rgba(0,0,0,0.1); stroke-width: 1px; }
+        .tutorial-blob svg { width: 100%; height: auto; filter: drop-shadow(0px 8px 24px rgba(0,0,0,0.15)); }
+        .tutorial-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 25px; font-family: 'Patrick Hand', cursive; font-size: 16px; line-height: 1.3; color: #18181b; font-weight: 600; transform: rotate(-2deg); }
+
+        .tutorial-arrow { position: absolute; width: 60px; height: 60px; transition: all 0.5s ease-out; z-index: 10000; }
+        .tutorial-arrow svg { width: 100%; height: 100%; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.1)); }
+
+        .ghost-cursor { position: absolute; width: 32px; height: 32px; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 10002; transform-origin: 0 0; }
+        .ghost-cursor svg { filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
+
+        .ghost-divider { position: absolute; background: rgba(59, 130, 246, 0.5); pointer-events: none; opacity: 0; z-index: 9998; border-radius: 2px; }
+
+        /* Animations - Slowed down (approx 2x duration) */
+        @keyframes cursor-scan-h { /* Horizontal scan (Right edge) */
+            0% { opacity: 0; transform: translate(0, 0); }
+            10% { opacity: 1; transform: translate(0, 0); }
+            50% { transform: translate(0, 100px); }
+            90% { transform: translate(0, 0); }
+            100% { opacity: 0; transform: translate(0, 0); }
         }
-        @keyframes cursor-drag {
-            0% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
-            10% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            30% { transform: translate(-50%, -50%) scale(0.8); } /* Press */
-            70% { transform: translate(50px, -50%) scale(0.8); } /* Drag */
+        @keyframes cursor-scan-v { /* Vertical scan (Bottom edge) */
+            0% { opacity: 0; transform: translate(0, 0); }
+            10% { opacity: 1; transform: translate(0, 0); }
+            50% { transform: translate(100px, 0); }
+            90% { transform: translate(0, 0); }
+            100% { opacity: 0; transform: translate(0, 0); }
+        }
+
+        @keyframes cursor-drag-shadow {
+             0% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+            10% { opacity: 1; transform: translate(-50%, -50%) scale(1); } /* Move to start */
+            20% { transform: translate(-50%, -50%) scale(0.9); } /* Grab */
+            70% { transform: translate(50px, -50%) scale(0.9); } /* Drag */
             90% { transform: translate(50px, -50%) scale(1); } /* Release */
             100% { opacity: 0; transform: translate(50px, -50%) scale(1); }
         }
-        @keyframes cursor-click-delete {
+        @keyframes divider-drag-shadow {
+             0% { opacity: 0; transform: translate(-50%, -50%); }
+            10% { opacity: 0; transform: translate(-50%, -50%); }
+            20% { opacity: 1; transform: translate(-50%, -50%); } /* Appear */
+            70% { transform: translate(50px, -50%); } /* Move */
+            90% { opacity: 0; transform: translate(50px, -50%); } /* Disappear */
+            100% { opacity: 0; transform: translate(50px, -50%); }
+        }
+
+        @keyframes cursor-click-delete-slow {
             0% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
             10% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            30% { transform: translate(-50%, -50%) scale(0.8); } /* Click 1 (Select) */
-            40% { transform: translate(-50%, -50%) scale(1); }
-            60% { transform: translate(-50%, -50%) scale(1); } /* Wait */
-            70% { transform: translate(-50%, -50%) scale(0.8); } /* Click 2 (Confirm) */
+            30% { transform: translate(-50%, -50%) scale(0.8); } /* Click 1 */
+            50% { transform: translate(-50%, -50%) scale(1); }
+            60% { transform: translate(-50%, -50%) scale(1); } /* Pause */
+            70% { transform: translate(-50%, -50%) scale(0.8); } /* Click 2 */
             90% { transform: translate(-50%, -50%) scale(1); }
             100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
         }
@@ -78,6 +105,7 @@
 
     <!-- Tutorial Overlay -->
     <div id="tutorial-overlay">
+        <button id="tut-skip" class="tutorial-skip-btn">Skip Tutorial</button>
         <div id="tut-blob" class="tutorial-blob">
             <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.5 45.5C8.5 65.5 -5.5 105.5 22.5 125.5C50.5 145.5 100.5 155.5 145.5 135.5C190.5 115.5 205.5 65.5 185.5 35.5C165.5 5.5 100.5 -15.5 55.5 15.5C35.5 28.5 22.5 45.5 22.5 45.5Z" fill="#FFD700"/>
@@ -94,6 +122,7 @@
                 <path d="M3 3L10.07 19.97L12.58 12.58L19.97 10.07L3 3Z" />
             </svg>
         </div>
+        <div id="ghost-divider" class="ghost-divider"></div>
     </div>
 
     <div id="add-indicator">+</div>
@@ -134,6 +163,12 @@
                 this.text = document.getElementById('tut-text');
                 this.arrow = document.getElementById('tut-arrow');
                 this.cursor = document.getElementById('ghost-cursor');
+                this.skipBtn = document.getElementById('tut-skip');
+                this.ghostDivider = document.getElementById('ghost-divider');
+
+                if(this.skipBtn) {
+                    this.skipBtn.addEventListener('click', () => this.skip());
+                }
             }
 
             init() {
@@ -141,6 +176,10 @@
                     this.start();
                     sessionStorage.setItem('tutorial_seen', 'true');
                 }
+            }
+
+            skip() {
+                this.complete();
             }
 
             start() {
@@ -152,25 +191,40 @@
                 this.step = stepIndex;
                 this.cursor.style.animation = 'none';
                 this.cursor.style.opacity = 0;
+                this.ghostDivider.style.opacity = 0;
+                this.ghostDivider.style.animation = 'none';
 
-                // Safety check for elements
+                // Reset cursor icon to pointer
+                this.cursor.innerHTML = '<svg viewBox="0 0 24 24" fill="white" stroke="black" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M3 3L10.07 19.97L12.58 12.58L19.97 10.07L3 3Z" /></svg>';
+
                 if(!this.overlay || !this.blob) return;
 
+                const topView = document.getElementById('view-top-placeholder');
+
                 switch(stepIndex) {
-                    case 0: // Dimensions
-                        this.positionHint(document.querySelector('.input-group'), 'Enter tray dimensions here!', 'right');
+                    case 0: // Dimensions - Point to 3D Labels
+                        const dim3d = document.querySelector('.dim-label-3d');
+                        if (dim3d) {
+                             this.positionHint(dim3d, 'Adjust dimensions directly on the 3D view!', 'left');
+                        } else {
+                             this.positionHint(document.querySelector('.input-group'), 'Enter tray dimensions here!', 'right');
+                        }
                         break;
-                    case 1: // Add Dividers
-                        this.positionHint(document.getElementById('view-top-placeholder'), 'Hover edges to add dividers', 'bottom');
-                        this.playAnimation('cursor-scan', document.getElementById('view-top-placeholder'));
+                    case 1: // Add Dividers Part 1 (Vertical scan on Right Edge -> for Horizontal divider)
+                        this.positionHint(topView, 'Hover right edge for Horizontal Dividers', 'bottom');
+                        this.playAnimation('cursor-scan-h', topView, 'right-edge');
                         break;
-                    case 2: // Drag
-                        this.positionHint(document.getElementById('view-top-placeholder'), 'Click & Hold to move dividers', 'bottom');
-                        this.playAnimation('cursor-drag', document.getElementById('view-top-placeholder'));
+                    case 2: // Add Dividers Part 2 (Horizontal scan on Bottom Edge -> for Vertical divider)
+                        this.positionHint(topView, 'Hover bottom edge for Vertical Dividers', 'bottom');
+                        this.playAnimation('cursor-scan-v', topView, 'bottom-edge');
                         break;
-                    case 3: // Delete
-                        this.positionHint(document.getElementById('view-top-placeholder'), 'Click once to select, again to delete', 'bottom');
-                        this.playAnimation('cursor-click-delete', document.getElementById('view-top-placeholder'));
+                    case 3: // Drag
+                        this.positionHint(topView, 'Click & Hold to move dividers', 'bottom');
+                        this.playDragAnimation(topView);
+                        break;
+                    case 4: // Delete
+                        this.positionHint(topView, 'Click once to select, again to delete', 'bottom');
+                        this.playDeleteAnimation(topView);
                         break;
                     default:
                         this.complete();
@@ -182,25 +236,31 @@
                 const rect = target.getBoundingClientRect();
                 this.text.innerText = text;
 
-                // Position logic (simplified relative to target)
                 let top, left, arrowRot, arrowTop, arrowLeft;
 
                 if (side === 'right') {
                     top = rect.top - 20;
                     left = rect.right + 60;
-                    arrowRot = 135; // Pointing left-ish
+                    arrowRot = 135;
                     arrowTop = rect.top + 10;
                     arrowLeft = rect.right + 5;
+                } else if (side === 'left') {
+                    top = rect.top - 20;
+                    left = rect.left - 240;
+                    arrowRot = 45;
+                    arrowTop = rect.top + 10;
+                    arrowLeft = rect.left - 65;
                 } else {
                     top = rect.bottom + 60;
                     left = rect.left + rect.width/2 - 110;
-                    arrowRot = 45; // Pointing up-ish
+                    arrowRot = 45;
                     arrowTop = rect.bottom + 5;
                     arrowLeft = rect.left + rect.width/2 - 30;
                 }
 
-                // Boundary checks to keep inside screen
+                // Boundary checks
                 if (left + 220 > window.innerWidth) left = window.innerWidth - 240;
+                if (left < 0) left = 10;
                 if (top + 150 > window.innerHeight) top = rect.top - 160;
 
                 this.blob.style.top = `${top}px`;
@@ -211,15 +271,95 @@
                 this.arrow.style.left = `${arrowLeft}px`;
             }
 
-            playAnimation(animName, target) {
+            playAnimation(animName, target, edge) {
                 if(!target) return;
                 const rect = target.getBoundingClientRect();
-                const cx = rect.left + rect.width/2;
-                const cy = rect.top + rect.height/2;
 
-                this.cursor.style.left = `${cx}px`;
-                this.cursor.style.top = `${cy}px`;
-                this.cursor.style.animation = `${animName} 3s infinite`;
+                if (edge === 'right-edge') {
+                    // Start at center-right
+                    this.cursor.style.left = `${rect.right - 20}px`;
+                    this.cursor.style.top = `${rect.top + rect.height/2 - 50}px`;
+                } else if (edge === 'bottom-edge') {
+                    // Start at center-bottom
+                    this.cursor.style.left = `${rect.left + rect.width/2 - 50}px`;
+                    this.cursor.style.top = `${rect.bottom - 20}px`;
+                } else {
+                    this.cursor.style.left = `${rect.left + rect.width/2}px`;
+                    this.cursor.style.top = `${rect.top + rect.height/2}px`;
+                }
+
+                this.cursor.style.animation = `${animName} 6s infinite`;
+            }
+
+            playDragAnimation(target) {
+                if(!target) return;
+                let startX = 0, startY = 0, isVert = true;
+                if (dividersX.length > 0) {
+                     const lastX = dividersX[dividersX.length-1];
+                     const rect = target.getBoundingClientRect();
+                     const aspect = rect.width / rect.height;
+                     const rangeX = FRUSTUM_SIZE * aspect;
+                     const pctX = (lastX - (-rangeX/2)) / rangeX;
+                     startX = rect.left + pctX * rect.width;
+                     startY = rect.top + rect.height / 2;
+                     isVert = true;
+                } else if (dividersZ.length > 0) {
+                     const lastZ = dividersZ[dividersZ.length-1];
+                     const rect = target.getBoundingClientRect();
+                     const pctY = (lastZ / FRUSTUM_SIZE) + 0.5;
+                     startX = rect.left + rect.width/2;
+                     startY = rect.top + pctY * rect.height;
+                     isVert = false;
+                } else {
+                    const rect = target.getBoundingClientRect();
+                    startX = rect.left + rect.width/2;
+                    startY = rect.top + rect.height/2;
+                }
+
+                this.cursor.style.left = `${startX}px`;
+                this.cursor.style.top = `${startY}px`;
+
+                this.cursor.innerHTML = '<svg viewBox="0 0 24 24" fill="white" stroke="black" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v1h-1V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v3h-1V2a2 2 0 0 0-2-2 2 2 0 0 0-2 2v5h-1V5a2 2 0 0 0-2-2 2 2 0 0 0-2 2v6c0 4.418 3.582 8 8 8s8-3.582 8-8z" /></svg>';
+                this.cursor.style.animation = 'cursor-drag-shadow 4s infinite';
+
+                this.ghostDivider.style.left = `${startX}px`;
+                this.ghostDivider.style.top = `${startY}px`;
+                if(isVert) {
+                    this.ghostDivider.style.width = '4px';
+                    this.ghostDivider.style.height = '100px';
+                } else {
+                    this.ghostDivider.style.width = '100px';
+                    this.ghostDivider.style.height = '4px';
+                }
+                this.ghostDivider.style.opacity = 0;
+                this.ghostDivider.style.animation = 'divider-drag-shadow 4s infinite';
+            }
+
+            playDeleteAnimation(target) {
+                 if(!target) return;
+                 let startX = 0, startY = 0;
+                 if (dividersX.length > 0) {
+                     const lastX = dividersX[dividersX.length-1];
+                     const rect = target.getBoundingClientRect();
+                     const aspect = rect.width / rect.height;
+                     const rangeX = FRUSTUM_SIZE * aspect;
+                     const pctX = (lastX - (-rangeX/2)) / rangeX;
+                     startX = rect.left + pctX * rect.width;
+                     startY = rect.top + rect.height / 2;
+                } else if (dividersZ.length > 0) {
+                     const lastZ = dividersZ[dividersZ.length-1];
+                     const rect = target.getBoundingClientRect();
+                     const pctY = (lastZ / FRUSTUM_SIZE) + 0.5;
+                     startX = rect.left + rect.width/2;
+                     startY = rect.top + pctY * rect.height;
+                } else {
+                    const rect = target.getBoundingClientRect();
+                    startX = rect.left + rect.width/2; startY = rect.top + rect.height/2;
+                }
+
+                this.cursor.style.left = `${startX}px`;
+                this.cursor.style.top = `${startY}px`;
+                this.cursor.style.animation = 'cursor-click-delete-slow 4s infinite';
             }
 
             advanceFrom(stepIndex) {
@@ -227,6 +367,9 @@
                     this.showStep(stepIndex + 1);
                 }
             }
+
+            advanceToVertical() { if(this.step === 1) this.showStep(2); }
+            advanceToDrag() { if(this.step === 2) this.showStep(3); }
 
             complete() {
                 document.body.classList.remove('tutorial-active');
@@ -387,7 +530,16 @@
             let hit = null;
             for (let i = 0; i < dividersX.length; i++) { if (Math.abs(world.x - dividersX[i]) < hitMargin && Math.abs(world.z) < w/2) { const sortedZ = [-w/2, ...[...dividersZ].sort((a,b)=>a-b), w/2]; let segIdx = 0; for(let j=0; j<sortedZ.length-1; j++) { if(world.z >= sortedZ[j] && world.z <= sortedZ[j+1]) { segIdx = j; break; } } hit = { type: 'X', index: i, segment: segIdx }; break; } }
             if (!hit) { for (let i = 0; i < dividersZ.length; i++) { if (Math.abs(world.z - dividersZ[i]) < hitMargin && Math.abs(world.x) < l/2) { const sortedX = [-l/2, ...[...dividersX].sort((a,b)=>a-b), l/2]; let segIdx = 0; for(let j=0; j<sortedX.length-1; j++) { if(world.x >= sortedX[j] && world.x <= sortedX[j+1]) { segIdx = j; break; } } hit = { type: 'Z', index: i, segment: segIdx }; break; } } }
-            if (hit) { draggingDivider = { ...hit, hasMoved: false }; viewTop.classList.add('cursor-grabbing'); } else { if (selectedForRemoval) { selectedForRemoval = null; updateBox(); } if (pendingAction && (pendingAction.type === 'addX' || pendingAction.type === 'addZ')) { if (pendingAction.type === 'addX') dividersX.push(pendingAction.pos); else dividersZ.push(pendingAction.pos); updateBox(); tutorial.advanceFrom(1); } }
+            if (hit) { draggingDivider = { ...hit, hasMoved: false }; viewTop.classList.add('cursor-grabbing'); } else { if (selectedForRemoval) { selectedForRemoval = null; updateBox(); } if (pendingAction && (pendingAction.type === 'addX' || pendingAction.type === 'addZ')) {
+                if (pendingAction.type === 'addX') {
+                    dividersX.push(pendingAction.pos);
+                    tutorial.advanceFrom(2); // Step 2 (Vertical instruction) -> Step 3
+                } else {
+                    dividersZ.push(pendingAction.pos);
+                    tutorial.advanceFrom(1); // Step 1 (Horizontal instruction) -> Step 2
+                }
+                updateBox();
+            } }
         }
 
         function onTopMouseMove(e) {
@@ -412,14 +564,14 @@
                         selectedForRemoval = null;
                         cleanupDividers();
                         updateBox();
-                        tutorial.complete();
+                        tutorial.advanceFrom(4);
                     } else {
                         selectedForRemoval = hit;
                         updateBox();
                     }
                 } else {
                     selectedForRemoval = null;
-                    if (draggingDivider.hasMoved) tutorial.advanceFrom(2);
+                    if (draggingDivider.hasMoved) tutorial.advanceFrom(3);
                 }
                 draggingDivider = null;
             }
