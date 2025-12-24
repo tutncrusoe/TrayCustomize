@@ -86,6 +86,15 @@
                 const aspect = rectTop.width / rectTop.height;
                 // Fit width (L) or height (W) with 10% padding (factor 1.2 total scale relative to content)
                 FRUSTUM_SIZE = Math.max(w, l / aspect) * 1.2;
+
+                // Update cameraTop immediately
+                if (cameraTop) {
+                    cameraTop.left = FRUSTUM_SIZE * aspect / -2;
+                    cameraTop.right = FRUSTUM_SIZE * aspect / 2;
+                    cameraTop.top = FRUSTUM_SIZE / 2;
+                    cameraTop.bottom = FRUSTUM_SIZE / -2;
+                    cameraTop.updateProjectionMatrix();
+                }
             }
 
             // Fit 3D View
@@ -124,7 +133,7 @@
                 autoFitCamera();
             } else {
                 const diff = Math.abs(currentMaxDim - lastZoomedMaxDim);
-                if (diff / lastZoomedMaxDim > 0.2) {
+                if (diff / lastZoomedMaxDim > 0.05) {
                     autoFitCamera();
                 }
             }
