@@ -71,7 +71,64 @@
         let scene, renderer, boxGroup, camera3D, cameraTop;
         const canvas = document.getElementById('main-canvas'), view3D = document.getElementById('view-3d-placeholder'), viewTop = document.getElementById('view-top-placeholder'), dimContainer = document.getElementById('dim-container'), dimContainer3D = document.getElementById('dim-container-3d'), indicator = document.getElementById('add-indicator'), previewLine = document.getElementById('preview-line'), globalInput = document.getElementById('global-dim-input');
         let dividersX = [], dividersZ = [], hiddenSegments = {}, pendingAction = null, draggingDivider = null, selectedForRemoval = null, isEditing = false, currentEditCallback = null;
-        const FRUSTUM_SIZE = 250;
+        let FRUSTUM_SIZE = 250;
+        let lastZoomedMaxDim = 0;
+
+        function autoFitCamera() {
+            const l = parseFloat(document.getElementById('dim-l').value) || 120;
+            const w = parseFloat(document.getElementById('dim-w').value) || 120;
+            const h = parseFloat(document.getElementById('dim-h').value) || 40;
+            const maxDim = Math.max(l, w, h);
+
+            // Fit Top View
+            const rectTop = viewTop.getBoundingClientRect();
+            if (rectTop.height > 0) {
+                const aspect = rectTop.width / rectTop.height;
+                // Fit width (L) or height (W) with 10% padding (factor 1.2 total scale relative to content)
+                FRUSTUM_SIZE = Math.max(w, l / aspect) * 1.2;
+            }
+
+            // Fit 3D View
+            const rect3D = view3D.getBoundingClientRect();
+            if (rect3D.height > 0) {
+                const aspect3D = rect3D.width / rect3D.height;
+                const fovRad = (camera3D.fov * Math.PI) / 180;
+
+                // Calculate distance needed to fit the object vertically
+                // Object size roughly maxDim. We want margin.
+                const verticalSize = maxDim * 1.2;
+                let distance = (verticalSize / 2) / Math.tan(fovRad / 2);
+
+                // Check horizontal fit
+                const horizontalSize = maxDim * 1.2;
+                const distanceH = (horizontalSize / 2) / (Math.tan(fovRad / 2) * aspect3D);
+
+                distance = Math.max(distance, distanceH);
+
+                // Current direction vector normalized (approx 1,1,1)
+                const direction = new THREE.Vector3(1, 1, 1).normalize();
+                camera3D.position.copy(direction.multiplyScalar(distance));
+                camera3D.lookAt(0, 0, 0);
+            }
+
+            lastZoomedMaxDim = maxDim;
+        }
+
+        function checkAutoZoom() {
+            const l = parseFloat(document.getElementById('dim-l').value) || 120;
+            const w = parseFloat(document.getElementById('dim-w').value) || 120;
+            const h = parseFloat(document.getElementById('dim-h').value) || 40;
+            const currentMaxDim = Math.max(l, w, h);
+
+            if (lastZoomedMaxDim === 0) {
+                autoFitCamera();
+            } else {
+                const diff = Math.abs(currentMaxDim - lastZoomedMaxDim);
+                if (diff / lastZoomedMaxDim > 0.2) {
+                    autoFitCamera();
+                }
+            }
+        }
 
         function init() {
             scene = new THREE.Scene(); scene.background = new THREE.Color(0x1a1a1a);
@@ -89,9 +146,13 @@
             viewTop.addEventListener('mousedown', onTopMouseDown); viewTop.addEventListener('mousemove', onTopMouseMove); window.addEventListener('mouseup', onTopMouseUp);
             document.getElementById('clear-dividers').addEventListener('click', () => { dividersX = []; dividersZ = []; hiddenSegments = {}; updateBox(); });
             document.getElementById('export-btn').addEventListener('click', exportSTL);
-            ['dim-l', 'dim-w', 'dim-h'].forEach(id => { document.getElementById(id).addEventListener('input', () => { if(!isEditing) updateBox(); }); });
+            ['dim-l', 'dim-w', 'dim-h'].forEach(id => {
+                const el = document.getElementById(id);
+                el.addEventListener('input', () => { if(!isEditing) updateBox(); });
+                el.addEventListener('change', checkAutoZoom);
+            });
             document.getElementById('radius').addEventListener('input', (e) => { updateBox(); });
-            setupGlobalInput(); updateBox(); animate();
+            setupGlobalInput(); updateBox(); autoFitCamera(); animate();
         }
 
         // Logic xuất file STL
@@ -355,7 +416,7 @@
             const sortedZ = [-w/2, ...[...dividersZ].sort((a,b) => a-b), w/2];
             for(let i=0; i < sortedZ.length - 1; i++) { const dist = sortedZ[i+1] - sortedZ[i]; if(dist < 1) continue; const el = createEditableLabel(Math.round(dist), (nd) => { const diff = nd - dist; for(let k=0; k<dividersZ.length; k++) if(dividersZ[k] >= sortedZ[i+1] - 0.1) dividersZ[k] += diff; }); el.style.left = `${w2pX(-l/2) - 35}px`; el.style.top = `${w2pZ((sortedZ[i] + sortedZ[i+1]) / 2)}px`; el.style.transform = 'translateY(-50%)'; dimContainer.appendChild(el); }
             const labels3D = [ { text: Math.round(l), pos: new THREE.Vector3(0, -h/2 - 10, w/2 + 10), target: 'dim-l' }, { text: Math.round(w), pos: new THREE.Vector3(l/2 + 15, -h/2 - 10, 0), target: 'dim-w' }, { text: Math.round(h), pos: new THREE.Vector3(-l/2 - 15, 0, w/2 + 15), target: 'dim-h' } ];
-            labels3D.forEach(info => { const el = createEditableLabel(info.text, (nv) => { document.getElementById(info.target).value = nv; }); el.classList.add('dim-label-3d'); el.dataset.worldPos = JSON.stringify(info.pos); dimContainer3D.appendChild(el); });
+            labels3D.forEach(info => { const el = createEditableLabel(info.text, (nv) => { document.getElementById(info.target).value = nv; checkAutoZoom(); }); el.classList.add('dim-label-3d'); el.dataset.worldPos = JSON.stringify(info.pos); dimContainer3D.appendChild(el); });
             document.getElementById('divider-stats').innerText = `Vert: ${dividersX.length} | Horiz: ${dividersZ.length}`;
         }
 
