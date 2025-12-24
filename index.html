@@ -33,10 +33,69 @@
         .dim-label-3d input { color: #000 !important; }
         .cursor-grab { cursor: grab; }
         .cursor-grabbing { cursor: grabbing; }
+
+        /* Tutorial Overlay Styles */
+        #tutorial-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 9999; display: none; }
+        .tutorial-active #tutorial-overlay { display: block; }
+        .tutorial-blob { position: absolute; width: 220px; transition: all 0.5s ease-out; }
+        .tutorial-blob svg { width: 100%; height: auto; filter: drop-shadow(4px 4px 0px rgba(0,0,0,0.2)); }
+        .tutorial-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; font-family: 'Patrick Hand', cursive; font-size: 18px; line-height: 1.2; color: #000; font-weight: bold; transform: rotate(-2deg); }
+        .tutorial-arrow { position: absolute; width: 60px; height: 60px; transition: all 0.5s ease-out; }
+        .tutorial-arrow svg { width: 100%; height: 100%; filter: drop-shadow(2px 2px 0px rgba(0,0,0,0.2)); }
+        .ghost-cursor { position: absolute; width: 32px; height: 32px; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 10000; }
+
+        /* Animations */
+        @keyframes cursor-scan {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+            10% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            30% { transform: translate(-50%, -150px) scale(1); } /* Top edge */
+            50% { transform: translate(150px, -150px) scale(1); } /* Top Right */
+            70% { transform: translate(-150px, -150px) scale(1); } /* Top Left */
+            100% { opacity: 0; transform: translate(-150px, -150px) scale(1); }
+        }
+        @keyframes cursor-drag {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+            10% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            30% { transform: translate(-50%, -50%) scale(0.8); } /* Press */
+            70% { transform: translate(50px, -50%) scale(0.8); } /* Drag */
+            90% { transform: translate(50px, -50%) scale(1); } /* Release */
+            100% { opacity: 0; transform: translate(50px, -50%) scale(1); }
+        }
+        @keyframes cursor-click-delete {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+            10% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            30% { transform: translate(-50%, -50%) scale(0.8); } /* Click 1 (Select) */
+            40% { transform: translate(-50%, -50%) scale(1); }
+            60% { transform: translate(-50%, -50%) scale(1); } /* Wait */
+            70% { transform: translate(-50%, -50%) scale(0.8); } /* Click 2 (Confirm) */
+            90% { transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
     </style>
 </head>
 <body class="relative h-screen w-screen">
     <canvas id="main-canvas"></canvas>
+
+    <!-- Tutorial Overlay -->
+    <div id="tutorial-overlay">
+        <div id="tut-blob" class="tutorial-blob">
+            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22.5 45.5C8.5 65.5 -5.5 105.5 22.5 125.5C50.5 145.5 100.5 155.5 145.5 135.5C190.5 115.5 205.5 65.5 185.5 35.5C165.5 5.5 100.5 -15.5 55.5 15.5C35.5 28.5 22.5 45.5 22.5 45.5Z" fill="#FFD700"/>
+            </svg>
+            <div id="tut-text" class="tutorial-text">Start here!</div>
+        </div>
+        <div id="tut-arrow" class="tutorial-arrow">
+            <svg viewBox="0 0 100 100" fill="none" stroke="black" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 90 Q 50 50 80 20 M 80 20 L 50 20 M 80 20 L 80 50" />
+            </svg>
+        </div>
+        <div id="ghost-cursor" class="ghost-cursor">
+            <svg viewBox="0 0 24 24" fill="white" stroke="black" stroke-width="2" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 3L10.07 19.97L12.58 12.58L19.97 10.07L3 3Z" />
+            </svg>
+        </div>
+    </div>
+
     <div id="add-indicator">+</div>
     <div id="preview-line"></div>
     <input type="number" id="global-dim-input" aria-label="Global Dimension Editor" />
@@ -67,6 +126,114 @@
         </div>
     </div>
     <script>
+        class TutorialManager {
+            constructor() {
+                this.step = 0;
+                this.overlay = document.getElementById('tutorial-overlay');
+                this.blob = document.getElementById('tut-blob');
+                this.text = document.getElementById('tut-text');
+                this.arrow = document.getElementById('tut-arrow');
+                this.cursor = document.getElementById('ghost-cursor');
+            }
+
+            init() {
+                if (!sessionStorage.getItem('tutorial_seen')) {
+                    this.start();
+                    sessionStorage.setItem('tutorial_seen', 'true');
+                }
+            }
+
+            start() {
+                document.body.classList.add('tutorial-active');
+                this.showStep(0);
+            }
+
+            showStep(stepIndex) {
+                this.step = stepIndex;
+                this.cursor.style.animation = 'none';
+                this.cursor.style.opacity = 0;
+
+                // Safety check for elements
+                if(!this.overlay || !this.blob) return;
+
+                switch(stepIndex) {
+                    case 0: // Dimensions
+                        this.positionHint(document.querySelector('.input-group'), 'Enter tray dimensions here!', 'right');
+                        break;
+                    case 1: // Add Dividers
+                        this.positionHint(document.getElementById('view-top-placeholder'), 'Hover edges to add dividers', 'bottom');
+                        this.playAnimation('cursor-scan', document.getElementById('view-top-placeholder'));
+                        break;
+                    case 2: // Drag
+                        this.positionHint(document.getElementById('view-top-placeholder'), 'Click & Hold to move dividers', 'bottom');
+                        this.playAnimation('cursor-drag', document.getElementById('view-top-placeholder'));
+                        break;
+                    case 3: // Delete
+                        this.positionHint(document.getElementById('view-top-placeholder'), 'Click once to select, again to delete', 'bottom');
+                        this.playAnimation('cursor-click-delete', document.getElementById('view-top-placeholder'));
+                        break;
+                    default:
+                        this.complete();
+                }
+            }
+
+            positionHint(target, text, side) {
+                if(!target) return;
+                const rect = target.getBoundingClientRect();
+                this.text.innerText = text;
+
+                // Position logic (simplified relative to target)
+                let top, left, arrowRot, arrowTop, arrowLeft;
+
+                if (side === 'right') {
+                    top = rect.top - 20;
+                    left = rect.right + 60;
+                    arrowRot = 135; // Pointing left-ish
+                    arrowTop = rect.top + 10;
+                    arrowLeft = rect.right + 5;
+                } else {
+                    top = rect.bottom + 60;
+                    left = rect.left + rect.width/2 - 110;
+                    arrowRot = 45; // Pointing up-ish
+                    arrowTop = rect.bottom + 5;
+                    arrowLeft = rect.left + rect.width/2 - 30;
+                }
+
+                // Boundary checks to keep inside screen
+                if (left + 220 > window.innerWidth) left = window.innerWidth - 240;
+                if (top + 150 > window.innerHeight) top = rect.top - 160;
+
+                this.blob.style.top = `${top}px`;
+                this.blob.style.left = `${left}px`;
+
+                this.arrow.style.transform = `rotate(${arrowRot}deg)`;
+                this.arrow.style.top = `${arrowTop}px`;
+                this.arrow.style.left = `${arrowLeft}px`;
+            }
+
+            playAnimation(animName, target) {
+                if(!target) return;
+                const rect = target.getBoundingClientRect();
+                const cx = rect.left + rect.width/2;
+                const cy = rect.top + rect.height/2;
+
+                this.cursor.style.left = `${cx}px`;
+                this.cursor.style.top = `${cy}px`;
+                this.cursor.style.animation = `${animName} 3s infinite`;
+            }
+
+            advanceFrom(stepIndex) {
+                if (this.step === stepIndex) {
+                    this.showStep(stepIndex + 1);
+                }
+            }
+
+            complete() {
+                document.body.classList.remove('tutorial-active');
+            }
+        }
+        const tutorial = new TutorialManager();
+
         lucide.createIcons();
         let scene, renderer, boxGroup, camera3D, cameraTop;
         const canvas = document.getElementById('main-canvas'), view3D = document.getElementById('view-3d-placeholder'), viewTop = document.getElementById('view-top-placeholder'), dimContainer = document.getElementById('dim-container'), dimContainer3D = document.getElementById('dim-container-3d'), indicator = document.getElementById('add-indicator'), previewLine = document.getElementById('preview-line'), globalInput = document.getElementById('global-dim-input');
@@ -157,11 +324,12 @@
             document.getElementById('export-btn').addEventListener('click', exportSTL);
             ['dim-l', 'dim-w', 'dim-h'].forEach(id => {
                 const el = document.getElementById(id);
-                el.addEventListener('input', () => { if(!isEditing) updateBox(); });
+                el.addEventListener('input', () => { if(!isEditing) updateBox(); tutorial.advanceFrom(0); });
                 el.addEventListener('change', checkAutoZoom);
             });
             document.getElementById('radius').addEventListener('input', (e) => { updateBox(); });
             setupGlobalInput(); updateBox(); autoFitCamera(); animate();
+            tutorial.init();
         }
 
         // Logic xuất file STL
@@ -219,7 +387,7 @@
             let hit = null;
             for (let i = 0; i < dividersX.length; i++) { if (Math.abs(world.x - dividersX[i]) < hitMargin && Math.abs(world.z) < w/2) { const sortedZ = [-w/2, ...[...dividersZ].sort((a,b)=>a-b), w/2]; let segIdx = 0; for(let j=0; j<sortedZ.length-1; j++) { if(world.z >= sortedZ[j] && world.z <= sortedZ[j+1]) { segIdx = j; break; } } hit = { type: 'X', index: i, segment: segIdx }; break; } }
             if (!hit) { for (let i = 0; i < dividersZ.length; i++) { if (Math.abs(world.z - dividersZ[i]) < hitMargin && Math.abs(world.x) < l/2) { const sortedX = [-l/2, ...[...dividersX].sort((a,b)=>a-b), l/2]; let segIdx = 0; for(let j=0; j<sortedX.length-1; j++) { if(world.x >= sortedX[j] && world.x <= sortedX[j+1]) { segIdx = j; break; } } hit = { type: 'Z', index: i, segment: segIdx }; break; } } }
-            if (hit) { draggingDivider = { ...hit, hasMoved: false }; viewTop.classList.add('cursor-grabbing'); } else { if (selectedForRemoval) { selectedForRemoval = null; updateBox(); } if (pendingAction && (pendingAction.type === 'addX' || pendingAction.type === 'addZ')) { if (pendingAction.type === 'addX') dividersX.push(pendingAction.pos); else dividersZ.push(pendingAction.pos); updateBox(); } }
+            if (hit) { draggingDivider = { ...hit, hasMoved: false }; viewTop.classList.add('cursor-grabbing'); } else { if (selectedForRemoval) { selectedForRemoval = null; updateBox(); } if (pendingAction && (pendingAction.type === 'addX' || pendingAction.type === 'addZ')) { if (pendingAction.type === 'addX') dividersX.push(pendingAction.pos); else dividersZ.push(pendingAction.pos); updateBox(); tutorial.advanceFrom(1); } }
         }
 
         function onTopMouseMove(e) {
@@ -244,12 +412,14 @@
                         selectedForRemoval = null;
                         cleanupDividers();
                         updateBox();
+                        tutorial.complete();
                     } else {
                         selectedForRemoval = hit;
                         updateBox();
                     }
                 } else {
                     selectedForRemoval = null;
+                    if (draggingDivider.hasMoved) tutorial.advanceFrom(2);
                 }
                 draggingDivider = null;
             }
