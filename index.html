@@ -10,7 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/STLExporter.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Patrick+Hand&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #1a1a1a; color: #f4f4f5; margin: 0; overflow: hidden; }
         .floating-panel { background: rgba(30, 30, 30, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); }
         .input-group { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.2s ease; }
@@ -41,11 +41,11 @@
         .tutorial-skip-btn { position: fixed; bottom: 30px; right: 30px; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.7); padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; pointer-events: auto; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.05em; z-index: 10003; }
         .tutorial-skip-btn:hover { background: rgba(255, 255, 255, 0.2); color: white; transform: scale(1.05); }
 
-        .tutorial-blob { position: absolute; width: 140px; transition: all 0.5s ease-out; z-index: 10001; pointer-events: none; }
+        .tutorial-blob { position: absolute; width: 100px; transition: all 0.5s ease-out; z-index: 10001; pointer-events: none; }
         /* Soft Yellow color #fef08a (similar to sticky note/Whisk) */
         .tutorial-blob svg path { fill: #fef08a; stroke: #fff; stroke-width: 3px; filter: drop-shadow(0 0 4px rgba(255,255,255,0.8)); }
         .tutorial-blob svg { width: 100%; height: auto; filter: drop-shadow(0px 8px 24px rgba(0,0,0,0.15)); }
-        .tutorial-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 25px; font-family: 'Patrick Hand', cursive; font-size: 16px; line-height: 1.3; color: #18181b; font-weight: 600; transform: rotate(-2deg); pointer-events: none; }
+        .tutorial-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; font-family: 'Patrick Hand', cursive; font-size: 12px; line-height: 1.3; color: #18181b; font-weight: 600; transform: rotate(-2deg); pointer-events: none; }
 
         .tutorial-arrow { position: absolute; width: 60px; height: 60px; transition: all 0.5s ease-out; z-index: 10000; }
         .tutorial-arrow svg { width: 100%; height: 100%; stroke: #fff; filter: drop-shadow(0 0 4px rgba(255,255,255,0.8)); }
@@ -303,10 +303,10 @@
                     arrowLeft = rect.left - 65;
                 } else if (side === 'top') {
                     top = rect.top - 120;
-                    left = rect.left - 40;
+                    left = rect.left - 20;
                     arrowRot = 100;
-                    arrowTop = rect.top - 30;
-                    arrowLeft = rect.left + 15;
+                    arrowTop = rect.top - 35;
+                    arrowLeft = rect.left + 10;
                 } else {
                     top = rect.bottom + 60;
                     left = rect.left + rect.width/2 - 70;
