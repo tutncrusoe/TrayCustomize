@@ -302,8 +302,8 @@
                         arrowLeft = rect.right + 5;
                     } else if (side === 'right-offset') { // Specific for Horizontal Divider Step
                         top = rect.top + rect.height / 2 - 50;
-                        // Move bubble inside viewport
-                        left = rect.right - 160;
+                        // Move bubble closer to edge (swapped with cursor)
+                        left = rect.right - 110;
                         this.arrow.style.opacity = 0;
                     } else if (side === 'bottom-offset') { // Specific for Vertical Divider Step
                         top = rect.bottom + 10;
@@ -334,7 +334,10 @@
                 }
 
                 // Boundary checks
-                if (left + 140 > window.innerWidth) left = window.innerWidth - 160;
+                const checkWidth = side === 'right-offset' ? 110 : 140;
+                const clampOffset = side === 'right-offset' ? 110 : 160;
+
+                if (left + checkWidth > window.innerWidth) left = window.innerWidth - clampOffset;
                 if (left < 0) left = 10;
                 if (top + 100 > window.innerHeight) top = rect.top - 120;
 
@@ -353,8 +356,8 @@
                 const rect = target.getBoundingClientRect();
 
                 if (edge === 'right-edge-outer') {
-                    // Start at center-right, inside margin
-                    const cursorX = rect.right - 40;
+                    // Start at center-right, inside margin (swapped with bubble, moving deeper left)
+                    const cursorX = rect.right - 130;
                     const cursorYStart = rect.top + rect.height/2;
 
                     this.cursor.style.left = `${cursorX}px`;
