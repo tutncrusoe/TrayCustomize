@@ -55,14 +55,15 @@
         .ghost-cursor svg { filter: drop-shadow(0 0 5px #fff) drop-shadow(0 0 10px #fff); }
 
         .ghost-divider { position: absolute; background: rgba(59, 130, 246, 0.5); pointer-events: none; opacity: 0; z-index: 9998; border-radius: 2px; }
+        .cursor-trail { position: absolute; width: 4px; background: rgba(255, 255, 255, 0.15); border-radius: 2px; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 9998; box-shadow: 0 0 4px rgba(255, 255, 255, 0.3); }
 
         /* Animations - Slowed down (approx 2x duration) */
         @keyframes cursor-scan-h { /* Horizontal scan (Right edge) */
-            0% { opacity: 0; transform: translate(0, 0); }
-            10% { opacity: 1; transform: translate(0, 0); }
-            50% { transform: translate(0, 150px); }
-            90% { transform: translate(0, 0); }
-            100% { opacity: 0; transform: translate(0, 0); }
+            0% { opacity: 0; transform: translate(0, -75px); }
+            10% { opacity: 1; transform: translate(0, -75px); }
+            50% { transform: translate(0, 75px); }
+            90% { transform: translate(0, -75px); }
+            100% { opacity: 0; transform: translate(0, -75px); }
         }
         @keyframes cursor-scan-v { /* Vertical scan (Bottom edge) */
             0% { opacity: 0; transform: translate(0, 0); }
@@ -124,6 +125,7 @@
             </svg>
         </div>
         <div id="ghost-divider" class="ghost-divider"></div>
+        <div id="cursor-trail" class="cursor-trail"></div>
     </div>
 
     <div id="add-indicator">+</div>
@@ -167,6 +169,7 @@
                 this.cursor = document.getElementById('ghost-cursor');
                 this.skipBtn = document.getElementById('tut-skip');
                 this.ghostDivider = document.getElementById('ghost-divider');
+                this.cursorTrail = document.getElementById('cursor-trail');
 
                 if(this.skipBtn) {
                     this.skipBtn.addEventListener('click', () => this.toggle());
@@ -215,6 +218,10 @@
                 this.cursor.style.opacity = 0;
                 this.ghostDivider.style.opacity = 0;
                 this.ghostDivider.style.animation = 'none';
+                this.cursorTrail.style.opacity = 0;
+
+                // Cleanup any z-index hacks from previous steps
+                document.querySelectorAll('.dim-label-3d, .input-group').forEach(el => el.style.zIndex = '');
 
                 // Reset cursor icon to pointer
                 this.cursor.innerHTML = '<svg viewBox="0 0 24 24" fill="white" stroke="black" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M3 3L10.07 19.97L12.58 12.58L19.97 10.07L3 3Z" /></svg>';
@@ -276,46 +283,69 @@
 
                 let top, left, arrowRot, arrowTop, arrowLeft;
 
-                if (side === 'right') {
-                    top = rect.top - 20;
-                    left = rect.right + 20;
-                    arrowRot = 135;
-                    arrowTop = rect.top + 10;
-                    arrowLeft = rect.right + 5;
-                } else if (side === 'right-offset') { // Specific for Horizontal Divider Step
-                    top = rect.top + rect.height / 2 - 60;
-                    left = rect.right + 10; // 10px offset from right wall
-                    arrowRot = 180;
-                    arrowTop = rect.top + rect.height / 2 - 30;
-                    arrowLeft = rect.right - 10;
-                    // Hide arrow for this specific clean look if desired, or keep pointing
-                    this.arrow.style.opacity = 0;
-                } else if (side === 'bottom-offset') { // Specific for Vertical Divider Step
-                    top = rect.bottom + 10;
-                    left = rect.left + rect.width / 2 - 70;
-                    arrowRot = 270;
-                    this.arrow.style.opacity = 0;
-                } else if (side === 'left') {
-                    top = rect.top - 20;
-                    left = rect.left - 160;
-                    arrowRot = 45;
-                    arrowTop = rect.top + 10;
-                    arrowLeft = rect.left - 65;
-                } else if (side === 'top') {
-                    top = rect.top - 120;
-                    left = rect.left - 20;
-                    arrowRot = 100;
-                    arrowTop = rect.top - 40;
-                    arrowLeft = rect.left;
-                } else {
-                    top = rect.bottom + 60;
-                    left = rect.left + rect.width/2 - 70;
-                    arrowRot = 45;
-                    arrowTop = rect.bottom + 5;
-                    arrowLeft = rect.left + rect.width/2 - 30;
-                }
+                // Check if targeting a 3D label for Dimensions step
+                if (target.classList.contains('dim-label-3d') || target.classList.contains('input-group')) {
+                    // Center the bubble on the label
+                    // Bubble width approx 100, height approx 75?
+                    // Let's assume centered behind
+                    top = rect.top + rect.height/2 - 75; // 75 = roughly half bubble height (150px in SVG but scaled) -> CSS says width 100px. Aspect 4:3. height ~75px. half is 37.5.
+                    // Wait, bubble SVG is 200x150. CSS width 100px. So height is 75px.
+                    // To center bubble (75px high) on label (approx 20px high):
+                    // label center Y = rect.top + rect.height/2.
+                    // bubble top = label center Y - bubble height/2 = Y - 37.5.
+                    // Let's try 40 offset.
+                    top = rect.top + rect.height/2 - 40;
+                    left = rect.left + rect.width/2 - 50; // Center 100px width
 
-                if (side !== 'right-offset' && side !== 'bottom-offset') this.arrow.style.opacity = 1;
+                    this.arrow.style.opacity = 0;
+                    target.style.zIndex = '10005'; // Elevate label above overlay
+                } else {
+
+                    if (side === 'right') {
+                        top = rect.top - 20;
+                        left = rect.right + 20;
+                        arrowRot = 135;
+                        arrowTop = rect.top + 10;
+                        arrowLeft = rect.right + 5;
+                    } else if (side === 'right-offset') { // Specific for Horizontal Divider Step
+                        top = rect.top + rect.height / 2 - 60;
+                        // Move bubble further right to make room for cursor between square and bubble
+                        // Square ends at rect.right.
+                        // We want cursor at rect.right + 15.
+                        // Cursor is ~32px.
+                        // So bubble should start around rect.right + 50 or 60.
+                        left = rect.right + 60;
+                        arrowRot = 180;
+                        arrowTop = rect.top + rect.height / 2 - 30;
+                        arrowLeft = rect.right + 40; // Arrow points from right to left?
+                        this.arrow.style.opacity = 0;
+                    } else if (side === 'bottom-offset') { // Specific for Vertical Divider Step
+                        top = rect.bottom + 10;
+                        left = rect.left + rect.width / 2 - 70;
+                        arrowRot = 270;
+                        this.arrow.style.opacity = 0;
+                    } else if (side === 'left') {
+                        top = rect.top - 20;
+                        left = rect.left - 160;
+                        arrowRot = 45;
+                        arrowTop = rect.top + 10;
+                        arrowLeft = rect.left - 65;
+                    } else if (side === 'top') {
+                        top = rect.top - 120;
+                        left = rect.left - 20;
+                        arrowRot = 100;
+                        arrowTop = rect.top - 40;
+                        arrowLeft = rect.left;
+                    } else {
+                        top = rect.bottom + 60;
+                        left = rect.left + rect.width/2 - 70;
+                        arrowRot = 45;
+                        arrowTop = rect.bottom + 5;
+                        arrowLeft = rect.left + rect.width/2 - 30;
+                    }
+
+                    if (side !== 'right-offset' && side !== 'bottom-offset') this.arrow.style.opacity = 1;
+                }
 
                 // Boundary checks
                 if (left + 140 > window.innerWidth) left = window.innerWidth - 160;
@@ -338,8 +368,19 @@
 
                 if (edge === 'right-edge-outer') {
                     // Start at center-right, outside
-                    this.cursor.style.left = `${rect.right + 20}px`;
-                    this.cursor.style.top = `${rect.top + rect.height/2 - 75}px`;
+                    // Position cursor between square (rect.right) and bubble (rect.right + 60)
+                    const cursorX = rect.right + 15;
+                    const cursorYStart = rect.top + rect.height/2;
+
+                    this.cursor.style.left = `${cursorX}px`;
+                    this.cursor.style.top = `${cursorYStart}px`;
+
+                    // Show trail
+                    this.cursorTrail.style.opacity = 1;
+                    this.cursorTrail.style.left = `${cursorX + 6}px`; // +6 to center under cursor tip? Cursor is 32px. Tip is at 0,0. Trail should be near tip.
+                    this.cursorTrail.style.top = `${cursorYStart - 75}px`; // Start of scan range
+                    this.cursorTrail.style.height = '150px'; // Range of scan
+
                 } else if (edge === 'bottom-edge-outer') {
                     // Start at center-bottom, outside
                     this.cursor.style.left = `${rect.left + rect.width/2 - 75}px`;
