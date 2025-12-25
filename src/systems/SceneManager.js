@@ -23,10 +23,9 @@ export class SceneManager {
     init() {
         // Scene Setup
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x1a1a1a);
 
         // Renderer Setup
-        this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+        this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true });
         this.renderer.setPixelRatio(window.devicePixelRatio);
 
         // Camera Setup

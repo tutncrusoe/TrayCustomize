@@ -58,8 +58,8 @@ class App {
 
         window.addEventListener('resize', () => {
              if (window.innerWidth >= 768) {
-                 const v3 = document.getElementById('view-3d-placeholder');
-                 const vt = document.getElementById('view-top-placeholder');
+                 const v3 = document.getElementById('view-3d-wrapper');
+                 const vt = document.getElementById('view-top-wrapper');
                  v3.classList.remove('hidden', 'flex-1');
                  vt.classList.remove('hidden', 'flex-1');
              } else {
@@ -71,8 +71,8 @@ class App {
     handleMobileViewChange(mode) {
         if (window.innerWidth >= 768) return;
 
-        const v3 = document.getElementById('view-3d-placeholder');
-        const vt = document.getElementById('view-top-placeholder');
+        const v3 = document.getElementById('view-3d-wrapper');
+        const vt = document.getElementById('view-top-wrapper');
         const t3 = document.getElementById('tab-3d');
         const tt = document.getElementById('tab-top');
 
