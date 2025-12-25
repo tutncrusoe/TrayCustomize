@@ -516,6 +516,7 @@
         let scene, renderer, boxGroup, camera3D, cameraTop;
         const canvas = document.getElementById('main-canvas'), view3D = document.getElementById('view-3d-placeholder'), viewTop = document.getElementById('view-top-placeholder'), dimContainer = document.getElementById('dim-container'), dimContainer3D = document.getElementById('dim-container-3d'), indicator = document.getElementById('add-indicator'), previewLine = document.getElementById('preview-line'), globalInput = document.getElementById('global-dim-input');
         let dividersX = [], dividersZ = [], hiddenSegments = {}, pendingAction = null, draggingDivider = null, selectedForRemoval = null, isEditing = false, currentEditCallback = null;
+        let currentEdit3DPos = null;
         let FRUSTUM_SIZE = 250;
         let lastZoomedMaxDim = 0;
 
@@ -659,9 +660,10 @@
         }
 
         function setupGlobalInput() { globalInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') finishEditing(); else if (e.key === 'Escape') cancelEditing(); }); globalInput.addEventListener('blur', () => setTimeout(finishEditing, 100)); globalInput.addEventListener('mousedown', (e) => e.stopPropagation()); }
-        function startEditing(x, y, val, cb) {
+        function startEditing(x, y, val, cb, worldPos3D = null) {
             isEditing = true;
             currentEditCallback = cb;
+            currentEdit3DPos = worldPos3D;
             globalInput.style.display = 'block';
             globalInput.style.left = `${x}px`;
             globalInput.style.top = `${y}px`;
@@ -684,6 +686,7 @@
             const val = parseFloat(globalInput.value);
             if (!isNaN(val) && currentEditCallback) currentEditCallback(val);
             isEditing = false;
+            currentEdit3DPos = null;
             globalInput.style.display = 'none';
             currentEditCallback = null;
 
@@ -697,6 +700,7 @@
         }
         function cancelEditing() {
             isEditing = false;
+            currentEdit3DPos = null;
             globalInput.style.display = 'none';
             currentEditCallback = null;
 
@@ -991,7 +995,7 @@
             updateDimensions();
         }
 
-        function createEditableLabel(text, cb) { const el = document.createElement('div'); el.className = 'dim-label'; el.innerText = text; const handler = (e) => { e.stopPropagation(); e.preventDefault(); const r = el.getBoundingClientRect(); startEditing(r.left + r.width/2, r.top + r.height/2, text, cb); }; el.addEventListener('mousedown', handler); el.addEventListener('touchstart', handler); return el; }
+        function createEditableLabel(text, cb, worldPos3D = null) { const el = document.createElement('div'); el.className = 'dim-label'; el.innerText = text; const handler = (e) => { e.stopPropagation(); e.preventDefault(); const r = el.getBoundingClientRect(); startEditing(r.left + r.width/2, r.top + r.height/2, text, cb, worldPos3D); }; el.addEventListener('mousedown', handler); el.addEventListener('touchstart', handler); return el; }
 
         function createModel(l, h, w, r, dX, dZ) {
             const group = new THREE.Group();
@@ -1052,7 +1056,7 @@
             const sortedZ = [-w/2, ...[...dividersZ].sort((a,b) => a-b), w/2];
             for(let i=0; i < sortedZ.length - 1; i++) { const dist = sortedZ[i+1] - sortedZ[i]; if(dist < 1) continue; const el = createEditableLabel(Math.round(dist), (nd) => { const diff = nd - dist; for(let k=0; k<dividersZ.length; k++) if(dividersZ[k] >= sortedZ[i+1] - 0.1) dividersZ[k] += diff; }); el.style.left = `${w2pX(-l/2) - 35}px`; el.style.top = `${w2pZ((sortedZ[i] + sortedZ[i+1]) / 2)}px`; el.style.transform = 'translateY(-50%)'; dimContainer.appendChild(el); }
             const labels3D = [ { text: Math.round(l), pos: new THREE.Vector3(0, -h/2 - 10, w/2 + 10), target: 'dim-l' }, { text: Math.round(w), pos: new THREE.Vector3(l/2 + 15, -h/2 - 10, 0), target: 'dim-w' }, { text: Math.round(h), pos: new THREE.Vector3(-l/2 - 15, 0, w/2 + 15), target: 'dim-h' } ];
-            labels3D.forEach((info, index) => { const el = createEditableLabel(info.text, (nv) => { document.getElementById(info.target).value = nv; checkAutoZoom(); setTimeout(() => tutorial.advanceFrom(index), 100); }); el.classList.add('dim-label-3d'); el.dataset.worldPos = JSON.stringify(info.pos); dimContainer3D.appendChild(el); });
+            labels3D.forEach((info, index) => { const el = createEditableLabel(info.text, (nv) => { document.getElementById(info.target).value = nv; checkAutoZoom(); setTimeout(() => tutorial.advanceFrom(index), 100); }, info.pos); el.classList.add('dim-label-3d'); el.dataset.worldPos = JSON.stringify(info.pos); dimContainer3D.appendChild(el); });
             document.getElementById('divider-stats').innerText = `Vert: ${dividersX.length} | Horiz: ${dividersZ.length}`;
         }
 
@@ -1114,6 +1118,31 @@
             labels.forEach(el => { if (el.querySelector('input')) return; const worldPos = JSON.parse(el.dataset.worldPos), vector = new THREE.Vector3(worldPos.x, worldPos.y, worldPos.z); vector.applyQuaternion(boxGroup.quaternion); vector.project(camera3D); const x = (vector.x * 0.5 + 0.5) * rect3D.width, y = (-(vector.y) * 0.5 + 0.5) * rect3D.height; if (vector.z < 1) { el.style.display = 'block'; el.style.left = `${x}px`; el.style.top = `${y}px`; el.style.transform = 'translate(-50%, -50%)'; } else { el.style.display = 'none'; } });
         }
 
+        function updateGlobalInputPosition() {
+            if (!isEditing || !currentEdit3DPos) return;
+            const rect3D = view3D.getBoundingClientRect();
+            if (rect3D.width === 0 || rect3D.height === 0) return;
+
+            // Replicate projection logic
+            const vector = new THREE.Vector3(currentEdit3DPos.x, currentEdit3DPos.y, currentEdit3DPos.z);
+            vector.applyQuaternion(boxGroup.quaternion);
+            vector.project(camera3D);
+
+            const x = (vector.x * 0.5 + 0.5) * rect3D.width;
+            const y = (-(vector.y) * 0.5 + 0.5) * rect3D.height;
+
+            // If point is behind camera, maybe hide input or just keep it?
+            // Usually editing blocks rotation so it shouldn't go behind unless zoomed weirdly.
+            // Let's just update position.
+            if (vector.z < 1) {
+                 globalInput.style.display = 'block';
+                 globalInput.style.left = `${rect3D.left + x}px`;
+                 globalInput.style.top = `${rect3D.top + y}px`;
+            } else {
+                 globalInput.style.display = 'none';
+            }
+        }
+
         function animate() {
             requestAnimationFrame(animate);
             const width = canvas.clientWidth, height = canvas.clientHeight;
@@ -1132,6 +1161,7 @@
                 camera3D.updateProjectionMatrix();
                 renderer.render(scene, camera3D);
                 update3DLabels();
+                updateGlobalInputPosition();
             }
 
             const curRot = boxGroup.rotation.y;
