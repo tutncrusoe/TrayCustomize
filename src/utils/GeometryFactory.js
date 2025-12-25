@@ -46,17 +46,23 @@ export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}, colorTheme 
     const group = new THREE.Group();
 
     // Materials based on theme
-    // Brown Theme: #4E342E
-    // White Theme: #EFEBE9
-    // The user requested a "Monotone" tray, so Wall and Base are same color.
+    // User requested distinct contrast between Base and Wall.
+    // Wall should be lighter than Base.
 
-    let colorHex = 0x4E342E;
+    let colorBase, colorWall;
+
     if (colorTheme === 'white') {
-        colorHex = 0xEFEBE9;
+        // Ceramic White
+        colorBase = 0xD7CCC8; // Darker beige/white
+        colorWall = 0xFFFFFF; // Pure white
+    } else {
+        // Ceramic Brown
+        colorBase = 0x4E342E; // Dark brown
+        colorWall = 0x8D6E63; // Lighter brown
     }
 
-    const matWall = new THREE.MeshPhongMaterial({ color: colorHex, shininess: 30, specular: 0x111111 });
-    const matBase = new THREE.MeshPhongMaterial({ color: colorHex, shininess: 30, specular: 0x111111 });
+    const matWall = new THREE.MeshPhongMaterial({ color: colorWall, shininess: 30, specular: 0x111111 });
+    const matBase = new THREE.MeshPhongMaterial({ color: colorBase, shininess: 30, specular: 0x111111 });
 
     const thick = 2;
     const outerShape = createRoundedRectShape(l, w, r);
