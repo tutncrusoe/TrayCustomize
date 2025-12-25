@@ -501,8 +501,8 @@
             const rectTop = viewTop.getBoundingClientRect();
             if (rectTop.height > 0) {
                 const aspect = rectTop.width / rectTop.height;
-                // Fit width (L) or height (W) with 10% padding (factor 1.2 total scale relative to content)
-                FRUSTUM_SIZE = Math.max(w, l / aspect) * 1.2;
+                // Fit width (L) or height (W) with 20% padding (factor 1.4 total scale relative to content)
+                FRUSTUM_SIZE = Math.max(w, l / aspect) * 1.4;
 
                 // Update cameraTop immediately
                 if (cameraTop) {
