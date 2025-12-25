@@ -46,7 +46,7 @@
         /* Soft Yellow color #fef08a (similar to sticky note/Whisk) */
         .tutorial-blob svg path { fill: #fef08a; stroke: #fff; stroke-width: 3px; filter: drop-shadow(0 0 4px rgba(255,255,255,0.8)); }
         .tutorial-blob svg { width: 100%; height: auto; filter: drop-shadow(0px 8px 24px rgba(0,0,0,0.15)); }
-        .tutorial-text { position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center; text-align: center; padding: 25px 20px 20px 20px; font-family: 'Patrick Hand', cursive; font-size: 12px; line-height: 1.3; color: #18181b; font-weight: 600; transform: rotate(-2deg); pointer-events: none; }
+        .tutorial-text { position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center; text-align: center; padding: 5px 20px 0 20px; font-family: 'Patrick Hand', cursive; font-size: 12px; line-height: 1.3; color: #18181b; font-weight: 600; transform: rotate(-2deg); pointer-events: none; }
 
         .tutorial-arrow { position: absolute; width: 60px; height: 60px; transition: all 0.5s ease-out; z-index: 10000; }
         .tutorial-arrow svg { width: 100%; height: 100%; stroke: #fff; filter: drop-shadow(0 0 4px rgba(255,255,255,0.8)); }
@@ -56,7 +56,7 @@
         .ghost-cursor svg { filter: drop-shadow(0 0 5px #fff) drop-shadow(0 0 10px #fff); }
 
         .ghost-divider { position: absolute; background: rgba(59, 130, 246, 0.5); pointer-events: none; opacity: 0; z-index: 9998; border-radius: 2px; }
-        .cursor-trail { position: absolute; width: 4px; background: rgba(255, 255, 255, 0.15); border-radius: 2px; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 9998; box-shadow: 0 0 4px rgba(255, 255, 255, 0.3); }
+        .cursor-trail { position: absolute; width: 4px; background: rgba(59, 130, 246, 0.6); border-radius: 2px; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 9998; box-shadow: 0 0 8px rgba(59, 130, 246, 0.8); }
 
         /* Animations - Slowed down (approx 2x duration) */
         @keyframes cursor-scan-h { /* Horizontal scan (Right edge) */
@@ -288,13 +288,7 @@
                     // Center the bubble on the label
                     // Bubble width approx 100, height approx 75?
                     // Let's assume centered behind
-                    top = rect.top + rect.height/2 - 75; // 75 = roughly half bubble height (150px in SVG but scaled) -> CSS says width 100px. Aspect 4:3. height ~75px. half is 37.5.
-                    // Wait, bubble SVG is 200x150. CSS width 100px. So height is 75px.
-                    // To center bubble (75px high) on label (approx 20px high):
-                    // label center Y = rect.top + rect.height/2.
-                    // bubble top = label center Y - bubble height/2 = Y - 37.5.
-                    // Let's try 40 offset.
-                    top = rect.top + rect.height/2 - 40;
+                    top = rect.top + rect.height/2 - 60;
                     left = rect.left + rect.width/2 - 50; // Center 100px width
 
                     this.arrow.style.opacity = 0;
