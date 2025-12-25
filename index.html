@@ -222,6 +222,8 @@
 
                 // Cleanup any z-index hacks from previous steps
                 document.querySelectorAll('.dim-label-3d, .input-group').forEach(el => el.style.zIndex = '');
+                const dimContainer3D = document.getElementById('dim-container-3d');
+                if (dimContainer3D) dimContainer3D.style.zIndex = '';
 
                 // Reset cursor icon to pointer
                 this.cursor.innerHTML = '<svg viewBox="0 0 24 24" fill="white" stroke="black" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M3 3L10.07 19.97L12.58 12.58L19.97 10.07L3 3Z" /></svg>';
@@ -299,6 +301,12 @@
 
                     this.arrow.style.opacity = 0;
                     target.style.zIndex = '10005'; // Elevate label above overlay
+
+                    // Also elevate the container if it's a 3D label, otherwise the container's lower z-index clips it
+                    if (target.classList.contains('dim-label-3d')) {
+                         const container = document.getElementById('dim-container-3d');
+                         if (container) container.style.zIndex = '10005';
+                    }
                 } else {
 
                     if (side === 'right') {
