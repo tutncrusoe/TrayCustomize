@@ -1012,6 +1012,18 @@
         }
 
         function setMobileView(mode) {
+            // Cleanup Top View interactions to prevent artifacts in 3D View
+            pendingAction = null;
+            selectedForRemoval = null;
+            draggingDivider = null;
+            isTouchInteracting = false;
+            if (indicator) {
+                indicator.classList.remove('active', 'move', 'remove-confirm');
+                indicator.style.opacity = '0';
+                indicator.style.transform = 'scale(0)';
+            }
+            if (previewLine) previewLine.style.display = 'none';
+
             const v3 = document.getElementById('view-3d-placeholder');
             const vt = document.getElementById('view-top-placeholder');
             const t3 = document.getElementById('tab-3d');
