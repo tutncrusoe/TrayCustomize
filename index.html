@@ -301,16 +301,9 @@
                         arrowTop = rect.top + 10;
                         arrowLeft = rect.right + 5;
                     } else if (side === 'right-offset') { // Specific for Horizontal Divider Step
-                        top = rect.top + rect.height / 2 - 60;
-                        // Move bubble further right to make room for cursor between square and bubble
-                        // Square ends at rect.right.
-                        // We want cursor at rect.right + 15.
-                        // Cursor is ~32px.
-                        // So bubble should start around rect.right + 50 or 60.
-                        left = rect.right + 60;
-                        arrowRot = 180;
-                        arrowTop = rect.top + rect.height / 2 - 30;
-                        arrowLeft = rect.right + 40; // Arrow points from right to left?
+                        top = rect.top + rect.height / 2 - 50;
+                        // Move bubble inside viewport
+                        left = rect.right - 160;
                         this.arrow.style.opacity = 0;
                     } else if (side === 'bottom-offset') { // Specific for Vertical Divider Step
                         top = rect.bottom + 10;
@@ -360,9 +353,8 @@
                 const rect = target.getBoundingClientRect();
 
                 if (edge === 'right-edge-outer') {
-                    // Start at center-right, outside
-                    // Position cursor between square (rect.right) and bubble (rect.right + 60)
-                    const cursorX = rect.right + 15;
+                    // Start at center-right, inside margin
+                    const cursorX = rect.right - 40;
                     const cursorYStart = rect.top + rect.height/2;
 
                     this.cursor.style.left = `${cursorX}px`;
@@ -370,14 +362,26 @@
 
                     // Show trail
                     this.cursorTrail.style.opacity = 1;
-                    this.cursorTrail.style.left = `${cursorX + 6}px`; // +6 to center under cursor tip? Cursor is 32px. Tip is at 0,0. Trail should be near tip.
-                    this.cursorTrail.style.top = `${cursorYStart - 75}px`; // Start of scan range
-                    this.cursorTrail.style.height = '150px'; // Range of scan
+                    this.cursorTrail.style.left = `${cursorX + 6}px`;
+                    this.cursorTrail.style.top = `${cursorYStart - 75}px`;
+                    this.cursorTrail.style.height = '150px';
 
                 } else if (edge === 'bottom-edge-outer') {
                     // Start at center-bottom, outside
-                    this.cursor.style.left = `${rect.left + rect.width/2 - 75}px`;
-                    this.cursor.style.top = `${rect.bottom + 20}px`;
+                    // Position: slightly above bubble (rect.bottom + 10) and overlapping geometry (rect.bottom)
+                    const cursorX = rect.left + rect.width/2 - 75;
+                    const cursorY = rect.bottom - 5;
+
+                    this.cursor.style.left = `${cursorX}px`;
+                    this.cursor.style.top = `${cursorY}px`;
+
+                    // Show trail
+                    this.cursorTrail.style.opacity = 1;
+                    this.cursorTrail.style.left = `${cursorX}px`;
+                    this.cursorTrail.style.top = `${cursorY + 5}px`;
+                    this.cursorTrail.style.width = '150px';
+                    this.cursorTrail.style.height = '4px';
+
                 } else if (edge === 'right-edge') {
                     this.cursor.style.left = `${rect.right - 20}px`;
                     this.cursor.style.top = `${rect.top + rect.height/2 - 50}px`;
