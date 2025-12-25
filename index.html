@@ -1106,7 +1106,6 @@
         }
 
         function update3DLabels() {
-            if (isEditing) return;
             const rect3D = view3D.getBoundingClientRect();
             // Skip if hidden
             if (rect3D.width === 0 || rect3D.height === 0) return;
