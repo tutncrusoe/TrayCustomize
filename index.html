@@ -166,6 +166,7 @@
                 this.step = 0;
                 this.isActive = false;
                 this.overlay = document.getElementById('tutorial-overlay');
+                this.underlay = document.getElementById('tutorial-underlay');
                 this.blob = document.getElementById('tut-blob');
                 this.text = document.getElementById('tut-text');
                 this.arrow = document.getElementById('tut-arrow');
@@ -222,6 +223,11 @@
                 this.ghostDivider.style.opacity = 0;
                 this.ghostDivider.style.animation = 'none';
                 this.cursorTrail.style.opacity = 0;
+
+                // Adjust Z-Index: Step 4 (Add Vertical) needs to overlap the config panel (z-10)
+                if (this.underlay) {
+                    this.underlay.style.zIndex = (stepIndex === 4) ? '50' : '5';
+                }
 
                 // Reset cursor icon to pointer
                 this.cursor.innerHTML = '<svg viewBox="0 0 24 24" fill="white" stroke="black" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M3 3L10.07 19.97L12.58 12.58L19.97 10.07L3 3Z" /></svg>';
