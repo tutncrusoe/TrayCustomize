@@ -42,12 +42,21 @@ export function createAdaptiveHoleShape(x, z, w, h, radii) {
     return shape;
 }
 
-export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}) {
+export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}, colorTheme = 'brown') {
     const group = new THREE.Group();
 
-    // Materials
-    const matWall = new THREE.MeshPhongMaterial({ color: 0xe5d3b3, shininess: 30, specular: 0x111111 });
-    const matBase = new THREE.MeshPhongMaterial({ color: 0x6f4e37, shininess: 5, specular: 0x000000 });
+    // Materials based on theme
+    // Brown Theme: #4E342E
+    // White Theme: #EFEBE9
+    // The user requested a "Monotone" tray, so Wall and Base are same color.
+
+    let colorHex = 0x4E342E;
+    if (colorTheme === 'white') {
+        colorHex = 0xEFEBE9;
+    }
+
+    const matWall = new THREE.MeshPhongMaterial({ color: colorHex, shininess: 30, specular: 0x111111 });
+    const matBase = new THREE.MeshPhongMaterial({ color: colorHex, shininess: 30, specular: 0x111111 });
 
     const thick = 2;
     const outerShape = createRoundedRectShape(l, w, r);
