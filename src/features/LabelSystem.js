@@ -144,6 +144,7 @@ export class LabelSystem {
                 store.emit('dimensionsCommitted');
             };
             const el = this.createEditableLabel(info.text, cb, info.pos);
+            el.id = `label-3d-${info.axis}`;
             this.dimContainer3D.appendChild(el);
         });
     }
