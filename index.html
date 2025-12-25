@@ -17,7 +17,7 @@
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #ffffff; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(255,255,255,0.3); border: none; }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: rgba(255,255,255,0.2); border-radius: 2px; }
         .view-label { position: absolute; top: 1rem; left: 1rem; background: rgba(255,255,255,0.1); padding: 6px 14px; border-radius: 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; color: rgba(255,255,255,0.8); z-index: 20; pointer-events: none; border: none; }
-        #main-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        #main-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
         .viewport-placeholder { position: relative; flex: 1; z-index: 2; }
         .dim-label { position: absolute; font-size: 11px; font-weight: 800; color: #ffffff; z-index: 2000; background: #27272a; padding: 4px 10px; border-radius: 6px; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.8); cursor: pointer; pointer-events: auto; transition: transform 0.15s, background 0.2s; border: 1px solid rgba(255,255,255,0.2); user-select: none; }
         .dim-label:hover { background: #3b82f6; border-color: #ffffff; transform: scale(1.1); }
@@ -144,9 +144,15 @@
             </div>
         </div>
 
-        <main id="viewports-container" class="flex-1 flex flex-col md:flex-row relative">
-            <div id="view-3d-placeholder" class="viewport-placeholder border-b md:border-b-0 md:border-r border-white/10 pointer-events-auto cursor-grab active:cursor-grabbing flex-1"><div class="view-label md:block hidden">3D View</div><div id="dim-container-3d" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
-            <div id="view-top-placeholder" class="viewport-placeholder pointer-events-auto hidden md:block md:flex-1"><div class="view-label md:block hidden">Top View</div><div id="dim-container" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
+        <main id="viewports-container" class="flex-1 flex flex-col md:flex-row relative p-4 gap-4 md:p-8 md:gap-8">
+            <div id="view-3d-wrapper" class="flex-1 md:flex-1 flex flex-col min-h-0">
+                <h2 class="text-white font-bold mb-3 text-sm ml-1 hidden md:block">3D View</h2>
+                <div id="view-3d-placeholder" class="viewport-placeholder pointer-events-auto cursor-grab active:cursor-grabbing flex-1 rounded-3xl border border-white/10 bg-zinc-800/50 shadow-2xl relative"><div id="dim-container-3d" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
+            </div>
+            <div id="view-top-wrapper" class="flex-1 md:flex-1 flex flex-col min-h-0 hidden md:flex">
+                <h2 class="text-white font-bold mb-3 text-sm ml-1 hidden md:block">Top View</h2>
+                <div id="view-top-placeholder" class="viewport-placeholder pointer-events-auto flex-1 rounded-3xl border border-white/10 bg-zinc-800/50 shadow-2xl relative"><div id="dim-container" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
+            </div>
         </main>
         <div class="w-full p-4 md:p-8 flex justify-center pointer-events-none">
             <div class="floating-panel rounded-[2.5rem] p-4 md:p-8 flex flex-col md:flex-row gap-8 items-center justify-between pointer-events-auto w-full max-w-4xl">
