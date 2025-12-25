@@ -22,15 +22,23 @@ async def verify_z_index():
             await browser.close()
             return
 
-        # Advance to Step 4
-        # We can cheat by calling tutorial.showStep(4) directly via console for speed
-        print("Advancing to Step 4...")
-        await page.evaluate("tutorial.showStep(4)")
-
-        # Allow a brief moment for any potential updates (though this one is synchronous DOM update)
+        # Advance to Step 3
+        print("Advancing to Step 3...")
+        await page.evaluate("tutorial.showStep(3)")
         await asyncio.sleep(0.1)
 
-        # Step 4: Vertical Divider
+        z_index_3 = await get_z_index()
+        print(f"Step 3 Z-Index: {z_index_3}")
+        if z_index_3 != "50":
+            print("FAILURE: Step 3 z-index should be 50")
+            await browser.close()
+            return
+
+        # Advance to Step 4
+        print("Advancing to Step 4...")
+        await page.evaluate("tutorial.showStep(4)")
+        await asyncio.sleep(0.1)
+
         z_index_4 = await get_z_index()
         print(f"Step 4 Z-Index: {z_index_4}")
         if z_index_4 != "50":
@@ -38,7 +46,7 @@ async def verify_z_index():
             await browser.close()
             return
 
-        # Go back to Step 3 or 0 to verify reset
+        # Go back to Step 0 to verify reset
         print("Returning to Step 0...")
         await page.evaluate("tutorial.showStep(0)")
         await asyncio.sleep(0.1)
@@ -50,7 +58,7 @@ async def verify_z_index():
              await browser.close()
              return
 
-        print("SUCCESS: Z-Index logic verified correctly.")
+        print("SUCCESS: Z-Index logic verified correctly for Steps 3 and 4.")
         await browser.close()
 
 if __name__ == "__main__":

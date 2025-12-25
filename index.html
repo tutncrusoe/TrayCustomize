@@ -224,9 +224,9 @@
                 this.ghostDivider.style.animation = 'none';
                 this.cursorTrail.style.opacity = 0;
 
-                // Adjust Z-Index: Step 4 (Add Vertical) needs to overlap the config panel (z-10)
+                // Adjust Z-Index: Steps 3 (Horizontal) & 4 (Vertical) need to overlap UI elements (z-10)
                 if (this.underlay) {
-                    this.underlay.style.zIndex = (stepIndex === 4) ? '50' : '5';
+                    this.underlay.style.zIndex = (stepIndex === 3 || stepIndex === 4) ? '50' : '5';
                 }
 
                 // Reset cursor icon to pointer
