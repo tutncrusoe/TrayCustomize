@@ -29,6 +29,7 @@
         #add-indicator.move { background: #3b82f6; color: white; font-size: 16px; }
         #preview-line { position: fixed; background: #3b82f6; pointer-events: none; z-index: 90; display: none; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
         #global-dim-input { position: fixed; z-index: 9999; width: 60px; height: 26px; background: #fff; color: #000; border: 2px solid #3b82f6; border-radius: 6px; font-size: 11px; font-weight: 800; text-align: center; outline: none; padding: 0; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.5); transform: translate(-50%, -50%); font-family: 'Plus Jakarta Sans', sans-serif; }
+        @media (max-width: 768px) { #global-dim-input { font-size: 16px !important; } }
         .dim-label-3d { background: rgba(24, 24, 27, 0.85); border: 1px solid rgba(255,255,255,0.3); color: #fff !important; backdrop-filter: blur(8px); box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
         .dim-label-3d input { color: #000 !important; }
         .cursor-grab { cursor: grab; }
@@ -658,9 +659,53 @@
         }
 
         function setupGlobalInput() { globalInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') finishEditing(); else if (e.key === 'Escape') cancelEditing(); }); globalInput.addEventListener('blur', () => setTimeout(finishEditing, 100)); globalInput.addEventListener('mousedown', (e) => e.stopPropagation()); }
-        function startEditing(x, y, val, cb) { isEditing = true; currentEditCallback = cb; globalInput.style.display = 'block'; globalInput.style.left = `${x}px`; globalInput.style.top = `${y}px`; globalInput.value = val; globalInput.focus(); globalInput.select(); }
-        function finishEditing() { if (!isEditing) return; const val = parseFloat(globalInput.value); if (!isNaN(val) && currentEditCallback) currentEditCallback(val); isEditing = false; globalInput.style.display = 'none'; currentEditCallback = null; updateBox(); }
-        function cancelEditing() { isEditing = false; globalInput.style.display = 'none'; currentEditCallback = null; }
+        function startEditing(x, y, val, cb) {
+            isEditing = true;
+            currentEditCallback = cb;
+            globalInput.style.display = 'block';
+            globalInput.style.left = `${x}px`;
+            globalInput.style.top = `${y}px`;
+            globalInput.value = val;
+
+            // Lock Viewport
+            if (window.innerWidth < 768) {
+                const h = window.innerHeight + 'px';
+                document.body.style.height = h;
+                document.documentElement.style.height = h;
+                canvas.style.width = canvas.clientWidth + 'px';
+                canvas.style.height = canvas.clientHeight + 'px';
+            }
+
+            globalInput.focus();
+            globalInput.select();
+        }
+        function finishEditing() {
+            if (!isEditing) return;
+            const val = parseFloat(globalInput.value);
+            if (!isNaN(val) && currentEditCallback) currentEditCallback(val);
+            isEditing = false;
+            globalInput.style.display = 'none';
+            currentEditCallback = null;
+
+            // Unlock Viewport
+            document.body.style.height = '';
+            document.documentElement.style.height = '';
+            canvas.style.width = '';
+            canvas.style.height = '';
+
+            updateBox();
+        }
+        function cancelEditing() {
+            isEditing = false;
+            globalInput.style.display = 'none';
+            currentEditCallback = null;
+
+            // Unlock Viewport
+            document.body.style.height = '';
+            document.documentElement.style.height = '';
+            canvas.style.width = '';
+            canvas.style.height = '';
+        }
 
         function getEventCoords(e) { if (e.touches && e.touches.length > 0) return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY }; return { clientX: e.clientX, clientY: e.clientY }; }
         function getTopWorldCoords(e) { const coords = getEventCoords(e); const rect = viewTop.getBoundingClientRect(); const x = coords.clientX - rect.left, y = coords.clientY - rect.top; const mouseX = (x / rect.width) * 2 - 1, mouseY = -(y / rect.height) * 2 + 1, aspect = rect.width / rect.height; return { x: mouseX * (FRUSTUM_SIZE * aspect / 2), z: -mouseY * (FRUSTUM_SIZE / 2), isInside: x >= 0 && x <= rect.width && y >= 0 && y <= rect.height }; }
@@ -1073,7 +1118,7 @@
         function animate() {
             requestAnimationFrame(animate);
             const width = canvas.clientWidth, height = canvas.clientHeight;
-            if (canvas.width !== width || canvas.height !== height) {
+            if (!isEditing && (canvas.width !== width || canvas.height !== height)) {
                 renderer.setSize(width, height, false);
                 updateDimensions();
             }
