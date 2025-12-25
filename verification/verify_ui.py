@@ -30,11 +30,11 @@ def verify_ui():
 
         # 4. Verify Pricing
         price = page.locator("#total-price")
-        if price.is_visible() and "VNĐ" in price.inner_text():
+        if price.is_visible() and "VND" in price.inner_text():
              print(f"Price visible: {price.inner_text()}")
 
         # 4.1 Verify Buy Now Button
-        buy_now = page.locator("button", has_text="Mua Ngay")
+        buy_now = page.locator("button", has_text="Buy Now")
         if buy_now.is_visible():
             print("Buy Now button visible")
         else:

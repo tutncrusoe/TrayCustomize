@@ -144,7 +144,7 @@
             </div>
         </div>
 
-        <main id="viewports-container" class="flex-1 flex flex-col md:flex-row relative p-4 gap-4 md:p-8 md:gap-8 md:ml-[20%]">
+        <main id="viewports-container" class="flex-1 flex flex-col md:flex-row relative p-4 gap-4 md:p-8 md:gap-8 md:mr-[20%]">
             <div id="view-3d-wrapper" class="flex-1 md:flex-1 flex flex-col min-h-0">
                 <h2 class="text-white font-bold mb-3 text-sm ml-1 hidden md:block">3D View</h2>
                 <div id="view-3d-placeholder" class="viewport-placeholder pointer-events-auto cursor-grab active:cursor-grabbing flex-1 rounded-3xl border border-white/10 bg-zinc-800/50 shadow-2xl relative"><div id="dim-container-3d" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
@@ -155,8 +155,8 @@
             </div>
         </main>
 
-        <aside class="fixed z-50 bg-[#1e1e1e] border-t md:border-t-0 md:border-r border-white/10 flex flex-col
-                      w-full h-auto bottom-0 left-0 md:top-0 md:w-1/5 md:h-full
+        <aside class="fixed z-50 bg-[#1e1e1e] border-t md:border-t-0 md:border-l border-white/10 flex flex-col
+                      w-full h-auto bottom-0 right-0 md:top-0 md:w-1/5 md:h-full
                       overflow-y-auto overflow-x-hidden transition-all duration-300 pointer-events-auto
                       shadow-2xl md:shadow-none">
 
@@ -164,7 +164,7 @@
                 <!-- Color Selection -->
                 <div>
                     <div class="flex justify-between items-center mb-2">
-                        <label class="text-xs text-zinc-400 font-bold uppercase tracking-wider">Màu Sắc</label>
+                        <label class="text-xs text-zinc-400 font-bold uppercase tracking-wider">Color</label>
                         <!-- Reset Button -->
                         <button id="reset-btn" class="text-[10px] text-zinc-500 hover:text-white uppercase font-bold tracking-wider transition-colors">
                             Reset
@@ -172,10 +172,10 @@
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <button id="color-brown" class="group relative h-12 rounded-xl border-2 border-white/20 hover:border-white transition-all overflow-hidden active-theme-btn" data-color="brown" style="background-color: #4E342E;">
-                            <span class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white/90 uppercase tracking-wide group-hover:scale-105 transition-transform">Nâu Gốm</span>
+                            <span class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white/90 uppercase tracking-wide group-hover:scale-105 transition-transform">Ceramic Brown</span>
                         </button>
                         <button id="color-white" class="group relative h-12 rounded-xl border-2 border-white/20 hover:border-white transition-all overflow-hidden" data-color="white" style="background-color: #EFEBE9;">
-                            <span class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-[#4E342E] uppercase tracking-wide group-hover:scale-105 transition-transform">Trắng Gốm</span>
+                            <span class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-[#4E342E] uppercase tracking-wide group-hover:scale-105 transition-transform">Ceramic White</span>
                         </button>
                     </div>
                 </div>
@@ -183,7 +183,7 @@
                 <!-- Corner Radius -->
                 <div>
                     <div class="flex justify-between items-center mb-2">
-                        <label for="radius" class="text-xs text-zinc-400 font-bold uppercase tracking-wider">Bo Góc</label>
+                        <label for="radius" class="text-xs text-zinc-400 font-bold uppercase tracking-wider">Corner Radius</label>
                         <span id="radius-val" class="text-xs text-white font-bold">8mm</span>
                     </div>
                     <input type="range" id="radius" aria-label="Corner Radius" min="2" max="30" value="8" step="1">
@@ -192,26 +192,26 @@
                 <!-- Logo / Text -->
                 <div>
                     <div class="flex justify-between items-center mb-2">
-                        <label class="text-xs text-zinc-400 font-bold uppercase tracking-wider">Khắc Chữ / Logo</label>
+                        <label class="text-xs text-zinc-400 font-bold uppercase tracking-wider">Engrave Text / Logo</label>
                     </div>
 
                     <div class="flex flex-col gap-2">
                         <div class="flex gap-2">
-                            <input type="text" id="logo-text-input" placeholder="Nhập văn bản" class="flex-1 bg-zinc-800/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-colors">
+                            <input type="text" id="logo-text-input" placeholder="Enter text" class="flex-1 bg-zinc-800/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-colors">
                             <input type="file" id="logo-file-input" accept="image/*" class="hidden">
                             <button id="upload-logo-btn" class="px-3 py-2 bg-zinc-800 border border-white/10 rounded-lg text-xs text-zinc-300 hover:text-white hover:border-white/30 transition-all whitespace-nowrap">
-                                Tải lên ảnh
+                                Upload Image
                             </button>
                         </div>
                         <button id="add-text-btn" class="w-full py-2 bg-zinc-700/50 hover:bg-zinc-700 rounded-lg text-xs font-bold text-zinc-300 transition-colors">
-                            Thêm Chữ
+                            Add Text
                         </button>
                         <button id="remove-logo-btn" class="hidden w-full py-2 bg-red-900/30 hover:bg-red-900/50 border border-red-500/30 rounded-lg text-xs font-bold text-red-200 transition-colors">
-                            Xóa Logo
+                            Remove Logo
                         </button>
                     </div>
                     <p class="text-[10px] text-zinc-500 mt-2 leading-relaxed">
-                        Logo sẽ tự động chuyển về 2 màu của bảng màu. Kéo thả để di chuyển vị trí.
+                        Logo auto-converts to 2 palette colors. Drag to move.
                     </p>
                 </div>
 
@@ -220,8 +220,8 @@
                 <!-- Pricing -->
                 <div>
                     <div class="flex justify-between items-end mb-1">
-                        <span class="text-xs text-zinc-400 font-bold">Tổng Chi Phí:</span>
-                        <span id="total-price" class="text-lg font-bold text-white">0 VNĐ</span>
+                        <span class="text-xs text-zinc-400 font-bold">Total Cost:</span>
+                        <span id="total-price" class="text-lg font-bold text-white">0 VND</span>
                     </div>
                 </div>
 
@@ -229,22 +229,22 @@
                 <div class="flex flex-col gap-3">
                     <div class="flex gap-2">
                         <button class="flex-1 py-3 bg-[#2A9D8F] hover:bg-[#268e81] text-white rounded-xl font-bold text-sm shadow-lg shadow-[#2A9D8F]/20 transition-all active:scale-95">
-                            Thêm vào Giỏ
+                            Add to Cart
                         </button>
                         <button class="flex-1 py-3 bg-[#E76F51] hover:bg-[#d65f41] text-white rounded-xl font-bold text-sm shadow-lg shadow-[#E76F51]/20 transition-all active:scale-95">
-                            Mua Ngay
+                            Buy Now
                         </button>
                     </div>
 
                     <div class="border border-white/10 rounded-xl p-3 bg-zinc-800/30">
                         <p class="text-[10px] text-zinc-400 text-center">
-                            Miễn phí vận chuyển cho đơn hàng trên 1 triệu VNĐ - Variant 1
+                            Free shipping for orders over 1,000,000 VND - Variant 1
                         </p>
                     </div>
 
                     <div class="flex gap-2 mt-2">
                          <button id="guide-btn" class="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-xs font-bold text-zinc-300 transition-colors">
-                            Hướng Dẫn
+                            Tutorial
                         </button>
                     </div>
                 </div>

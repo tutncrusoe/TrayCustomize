@@ -183,7 +183,7 @@ class App {
         const price = Math.round((massGrams * pricePerGram + baseFee) / 1000) * 1000; // Round to nearest 1000
 
         const el = document.getElementById('total-price');
-        if(el) el.innerText = price.toLocaleString('vi-VN') + ' VNĐ';
+        if(el) el.innerText = price.toLocaleString('vi-VN') + ' VND';
     }
 
     handleMobileViewChange(mode) {
