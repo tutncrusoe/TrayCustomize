@@ -135,18 +135,27 @@
     <div id="preview-line"></div>
     <input type="number" id="global-dim-input" aria-label="Global Dimension Editor" />
     <div class="absolute inset-0 z-10 flex flex-col pointer-events-none">
-        <header class="w-full p-6 flex justify-between items-center pointer-events-none">
+        <header class="w-full p-4 md:p-6 flex justify-between items-center pointer-events-none">
             <div class="flex items-center gap-3 pointer-events-auto">
                 <div class="w-10 h-10 bg-white rounded-2xl flex items-center justify-center shadow-xl"><div class="w-5 h-5 bg-black rotate-45 rounded-sm"></div></div>
                 <div><h1 class="font-bold text-lg leading-none text-white">Parameterized Tray</h1><p class="text-[10px] text-zinc-400 font-medium uppercase tracking-widest mt-1">Smart Editing Mode</p></div>
             </div>
             <div class="flex gap-3 pointer-events-auto">
-                <button id="export-btn" class="bg-white text-black font-bold px-6 py-3 rounded-2xl text-sm flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg hover:bg-zinc-200"><i data-lucide="download" class="w-4 h-4"></i>Export STL</button>
+                <button id="export-btn" class="bg-white text-black font-bold px-4 py-2 md:px-6 md:py-3 rounded-2xl text-xs md:text-sm flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg hover:bg-zinc-200"><i data-lucide="download" class="w-4 h-4"></i><span class="hidden md:inline">Export STL</span><span class="md:hidden">Export</span></button>
             </div>
         </header>
-        <main id="viewports-container" class="flex-1 flex flex-col md:flex-row">
-            <div id="view-3d-placeholder" class="viewport-placeholder border-b md:border-b-0 md:border-r border-white/10 pointer-events-auto cursor-grab active:cursor-grabbing"><div class="view-label">3D View</div><div id="dim-container-3d" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
-            <div id="view-top-placeholder" class="viewport-placeholder pointer-events-auto"><div class="view-label">Top View</div><div id="dim-container" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
+
+        <!-- Mobile View Toggle -->
+        <div class="px-4 pb-2 md:hidden pointer-events-auto w-full flex justify-center">
+            <div class="bg-zinc-800/80 backdrop-blur-md p-1 rounded-xl flex gap-1 border border-white/10 shadow-lg">
+                <button id="tab-3d" onclick="setMobileView('3d')" class="px-6 py-2 rounded-lg text-xs font-bold transition-all bg-zinc-600 text-white shadow-sm">3D View</button>
+                <button id="tab-top" onclick="setMobileView('top')" class="px-6 py-2 rounded-lg text-xs font-bold transition-all text-zinc-400 hover:text-white">Top View</button>
+            </div>
+        </div>
+
+        <main id="viewports-container" class="flex-1 flex flex-col md:flex-row relative">
+            <div id="view-3d-placeholder" class="viewport-placeholder border-b md:border-b-0 md:border-r border-white/10 pointer-events-auto cursor-grab active:cursor-grabbing flex-1"><div class="view-label md:block hidden">3D View</div><div id="dim-container-3d" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
+            <div id="view-top-placeholder" class="viewport-placeholder pointer-events-auto hidden md:block md:flex-1"><div class="view-label md:block hidden">Top View</div><div id="dim-container" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
         </main>
         <div class="w-full p-4 md:p-8 flex justify-center pointer-events-none">
             <div class="floating-panel rounded-[2.5rem] p-4 md:p-8 flex flex-col md:flex-row gap-8 items-center justify-between pointer-events-auto w-full max-w-4xl">
@@ -224,6 +233,15 @@
                 this.ghostDivider.style.animation = 'none';
                 this.cursorTrail.style.opacity = 0;
 
+                // Enforce View on Mobile
+                if (window.innerWidth < 768 && window.setMobileView) {
+                    if (stepIndex >= 3) {
+                        window.setMobileView('top');
+                    } else {
+                        window.setMobileView('3d');
+                    }
+                }
+
                 // Adjust Z-Index: Steps 3 (Horizontal) & 4 (Vertical) need to overlap UI elements (z-10)
                 if (this.underlay) {
                     this.underlay.style.zIndex = (stepIndex === 3 || stepIndex === 4) ? '50' : '5';
@@ -234,6 +252,15 @@
 
                 if(!this.overlay || !this.blob) return;
 
+                // Wait for view transition if mobile
+                if (window.innerWidth < 768) {
+                    setTimeout(() => this.renderStep(stepIndex), 100);
+                } else {
+                    this.renderStep(stepIndex);
+                }
+            }
+
+            renderStep(stepIndex) {
                 const topView = document.getElementById('view-top-placeholder');
                 const getLabel3D = (axis) => {
                     const labels = document.querySelectorAll('.dim-label-3d');
@@ -865,19 +892,97 @@
             document.getElementById('divider-stats').innerText = `Vert: ${dividersX.length} | Horiz: ${dividersZ.length}`;
         }
 
+        function setMobileView(mode) {
+            const v3 = document.getElementById('view-3d-placeholder');
+            const vt = document.getElementById('view-top-placeholder');
+            const t3 = document.getElementById('tab-3d');
+            const tt = document.getElementById('tab-top');
+
+            // Reset classes
+            v3.classList.remove('hidden', 'flex-1');
+            vt.classList.remove('hidden', 'flex-1');
+            t3.className = 'px-6 py-2 rounded-lg text-xs font-bold transition-all';
+            tt.className = 'px-6 py-2 rounded-lg text-xs font-bold transition-all';
+
+            if (mode === '3d') {
+                // Show 3D, Hide Top (Mobile specific classes, Desktop handled by md:)
+                v3.classList.add('flex-1');
+                vt.classList.add('hidden', 'md:block', 'md:flex-1');
+
+                t3.classList.add('bg-zinc-600', 'text-white', 'shadow-sm');
+                tt.classList.add('text-zinc-400', 'hover:text-white');
+            } else {
+                // Show Top, Hide 3D
+                vt.classList.add('flex-1');
+                v3.classList.add('hidden', 'md:block', 'md:flex-1');
+
+                tt.classList.add('bg-zinc-600', 'text-white', 'shadow-sm');
+                t3.classList.add('text-zinc-400', 'hover:text-white');
+            }
+
+            // Re-calc layout
+            setTimeout(() => {
+                const width = canvas.clientWidth, height = canvas.clientHeight;
+                renderer.setSize(width, height, false);
+                autoFitCamera();
+                updateDimensions();
+            }, 50);
+        }
+
         function update3DLabels() {
-            if (isEditing) return; const rect3D = view3D.getBoundingClientRect(), labels = dimContainer3D.querySelectorAll('.dim-label-3d');
+            if (isEditing) return;
+            const rect3D = view3D.getBoundingClientRect();
+            // Skip if hidden
+            if (rect3D.width === 0 || rect3D.height === 0) return;
+
+            const labels = dimContainer3D.querySelectorAll('.dim-label-3d');
             labels.forEach(el => { if (el.querySelector('input')) return; const worldPos = JSON.parse(el.dataset.worldPos), vector = new THREE.Vector3(worldPos.x, worldPos.y, worldPos.z); vector.applyQuaternion(boxGroup.quaternion); vector.project(camera3D); const x = (vector.x * 0.5 + 0.5) * rect3D.width, y = (-(vector.y) * 0.5 + 0.5) * rect3D.height; if (vector.z < 1) { el.style.display = 'block'; el.style.left = `${x}px`; el.style.top = `${y}px`; el.style.transform = 'translate(-50%, -50%)'; } else { el.style.display = 'none'; } });
         }
 
         function animate() {
-            requestAnimationFrame(animate); const width = canvas.clientWidth, height = canvas.clientHeight; if (canvas.width !== width || canvas.height !== height) { renderer.setSize(width, height, false); updateDimensions(); } renderer.setScissorTest(true);
-            const rect3D = view3D.getBoundingClientRect(); renderer.setViewport(rect3D.left, height - rect3D.bottom, rect3D.width, rect3D.height); renderer.setScissor(rect3D.left, height - rect3D.bottom, rect3D.width, rect3D.height); camera3D.aspect = rect3D.width / rect3D.height; camera3D.updateProjectionMatrix(); renderer.render(scene, camera3D); update3DLabels();
-            const curRot = boxGroup.rotation.y; boxGroup.rotation.y = 0; boxGroup.updateMatrixWorld();
-            const rectTop = viewTop.getBoundingClientRect(); renderer.setViewport(rectTop.left, height - rectTop.bottom, rectTop.width, rectTop.height); renderer.setScissor(rectTop.left, height - rectTop.bottom, rectTop.width, rectTop.height); const aspectTop = rectTop.width / rectTop.height; cameraTop.left = FRUSTUM_SIZE * aspectTop / -2; cameraTop.right = FRUSTUM_SIZE * aspectTop / 2; cameraTop.top = FRUSTUM_SIZE / 2; cameraTop.bottom = FRUSTUM_SIZE / -2; cameraTop.updateProjectionMatrix(); renderer.render(scene, cameraTop);
-            boxGroup.rotation.y = curRot; boxGroup.updateMatrixWorld();
+            requestAnimationFrame(animate);
+            const width = canvas.clientWidth, height = canvas.clientHeight;
+            if (canvas.width !== width || canvas.height !== height) {
+                renderer.setSize(width, height, false);
+                updateDimensions();
+            }
+            renderer.setScissorTest(true);
+
+            // Render 3D View if visible
+            const rect3D = view3D.getBoundingClientRect();
+            if (rect3D.width > 0 && rect3D.height > 0) {
+                renderer.setViewport(rect3D.left, height - rect3D.bottom, rect3D.width, rect3D.height);
+                renderer.setScissor(rect3D.left, height - rect3D.bottom, rect3D.width, rect3D.height);
+                camera3D.aspect = rect3D.width / rect3D.height;
+                camera3D.updateProjectionMatrix();
+                renderer.render(scene, camera3D);
+                update3DLabels();
+            }
+
+            const curRot = boxGroup.rotation.y;
+            boxGroup.rotation.y = 0;
+            boxGroup.updateMatrixWorld();
+
+            // Render Top View if visible
+            const rectTop = viewTop.getBoundingClientRect();
+            if (rectTop.width > 0 && rectTop.height > 0) {
+                renderer.setViewport(rectTop.left, height - rectTop.bottom, rectTop.width, rectTop.height);
+                renderer.setScissor(rectTop.left, height - rectTop.bottom, rectTop.width, rectTop.height);
+                const aspectTop = rectTop.width / rectTop.height;
+                cameraTop.left = FRUSTUM_SIZE * aspectTop / -2;
+                cameraTop.right = FRUSTUM_SIZE * aspectTop / 2;
+                cameraTop.top = FRUSTUM_SIZE / 2;
+                cameraTop.bottom = FRUSTUM_SIZE / -2;
+                cameraTop.updateProjectionMatrix();
+                renderer.render(scene, cameraTop);
+            }
+
+            boxGroup.rotation.y = curRot;
+            boxGroup.updateMatrixWorld();
         }
         window.onload = init;
+        // Expose for HTML access
+        window.setMobileView = setMobileView;
     </script>
 </body>
 </html>
