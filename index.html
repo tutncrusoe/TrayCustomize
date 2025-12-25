@@ -662,37 +662,156 @@
         function finishEditing() { if (!isEditing) return; const val = parseFloat(globalInput.value); if (!isNaN(val) && currentEditCallback) currentEditCallback(val); isEditing = false; globalInput.style.display = 'none'; currentEditCallback = null; updateBox(); }
         function cancelEditing() { isEditing = false; globalInput.style.display = 'none'; currentEditCallback = null; }
 
-        function getTopWorldCoords(e) { const rect = viewTop.getBoundingClientRect(); const x = e.clientX - rect.left, y = e.clientY - rect.top; const mouseX = (x / rect.width) * 2 - 1, mouseY = -(y / rect.height) * 2 + 1, aspect = rect.width / rect.height; return { x: mouseX * (FRUSTUM_SIZE * aspect / 2), z: -mouseY * (FRUSTUM_SIZE / 2), isInside: x >= 0 && x <= rect.width && y >= 0 && y <= rect.height }; }
+        function getEventCoords(e) { if (e.touches && e.touches.length > 0) return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY }; return { clientX: e.clientX, clientY: e.clientY }; }
+        function getTopWorldCoords(e) { const coords = getEventCoords(e); const rect = viewTop.getBoundingClientRect(); const x = coords.clientX - rect.left, y = coords.clientY - rect.top; const mouseX = (x / rect.width) * 2 - 1, mouseY = -(y / rect.height) * 2 + 1, aspect = rect.width / rect.height; return { x: mouseX * (FRUSTUM_SIZE * aspect / 2), z: -mouseY * (FRUSTUM_SIZE / 2), isInside: x >= 0 && x <= rect.width && y >= 0 && y <= rect.height }; }
+
+        let isTouchInteracting = false;
+
+        function updateHoverState(e) {
+             const world = getTopWorldCoords(e);
+             const coords = getEventCoords(e);
+             const l = parseFloat(document.getElementById('dim-l').value), w = parseFloat(document.getElementById('dim-w').value), rect = viewTop.getBoundingClientRect(), aspect = rect.width / rect.height;
+
+             // Logic for Dragging (Move)
+             if (draggingDivider) {
+                 draggingDivider.hasMoved = true;
+                 if (draggingDivider.type === 'X') dividersX[draggingDivider.index] = Math.max(-l/2 + 5, Math.min(l/2 - 5, world.x));
+                 else dividersZ[draggingDivider.index] = Math.max(-w/2 + 5, Math.min(w/2 - 5, world.z));
+                 updateBox();
+                 indicator.style.left = `${coords.clientX-18}px`; indicator.style.top = `${coords.clientY-18}px`;
+                 indicator.innerText = '↔'; indicator.className = 'active move';
+                 return;
+             }
+
+             if (!world.isInside) { indicator.classList.remove('active'); previewLine.style.display = 'none'; return; }
+
+             const hitMargin = 10, edgeMargin = 35; let hit = null;
+             // Logic for Hit Test (Hover existing)
+             for (let i = 0; i < dividersX.length; i++) { if (Math.abs(world.x - dividersX[i]) < hitMargin && Math.abs(world.z) < w/2) { const sortedZ = [-w/2, ...[...dividersZ].sort((a,b)=>a-b), w/2]; for(let j=0; j<sortedZ.length-1; j++) { if(world.z >= sortedZ[j] && world.z <= sortedZ[j+1]) { hit = { type: 'X', index: i, segment: j }; break; } } break; } }
+             if (!hit) { for (let i = 0; i < dividersZ.length; i++) { if (Math.abs(world.z - dividersZ[i]) < hitMargin && Math.abs(world.x) < l/2) { const sortedX = [-l/2, ...[...dividersX].sort((a,b)=>a-b), l/2]; for(let j=0; j<sortedX.length-1; j++) { if(world.x >= sortedX[j] && world.x <= sortedX[j+1]) { hit = { type: 'Z', index: i, segment: j }; break; } } break; } } }
+
+             if (hit) {
+                 pendingAction = { type: 'remove', axis: hit.type, lineIdx: hit.index, segIdx: hit.segment };
+                 const isConfirming = selectedForRemoval && selectedForRemoval.axis === hit.type && selectedForRemoval.lineIdx === hit.index && selectedForRemoval.segIdx === hit.segment;
+                 indicator.style.left = `${coords.clientX-18}px`; indicator.style.top = `${coords.clientY-18}px`;
+                 indicator.innerText = '-'; indicator.className = 'active' + (isConfirming ? ' remove-confirm' : ' move');
+                 previewLine.style.display = 'none';
+             } else {
+                 // Logic for Preview (Add)
+                 const isInsideW = Math.abs(world.x) < (l/2 - 5), isNearH = Math.abs(world.z - w/2) < edgeMargin || Math.abs(world.z + w/2) < edgeMargin, isInsideD = Math.abs(world.z) < (w/2 - 5), isNearV = Math.abs(world.x - l/2) < edgeMargin || Math.abs(world.x + l/2) < edgeMargin;
+
+                 if (isNearH && isInsideW) {
+                     pendingAction = { type: 'addX', pos: world.x };
+                     indicator.innerText = '+'; indicator.className = 'active';
+                     previewLine.style.display = 'block'; previewLine.style.width = '2px';
+                     previewLine.style.height = `${(w/FRUSTUM_SIZE)*rect.height}px`;
+                     previewLine.style.left = `${coords.clientX-1}px`;
+                     previewLine.style.top = `${rect.top + rect.height/2 - (w/FRUSTUM_SIZE)*rect.height/2}px`;
+                 } else if (isNearV && isInsideD) {
+                     pendingAction = { type: 'addZ', pos: world.z };
+                     indicator.innerText = '+'; indicator.className = 'active';
+                     previewLine.style.display = 'block'; previewLine.style.height = '2px';
+                     previewLine.style.width = `${(l/FRUSTUM_SIZE)*aspect*rect.width}px`;
+                     previewLine.style.top = `${coords.clientY-1}px`;
+                     previewLine.style.left = `${rect.left + rect.width/2 - (l/FRUSTUM_SIZE)*aspect*rect.width/2}px`;
+                 } else {
+                     indicator.classList.remove('active'); previewLine.style.display = 'none'; pendingAction = null;
+                 }
+                 indicator.style.left = `${coords.clientX-18}px`; indicator.style.top = `${coords.clientY-18}px`;
+             }
+        }
 
         function onTopMouseDown(e) {
             if (e.target.closest('.dim-label')) return; if (isEditing) return;
+            // Update state immediately on click to ensure pendingAction is fresh
+            updateHoverState(e);
+
             const world = getTopWorldCoords(e); if (!world.isInside) return;
             const l = parseFloat(document.getElementById('dim-l').value), w = parseFloat(document.getElementById('dim-w').value), hitMargin = 10;
+
+            // Hit Test for Drag Start
             let hit = null;
             for (let i = 0; i < dividersX.length; i++) { if (Math.abs(world.x - dividersX[i]) < hitMargin && Math.abs(world.z) < w/2) { const sortedZ = [-w/2, ...[...dividersZ].sort((a,b)=>a-b), w/2]; let segIdx = 0; for(let j=0; j<sortedZ.length-1; j++) { if(world.z >= sortedZ[j] && world.z <= sortedZ[j+1]) { segIdx = j; break; } } hit = { type: 'X', index: i, segment: segIdx }; break; } }
             if (!hit) { for (let i = 0; i < dividersZ.length; i++) { if (Math.abs(world.z - dividersZ[i]) < hitMargin && Math.abs(world.x) < l/2) { const sortedX = [-l/2, ...[...dividersX].sort((a,b)=>a-b), l/2]; let segIdx = 0; for(let j=0; j<sortedX.length-1; j++) { if(world.x >= sortedX[j] && world.x <= sortedX[j+1]) { segIdx = j; break; } } hit = { type: 'Z', index: i, segment: segIdx }; break; } } }
-            if (hit) { draggingDivider = { ...hit, hasMoved: false }; viewTop.classList.add('cursor-grabbing'); } else { if (selectedForRemoval) { selectedForRemoval = null; updateBox(); } if (pendingAction && (pendingAction.type === 'addX' || pendingAction.type === 'addZ')) {
-                if (pendingAction.type === 'addX') {
-                    dividersX.push(pendingAction.pos);
-                    tutorial.advanceFrom(4); // Step 4 (Vertical instruction) -> Step 5
-                } else {
-                    dividersZ.push(pendingAction.pos);
-                    tutorial.advanceFrom(3); // Step 3 (Horizontal instruction) -> Step 4
+
+            if (hit) {
+                draggingDivider = { ...hit, hasMoved: false };
+                viewTop.classList.add('cursor-grabbing');
+            } else {
+                if (selectedForRemoval) { selectedForRemoval = null; updateBox(); }
+                // Mouse Click Add (Immediate)
+                if (pendingAction && (pendingAction.type === 'addX' || pendingAction.type === 'addZ')) {
+                    if (pendingAction.type === 'addX') { dividersX.push(pendingAction.pos); tutorial.advanceFrom(4); }
+                    else { dividersZ.push(pendingAction.pos); tutorial.advanceFrom(3); }
+                    updateBox();
                 }
-                updateBox();
-            } }
+            }
         }
 
         function onTopMouseMove(e) {
-            if (isEditing) return; const world = getTopWorldCoords(e); const l = parseFloat(document.getElementById('dim-l').value), w = parseFloat(document.getElementById('dim-w').value), rect = viewTop.getBoundingClientRect(), aspect = rect.width / rect.height;
-            if (draggingDivider) { draggingDivider.hasMoved = true; if (draggingDivider.type === 'X') dividersX[draggingDivider.index] = Math.max(-l/2 + 5, Math.min(l/2 - 5, world.x)); else dividersZ[draggingDivider.index] = Math.max(-w/2 + 5, Math.min(w/2 - 5, world.z)); updateBox(); indicator.style.left = `${e.clientX-18}px`; indicator.style.top = `${e.clientY-18}px`; indicator.innerText = '↔'; indicator.className = 'active move'; return; }
-            if (!world.isInside) { indicator.classList.remove('active'); previewLine.style.display = 'none'; return; }
-            const hitMargin = 10, edgeMargin = 35; let hit = null;
-            for (let i = 0; i < dividersX.length; i++) { if (Math.abs(world.x - dividersX[i]) < hitMargin && Math.abs(world.z) < w/2) { const sortedZ = [-w/2, ...[...dividersZ].sort((a,b)=>a-b), w/2]; for(let j=0; j<sortedZ.length-1; j++) { if(world.z >= sortedZ[j] && world.z <= sortedZ[j+1]) { hit = { type: 'X', index: i, segment: j }; break; } } break; } }
-            if (!hit) { for (let i = 0; i < dividersZ.length; i++) { if (Math.abs(world.z - dividersZ[i]) < hitMargin && Math.abs(world.x) < l/2) { const sortedX = [-l/2, ...[...dividersX].sort((a,b)=>a-b), l/2]; for(let j=0; j<sortedX.length-1; j++) { if(world.x >= sortedX[j] && world.x <= sortedX[j+1]) { hit = { type: 'Z', index: i, segment: j }; break; } } break; } } }
-            if (hit) { pendingAction = { type: 'remove', axis: hit.type, lineIdx: hit.index, segIdx: hit.segment }; const isConfirming = selectedForRemoval && selectedForRemoval.axis === hit.type && selectedForRemoval.lineIdx === hit.index && selectedForRemoval.segIdx === hit.segment; indicator.style.left = `${e.clientX-18}px`; indicator.style.top = `${e.clientY-18}px`; indicator.innerText = '-'; indicator.className = 'active' + (isConfirming ? ' remove-confirm' : ' move'); previewLine.style.display = 'none'; }
-            else { const isInsideW = Math.abs(world.x) < (l/2 - 5), isNearH = Math.abs(world.z - w/2) < edgeMargin || Math.abs(world.z + w/2) < edgeMargin, isInsideD = Math.abs(world.z) < (w/2 - 5), isNearV = Math.abs(world.x - l/2) < edgeMargin || Math.abs(world.x + l/2) < edgeMargin; if (isNearH && isInsideW) { pendingAction = { type: 'addX', pos: world.x }; indicator.innerText = '+'; indicator.className = 'active'; previewLine.style.display = 'block'; previewLine.style.width = '2px'; previewLine.style.height = `${(w/FRUSTUM_SIZE)*rect.height}px`; previewLine.style.left = `${e.clientX-1}px`; previewLine.style.top = `${rect.top + rect.height/2 - (w/FRUSTUM_SIZE)*rect.height/2}px`; } else if (isNearV && isInsideD) { pendingAction = { type: 'addZ', pos: world.z }; indicator.innerText = '+'; indicator.className = 'active'; previewLine.style.display = 'block'; previewLine.style.height = '2px'; previewLine.style.width = `${(l/FRUSTUM_SIZE)*aspect*rect.width}px`; previewLine.style.top = `${e.clientY-1}px`; previewLine.style.left = `${rect.left + rect.width/2 - (l/FRUSTUM_SIZE)*aspect*rect.width/2}px`; } else { indicator.classList.remove('active'); previewLine.style.display = 'none'; pendingAction = null; } indicator.style.left = `${e.clientX-18}px`; indicator.style.top = `${e.clientY-18}px`; }
+            if (isEditing) return;
+            updateHoverState(e);
         }
+
+        // TOUCH HANDLERS
+        viewTop.addEventListener('touchstart', (e) => {
+            if (e.target.closest('.dim-label')) return; if (isEditing) return;
+            // Update state to check what we are touching
+            updateHoverState(e);
+
+            const world = getTopWorldCoords(e);
+            const l = parseFloat(document.getElementById('dim-l').value), w = parseFloat(document.getElementById('dim-w').value), hitMargin = 10;
+
+            // Check if hitting existing divider (Move/Delete)
+            let hit = null;
+            for (let i = 0; i < dividersX.length; i++) { if (Math.abs(world.x - dividersX[i]) < hitMargin && Math.abs(world.z) < w/2) { const sortedZ = [-w/2, ...[...dividersZ].sort((a,b)=>a-b), w/2]; let segIdx = 0; for(let j=0; j<sortedZ.length-1; j++) { if(world.z >= sortedZ[j] && world.z <= sortedZ[j+1]) { segIdx = j; break; } } hit = { type: 'X', index: i, segment: segIdx }; break; } }
+            if (!hit) { for (let i = 0; i < dividersZ.length; i++) { if (Math.abs(world.z - dividersZ[i]) < hitMargin && Math.abs(world.x) < l/2) { const sortedX = [-l/2, ...[...dividersX].sort((a,b)=>a-b), l/2]; let segIdx = 0; for(let j=0; j<sortedX.length-1; j++) { if(world.x >= sortedX[j] && world.x <= sortedX[j+1]) { segIdx = j; break; } } hit = { type: 'Z', index: i, segment: segIdx }; break; } } }
+
+            if (hit) {
+                // Hit existing: Start dragging immediately
+                draggingDivider = { ...hit, hasMoved: false };
+                viewTop.classList.add('cursor-grabbing');
+            } else {
+                // Hit empty space: Enter "Touch Interaction" mode (Preview)
+                // We DO NOT add yet. We wait for release.
+                if (selectedForRemoval) { selectedForRemoval = null; updateBox(); }
+                isTouchInteracting = true;
+            }
+        });
+
+        viewTop.addEventListener('touchmove', (e) => {
+             // Prevent scrolling while interacting with canvas
+             e.preventDefault();
+             if (isEditing) return;
+
+             if (draggingDivider) {
+                 // Use existing updateHoverState logic which handles dragging
+                 updateHoverState(e);
+             } else if (isTouchInteracting) {
+                 // Just update preview position
+                 updateHoverState(e);
+             }
+        });
+
+        viewTop.addEventListener('touchend', (e) => {
+             viewTop.classList.remove('cursor-grabbing');
+             if (draggingDivider) {
+                 // Handle End of Drag (same as Mouse Up)
+                 onTopMouseUp();
+             } else if (isTouchInteracting) {
+                 // Handle Add on Release
+                 if (pendingAction && (pendingAction.type === 'addX' || pendingAction.type === 'addZ')) {
+                     if (pendingAction.type === 'addX') { dividersX.push(pendingAction.pos); tutorial.advanceFrom(4); }
+                     else { dividersZ.push(pendingAction.pos); tutorial.advanceFrom(3); }
+                     updateBox();
+                 }
+                 // Clean up
+                 isTouchInteracting = false;
+                 indicator.classList.remove('active');
+                 previewLine.style.display = 'none';
+                 pendingAction = null;
+             }
+        });
 
         function onTopMouseUp() {
             viewTop.classList.remove('cursor-grabbing');
@@ -827,7 +946,7 @@
             updateDimensions();
         }
 
-        function createEditableLabel(text, cb) { const el = document.createElement('div'); el.className = 'dim-label'; el.innerText = text; el.addEventListener('mousedown', (e) => { e.stopPropagation(); e.preventDefault(); const r = el.getBoundingClientRect(); startEditing(r.left + r.width/2, r.top + r.height/2, text, cb); }); return el; }
+        function createEditableLabel(text, cb) { const el = document.createElement('div'); el.className = 'dim-label'; el.innerText = text; const handler = (e) => { e.stopPropagation(); e.preventDefault(); const r = el.getBoundingClientRect(); startEditing(r.left + r.width/2, r.top + r.height/2, text, cb); }; el.addEventListener('mousedown', handler); el.addEventListener('touchstart', handler); return el; }
 
         function createModel(l, h, w, r, dX, dZ) {
             const group = new THREE.Group();
