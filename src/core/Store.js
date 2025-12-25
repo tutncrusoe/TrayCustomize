@@ -17,8 +17,28 @@ export class Store extends EventBus {
             hiddenSegments: {},
             isEditing: false,
             mobileView: '3d', // '3d' or 'top'
-            tutorialStep: 0
+            tutorialStep: 0,
+            colorTheme: 'brown', // 'brown' or 'white'
+            logo: null // { type: 'image'|'text', data: string, x: number, z: number, scale: number }
         };
+    }
+
+    setColorTheme(theme) {
+        this.state.colorTheme = theme;
+        this.emit('colorThemeChanged', this.state.colorTheme);
+    }
+
+    setLogo(logoObj) {
+        this.state.logo = logoObj;
+        this.emit('logoChanged', this.state.logo);
+    }
+
+    updateLogoPosition(x, z) {
+        if (this.state.logo) {
+            this.state.logo.x = x;
+            this.state.logo.z = z;
+            this.emit('logoPositionChanged', { x, z });
+        }
     }
 
     setDimensions(newDims) {
