@@ -311,6 +311,19 @@ export class DividerSystem {
                     else if (segIdx > removedSpatialIdx + 1) newHidden[`${axis}_${lineIdx}_${segIdx - 1}`] = true;
                 }
             }
+
+            // Check for merged segments that should remain hidden
+            const crossAxis = removedAxis === 'X' ? 'Z' : 'X';
+            const crossDividers = removedAxis === 'X' ? dZ : dX;
+
+            for (let i = 0; i < crossDividers.length; i++) {
+                const k1 = `${crossAxis}_${i}_${removedSpatialIdx}`;
+                const k2 = `${crossAxis}_${i}_${removedSpatialIdx + 1}`;
+                if (hidden[k1] && hidden[k2]) {
+                    newHidden[`${crossAxis}_${i}_${removedSpatialIdx}`] = true;
+                }
+            }
+
             return newHidden;
         };
 
