@@ -325,30 +325,6 @@ export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}, colorTheme 
     const mesh = new THREE.Mesh(geo, matWall);
     mesh.position.y = -h/2 + h;
 
-    // Create solid meshes for islands (holes within rooms)
-    // Islands are SOLID, but they might contain other Rooms (Voids).
-    // So for each island, we create a shape and add ALL other rooms as holes to it.
-    roomShapes.forEach(roomShape => {
-        if (roomShape.holes && roomShape.holes.length > 0) {
-            roomShape.holes.forEach(islandPath => {
-                // Convert Path to Shape
-                const islandShape = new THREE.Shape();
-                islandShape.curves = islandPath.curves;
-
-                // Set holes for this island to be all room shapes EXCEPT the current one
-                // (The current one surrounds the island, so subtracting it is redundant/wrong context)
-                islandShape.holes = roomShapes.filter(s => s !== roomShape);
-
-                const islandGeo = new THREE.ExtrudeGeometry(islandShape, { depth: h, bevelEnabled: false, curveSegments: 24 });
-                islandGeo.rotateX(Math.PI / 2);
-
-                const islandMesh = new THREE.Mesh(islandGeo, matWall);
-                islandMesh.position.y = -h/2 + h;
-                group.add(islandMesh);
-            });
-        }
-    });
-
     const baseShape = createRoundedRectShape(l, w, r);
     const baseGeo = new THREE.ExtrudeGeometry(baseShape, { depth: 2, bevelEnabled: false, curveSegments: 24 });
     baseGeo.rotateX(Math.PI / 2);
