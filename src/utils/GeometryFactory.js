@@ -61,18 +61,24 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
         }
     });
 
-    if (edges.length === 0) return null;
+    // Filter out zero-length edges (caused by duplicate dividers)
+    const validEdges = edges.filter(e => {
+        const dist = Math.abs(e.u.x - e.v.x) + Math.abs(e.u.z - e.v.z);
+        return dist > 0.0001;
+    });
+
+    if (validEdges.length === 0) return null;
 
     // 2. Chain edges into loops
     const key = (p) => `${p.x.toFixed(4)},${p.z.toFixed(4)}`;
     const edgeMap = new Map();
     // Assuming simple polygons (no vertex shared by >2 edges), we can map start point -> edge
-    edges.forEach(e => edgeMap.set(key(e.u), e));
+    validEdges.forEach(e => edgeMap.set(key(e.u), e));
 
     const loops = [];
     const usedEdges = new Set();
 
-    edges.forEach(startEdge => {
+    validEdges.forEach(startEdge => {
         if (usedEdges.has(startEdge)) return;
 
         const loop = [];
