@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parameterized Tray - Pro Segment Designer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/STLExporter.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Patrick+Hand&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #1a1a1a; color: #f4f4f5; margin: 0; overflow: hidden; }
+        .floating-panel { background: rgba(30, 30, 30, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); }
+        .input-group { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.2s ease; }
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #ffffff; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(255,255,255,0.3); border: none; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: rgba(255,255,255,0.2); border-radius: 2px; }
+        .view-label { position: absolute; top: 1rem; left: 1rem; background: rgba(255,255,255,0.1); padding: 6px 14px; border-radius: 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; color: rgba(255,255,255,0.8); z-index: 20; pointer-events: none; border: none; }
+        #main-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
+        .viewport-placeholder { position: relative; flex: 1; z-index: 2; }
+        .dim-label { position: absolute; font-size: 11px; font-weight: 800; color: #ffffff; z-index: 2000; background: #27272a; padding: 4px 10px; border-radius: 6px; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.8); cursor: pointer; pointer-events: auto; transition: transform 0.15s, background 0.2s; border: 1px solid rgba(255,255,255,0.2); user-select: none; }
+        .dim-label:hover { background: #3b82f6; border-color: #ffffff; transform: scale(1.1); }
+        .dim-input { width: 50px; background: #fff; color: #000; border: none; border-radius: 4px; font-size: 12px; font-weight: 800; text-align: center; outline: none; padding: 2px 0; }
+        #add-indicator { position: fixed; width: 36px; height: 36px; background: #18181b; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 24px; pointer-events: none; z-index: 100; opacity: 0; transform: scale(0); transition: opacity 0.2s, transform 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        #add-indicator.active { opacity: 1; transform: scale(1); }
+        #add-indicator.remove-confirm { background: #ef4444; color: white; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4); }
+        #add-indicator.move { background: #3b82f6; color: white; font-size: 16px; }
+        #preview-line { position: fixed; background: #3b82f6; pointer-events: none; z-index: 90; display: none; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+        #global-dim-input { position: fixed; z-index: 9999; width: 60px; height: 26px; background: #fff; color: #000; border: 2px solid #3b82f6; border-radius: 6px; font-size: 11px; font-weight: 800; text-align: center; outline: none; padding: 0; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.5); transform: translate(-50%, -50%); font-family: 'Plus Jakarta Sans', sans-serif; }
+        @media (max-width: 768px) { #global-dim-input { font-size: 16px !important; } }
+        .dim-label-3d { background: rgba(24, 24, 27, 0.85); border: 1px solid rgba(255,255,255,0.3); color: #fff !important; backdrop-filter: blur(8px); box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        .dim-label-3d input { color: #000 !important; }
+        .cursor-grab { cursor: grab; }
+        .cursor-grabbing { cursor: grabbing; }
+
+        /* Tutorial Overlay Styles */
+        #tutorial-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 9999; display: none; }
+        #tutorial-underlay { position: fixed; inset: 0; pointer-events: none; z-index: 5; display: none; }
+        .tutorial-active #tutorial-overlay, .tutorial-active #tutorial-underlay { display: block; }
+
+        .tutorial-skip-btn { position: fixed; bottom: 30px; right: 30px; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.7); padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; pointer-events: auto; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.05em; z-index: 10003; }
+        .tutorial-skip-btn:hover { background: rgba(255, 255, 255, 0.2); color: white; transform: scale(1.05); }
+
+        .tutorial-blob { position: absolute; width: 100px; transition: all 0.5s ease-out; pointer-events: none; }
+        .tutorial-blob svg path { fill: #fef08a; stroke: #fff; stroke-width: 3px; filter: drop-shadow(0 0 4px rgba(255,255,255,0.8)); }
+        .tutorial-blob svg { width: 100%; height: auto; filter: drop-shadow(0px 8px 24px rgba(0,0,0,0.15)); }
+        .tutorial-text { position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center; text-align: center; padding: 10px 20px 0 20px; font-family: 'Patrick Hand', cursive; font-size: 12px; line-height: 1.3; color: #18181b; font-weight: 600; transform: rotate(-2deg); pointer-events: none; }
+
+        .tutorial-arrow { position: absolute; width: 60px; height: 60px; transition: all 0.5s ease-out; z-index: 10000; }
+        .tutorial-arrow svg { width: 100%; height: 100%; stroke: #fff; filter: drop-shadow(0 0 4px rgba(255,255,255,0.8)); }
+
+        .ghost-cursor { position: absolute; width: 32px; height: 32px; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 10002; transform-origin: 0 0; }
+        .ghost-cursor svg { filter: drop-shadow(0 0 5px #fff) drop-shadow(0 0 10px #fff); }
+
+        .ghost-divider { position: absolute; background: rgba(59, 130, 246, 0.5); pointer-events: none; opacity: 0; z-index: 9998; border-radius: 2px; }
+        .cursor-trail { position: absolute; width: 4px; background: rgba(59, 130, 246, 0.6); border-radius: 2px; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 9998; box-shadow: 0 0 8px rgba(59, 130, 246, 0.8); }
+
+        @keyframes cursor-scan-h {
+            0% { opacity: 0; transform: translate(0, -75px); }
+            10% { opacity: 1; transform: translate(0, -75px); }
+            50% { transform: translate(0, 75px); }
+            90% { transform: translate(0, -75px); }
+            100% { opacity: 0; transform: translate(0, -75px); }
+        }
+        @keyframes cursor-scan-v {
+            0% { opacity: 0; transform: translate(0, 0); }
+            10% { opacity: 1; transform: translate(0, 0); }
+            50% { transform: translate(150px, 0); }
+            90% { transform: translate(0, 0); }
+            100% { opacity: 0; transform: translate(0, 0); }
+        }
+        @keyframes cursor-drag-shadow {
+             0% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+            10% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            20% { transform: translate(-50%, -50%) scale(0.9); }
+            70% { transform: translate(50px, -50%) scale(0.9); }
+            90% { transform: translate(50px, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(50px, -50%) scale(1); }
+        }
+        @keyframes divider-drag-shadow {
+             0% { opacity: 0; transform: translate(-50%, -50%); }
+            10% { opacity: 0; transform: translate(-50%, -50%); }
+            20% { opacity: 1; transform: translate(-50%, -50%); }
+            70% { transform: translate(50px, -50%); }
+            90% { opacity: 0; transform: translate(50px, -50%); }
+            100% { opacity: 0; transform: translate(50px, -50%); }
+        }
+        @keyframes cursor-click-delete-slow {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+            10% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            30% { transform: translate(-50%, -50%) scale(0.8); }
+            50% { transform: translate(-50%, -50%) scale(1); }
+            60% { transform: translate(-50%, -50%) scale(1); }
+            70% { transform: translate(-50%, -50%) scale(0.8); }
+            90% { transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
+    </style>
+</head>
+<body class="relative h-screen w-screen">
+    <canvas id="main-canvas"></canvas>
+
+    <button id="tut-skip" class="tutorial-skip-btn">Skip Tutorial</button>
+    <div id="tutorial-underlay">
+        <div id="tut-blob" class="tutorial-blob">
+            <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22.5 45.5C8.5 65.5 -5.5 105.5 22.5 125.5C50.5 145.5 100.5 155.5 145.5 135.5C190.5 115.5 205.5 65.5 185.5 35.5C165.5 5.5 100.5 -15.5 55.5 15.5C35.5 28.5 22.5 45.5 22.5 45.5Z" fill="#FFD700"/>
+            </svg>
+            <div id="tut-text" class="tutorial-text">Start here!</div>
+        </div>
+    </div>
+    <div id="tutorial-overlay">
+        <div id="tut-arrow" class="tutorial-arrow">
+            <svg viewBox="0 0 100 100" fill="none" stroke="black" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 90 Q 50 50 80 20 M 80 20 L 50 20 M 80 20 L 80 50" />
+            </svg>
+        </div>
+        <div id="ghost-cursor" class="ghost-cursor">
+            <svg viewBox="0 0 24 24" fill="white" stroke="black" stroke-width="2" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 3L10.07 19.97L12.58 12.58L19.97 10.07L3 3Z" />
+            </svg>
+        </div>
+        <div id="ghost-divider" class="ghost-divider"></div>
+        <div id="cursor-trail" class="cursor-trail"></div>
+    </div>
+
+    <input type="number" id="global-dim-input" aria-label="Global Dimension Editor" />
+    <div class="absolute inset-0 z-10 flex flex-col pointer-events-none">
+        <header class="w-full p-4 md:p-6 flex justify-between items-center pointer-events-none">
+            <div class="flex items-center gap-3 pointer-events-auto">
+                <div class="w-10 h-10 bg-white rounded-2xl flex items-center justify-center shadow-xl"><div class="w-5 h-5 bg-black rotate-45 rounded-sm"></div></div>
+                <div><h1 class="font-bold text-lg leading-none text-white">Parameterized Tray</h1><p class="text-[10px] text-zinc-400 font-medium uppercase tracking-widest mt-1">Smart Editing Mode</p></div>
+            </div>
+            <div class="flex gap-3 pointer-events-auto">
+                <button id="export-btn" class="bg-white text-black font-bold px-4 py-2 md:px-6 md:py-3 rounded-2xl text-xs md:text-sm flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg hover:bg-zinc-200"><i data-lucide="download" class="w-4 h-4"></i><span class="hidden md:inline">Export STL</span><span class="md:hidden">Export</span></button>
+            </div>
+        </header>
+
+        <div class="px-4 pb-2 md:hidden pointer-events-auto w-full flex justify-center">
+            <div class="bg-zinc-800/80 backdrop-blur-md p-1 rounded-xl flex gap-1 border border-white/10 shadow-lg">
+                <button id="tab-3d" class="px-6 py-2 rounded-lg text-xs font-bold transition-all bg-zinc-600 text-white shadow-sm">3D View</button>
+                <button id="tab-top" class="px-6 py-2 rounded-lg text-xs font-bold transition-all text-zinc-400 hover:text-white">Top View</button>
+            </div>
+        </div>
+
+        <main id="viewports-container" class="flex-1 flex flex-col md:flex-row relative p-4 gap-4 md:p-8 md:gap-8 md:mr-[20%]">
+            <div id="view-3d-wrapper" class="flex-1 md:flex-1 flex flex-col min-h-0">
+                <h2 class="text-white font-bold mb-3 text-sm ml-1 hidden md:block">3D View</h2>
+                <div id="view-3d-placeholder" class="viewport-placeholder pointer-events-auto cursor-grab active:cursor-grabbing flex-1 rounded-3xl border border-white/10 bg-zinc-800/50 shadow-2xl relative"><div id="dim-container-3d" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
+            </div>
+            <div id="view-top-wrapper" class="flex-1 md:flex-1 flex flex-col min-h-0 hidden md:flex">
+                <h2 class="text-white font-bold mb-3 text-sm ml-1 hidden md:block">Top View</h2>
+                <div id="view-top-placeholder" class="viewport-placeholder pointer-events-auto flex-1 rounded-3xl border border-white/10 bg-zinc-800/50 shadow-2xl relative"><div id="dim-container" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
+            </div>
+        </main>
+
+        <aside class="fixed z-50 bg-[#1e1e1e] border-t md:border-t-0 md:border-l border-white/10 flex flex-col
+                      w-full h-auto bottom-0 right-0 md:top-0 md:w-1/5 md:h-full
+                      overflow-y-auto overflow-x-hidden transition-all duration-300 pointer-events-auto
+                      shadow-2xl md:shadow-none">
+
+            <div class="p-4 md:p-6 flex flex-col gap-6">
+                <!-- Color Selection -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-xs text-zinc-400 font-bold uppercase tracking-wider">Color</label>
+                        <!-- Reset Button -->
+                        <button id="reset-btn" class="text-[10px] text-zinc-500 hover:text-white uppercase font-bold tracking-wider transition-colors">
+                            Reset
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="color-brown" class="group relative h-12 rounded-xl border-2 border-white/20 hover:border-white transition-all overflow-hidden active-theme-btn" data-color="brown" style="background-color: #4E342E;">
+                            <span class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white/90 uppercase tracking-wide group-hover:scale-105 transition-transform">Ceramic Brown</span>
+                        </button>
+                        <button id="color-white" class="group relative h-12 rounded-xl border-2 border-white/20 hover:border-white transition-all overflow-hidden" data-color="white" style="background-color: #EFEBE9;">
+                            <span class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-[#4E342E] uppercase tracking-wide group-hover:scale-105 transition-transform">Ceramic White</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Corner Radius -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label for="radius" class="text-xs text-zinc-400 font-bold uppercase tracking-wider">Corner Radius</label>
+                        <span id="radius-val" class="text-xs text-white font-bold">8mm</span>
+                    </div>
+                    <input type="range" id="radius" aria-label="Corner Radius" min="2" max="30" value="8" step="1">
+                </div>
+
+                <!-- Logo / Text -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-xs text-zinc-400 font-bold uppercase tracking-wider">Engrave Text / Logo</label>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                        <div class="flex gap-2">
+                            <input type="text" id="logo-text-input" placeholder="Enter text" class="flex-1 bg-zinc-800/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-colors">
+                            <input type="file" id="logo-file-input" accept="image/*" class="hidden">
+                            <button id="upload-logo-btn" class="px-3 py-2 bg-zinc-800 border border-white/10 rounded-lg text-xs text-zinc-300 hover:text-white hover:border-white/30 transition-all whitespace-nowrap">
+                                Upload Image
+                            </button>
+                        </div>
+                        <button id="add-text-btn" class="w-full py-2 bg-zinc-700/50 hover:bg-zinc-700 rounded-lg text-xs font-bold text-zinc-300 transition-colors">
+                            Add Text
+                        </button>
+                        <button id="remove-logo-btn" class="hidden w-full py-2 bg-red-900/30 hover:bg-red-900/50 border border-red-500/30 rounded-lg text-xs font-bold text-red-200 transition-colors">
+                            Remove Logo
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-zinc-500 mt-2 leading-relaxed">
+                        Logo auto-converts to 2 palette colors. Drag to move.
+                    </p>
+                </div>
+
+                <div class="w-full h-px bg-white/5 my-1"></div>
+
+                <!-- Pricing -->
+                <div>
+                    <div class="flex justify-between items-end mb-1">
+                        <span class="text-xs text-zinc-400 font-bold">Total Cost:</span>
+                        <span id="total-price" class="text-lg font-bold text-white">0 VND</span>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex flex-col gap-3">
+                    <div class="flex gap-2">
+                        <button class="flex-1 py-3 bg-[#2A9D8F] hover:bg-[#268e81] text-white rounded-xl font-bold text-sm shadow-lg shadow-[#2A9D8F]/20 transition-all active:scale-95">
+                            Add to Cart
+                        </button>
+                        <button class="flex-1 py-3 bg-[#E76F51] hover:bg-[#d65f41] text-white rounded-xl font-bold text-sm shadow-lg shadow-[#E76F51]/20 transition-all active:scale-95">
+                            Buy Now
+                        </button>
+                    </div>
+
+                    <div class="border border-white/10 rounded-xl p-3 bg-zinc-800/30">
+                        <p class="text-[10px] text-zinc-400 text-center">
+                            Free shipping for orders over 1,000,000 VND - Variant 1
+                        </p>
+                    </div>
+
+                    <div class="flex gap-2 mt-2">
+                         <button id="guide-btn" class="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-xs font-bold text-zinc-300 transition-colors">
+                            Tutorial
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Upsale Placeholder -->
+                 <div class="mt-4 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+                    <div class="h-24 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/5 flex items-center justify-center relative overflow-hidden">
+                        <span class="text-xs font-bold text-zinc-500 uppercase tracking-widest relative z-10">Upsale Area</span>
+                        <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+    <script type="module" src="./src/main.js"></script>
+</body>
+</html>
