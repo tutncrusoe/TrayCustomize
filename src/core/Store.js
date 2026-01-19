@@ -18,7 +18,7 @@ export class Store extends EventBus {
             isEditing: false,
             mobileView: '3d', // '3d' or 'top'
             tutorialStep: 0,
-            colorTheme: 'brown', // 'brown' or 'white'
+            colorTheme: 'white', // 'brown' or 'white'
             logo: null // { type: 'image'|'text', data: string, x: number, z: number, scale: number }
         };
     }

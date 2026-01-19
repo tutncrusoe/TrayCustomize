@@ -53,16 +53,24 @@ export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}, colorTheme 
 
     if (colorTheme === 'white') {
         // Ceramic White
-        colorBase = 0xD7CCC8; // Darker beige/white
-        colorWall = 0xFFFFFF; // Pure white
+        colorBase = 0xE5E7EB; // Cool Gray 200
+        colorWall = 0xF3F4F6; // Cool Gray 100
     } else {
         // Ceramic Brown
         colorBase = 0x4E342E; // Dark brown
         colorWall = 0x8D6E63; // Lighter brown
     }
 
-    const matWall = new THREE.MeshPhongMaterial({ color: colorWall, shininess: 30, specular: 0x111111 });
-    const matBase = new THREE.MeshPhongMaterial({ color: colorBase, shininess: 30, specular: 0x111111 });
+    const matWall = new THREE.MeshStandardMaterial({
+        color: colorWall,
+        roughness: 0.7,
+        metalness: 0.1
+    });
+    const matBase = new THREE.MeshStandardMaterial({
+        color: colorBase,
+        roughness: 0.7,
+        metalness: 0.1
+    });
 
     const thick = 2;
     const outerShape = createRoundedRectShape(l, w, r);
@@ -168,6 +176,8 @@ export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}, colorTheme 
 
     const mesh = new THREE.Mesh(geo, matWall);
     mesh.position.y = -h/2 + h;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
 
     const baseShape = createRoundedRectShape(l, w, r);
     const baseGeo = new THREE.ExtrudeGeometry(baseShape, { depth: 2, bevelEnabled: false, curveSegments: 24 });
@@ -175,6 +185,8 @@ export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}, colorTheme 
 
     const base = new THREE.Mesh(baseGeo, matBase);
     base.position.y = -h/2 + 2;
+    base.castShadow = true;
+    base.receiveShadow = true;
 
     group.add(mesh);
     group.add(base);
