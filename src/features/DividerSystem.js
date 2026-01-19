@@ -88,7 +88,7 @@ export class DividerSystem {
             this.draggingDivider.hasMoved = true;
 
             // Limit to valid range
-            const limit = (this.draggingDivider.type === 'X' ? l : w) / 2 - 5;
+            const limit = (this.draggingDivider.type === 'X' ? l : w) / 2 - 2;
             const val = Math.max(-limit, Math.min(limit, this.draggingDivider.type === 'X' ? world.x : world.z));
 
             // Update
@@ -127,9 +127,9 @@ export class DividerSystem {
             this.previewLine.style.display = 'none';
         } else {
             // Check Add Preview
-            const margin = 35;
-            const isInsideW = Math.abs(world.x) < (l/2 - 5);
-            const isInsideD = Math.abs(world.z) < (w/2 - 5);
+            const margin = 25;
+            const isInsideW = Math.abs(world.x) < (l/2 - 2);
+            const isInsideD = Math.abs(world.z) < (w/2 - 2);
             const isNearH = Math.abs(world.z - w/2) < margin || Math.abs(world.z + w/2) < margin;
             const isNearV = Math.abs(world.x - l/2) < margin || Math.abs(world.x + l/2) < margin;
 
