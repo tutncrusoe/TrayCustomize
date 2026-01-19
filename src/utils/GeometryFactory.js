@@ -103,11 +103,43 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
     const shape = new THREE.Shape();
     if (loops.length === 0) return shape;
 
-    // Process main loop (largest area?) or all loops (if donuts)
-    // For now, assume single loop per room or handle all as holes.
-    // If multiple loops, they are likely islands.
+    // Calculate signed area to identify outer loop vs holes
+    // Area > 0 : Counter-Clockwise (Standard for Shape in 2D usually? Wait, checking Three.js)
+    // Three.js ShapeUtils.area(): positive if CCW (Y up).
+    // Our Z is "down" on screen in 2D sense if we map Z->Y.
+    // Let's rely on absolute area. Largest area is Outer.
 
-    loops.forEach(loop => {
+    // Convert loops to polygons (vertices) to calc area
+    const polygons = loops.map(loop => {
+        return loop.map(e => e.u);
+    });
+
+    const getArea = (poly) => {
+        let area = 0;
+        for (let i = 0; i < poly.length; i++) {
+            const p1 = poly[i];
+            const p2 = poly[(i + 1) % poly.length];
+            area += (p1.x * p2.z - p2.x * p1.z); // Using Z as Y
+        }
+        return area / 2;
+    };
+
+    const areas = polygons.map(p => getArea(p));
+    // Find largest absolute area
+    let maxArea = -1;
+    let outerIdx = -1;
+    areas.forEach((a, i) => {
+        if (Math.abs(a) > maxArea) {
+            maxArea = Math.abs(a);
+            outerIdx = i;
+        }
+    });
+
+    loops.forEach((loop, loopIdx) => {
+        const isOuter = (loopIdx === outerIdx);
+        // Use Shape for outer, Path for holes
+        const path = isOuter ? shape : new THREE.Path();
+
         // 3. Inset polygon by thick/2
         const shiftedLines = loop.map(e => {
             let sx = e.u.x, sz = e.u.z, ex = e.v.x, ez = e.v.z;
@@ -182,12 +214,16 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
             const end = {x: curr.x + vNext.x * effR, z: curr.z + vNext.z * effR};
 
             if (i === 0) {
-                shape.moveTo(start.x, start.z);
+                path.moveTo(start.x, start.z);
             } else {
-                shape.lineTo(start.x, start.z);
+                path.lineTo(start.x, start.z);
             }
 
-            shape.quadraticCurveTo(curr.x, curr.z, end.x, end.z);
+            path.quadraticCurveTo(curr.x, curr.z, end.x, end.z);
+        }
+
+        if (!isOuter) {
+            shape.holes.push(path);
         }
     });
 
