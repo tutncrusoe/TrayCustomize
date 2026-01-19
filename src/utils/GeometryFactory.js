@@ -314,6 +314,11 @@ export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}, colorTheme 
         const holeShape = traceRoomBoundary(room.cells, sortedX, sortedZ, thick, l, w, r);
         if (holeShape) {
             outerShape.holes.push(holeShape);
+
+            // Flatten nested holes (islands) so they are respected by ExtrudeGeometry
+            if (holeShape.holes && holeShape.holes.length > 0) {
+                holeShape.holes.forEach(h => outerShape.holes.push(h));
+            }
         }
     });
 
