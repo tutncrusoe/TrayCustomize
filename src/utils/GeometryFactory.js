@@ -19,25 +19,171 @@ export function createRoundedRectShape(w, h, r) {
     return ctx;
 }
 
-export function createAdaptiveHoleShape(x, z, w, h, radii) {
+function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
+    const edges = [];
+    const cellSet = new Set(cells.map(c => `${c.i},${c.j}`));
+
+    // 1. Collect all boundary edges
+    cells.forEach(cell => {
+        const { i, j } = cell;
+        const xMin = sortedX[i];
+        const xMax = sortedX[i+1];
+        const zMin = sortedZ[j];
+        const zMax = sortedZ[j+1];
+
+        // Top Edge (min Z) - Direction: Left to Right
+        if (!cellSet.has(`${i},${j-1}`)) {
+            edges.push({
+                u: {x: xMin, z: zMin}, v: {x: xMax, z: zMin},
+                type: 'top'
+            });
+        }
+        // Right Edge (max X) - Direction: Top to Bottom
+        if (!cellSet.has(`${i+1},${j}`)) {
+             edges.push({
+                u: {x: xMax, z: zMin}, v: {x: xMax, z: zMax},
+                type: 'right'
+            });
+        }
+        // Bottom Edge (max Z) - Direction: Right to Left
+        if (!cellSet.has(`${i},${j+1}`)) {
+             edges.push({
+                u: {x: xMax, z: zMax}, v: {x: xMin, z: zMax},
+                type: 'bottom'
+            });
+        }
+        // Left Edge (min X) - Direction: Bottom to Top
+        if (!cellSet.has(`${i-1},${j}`)) {
+             edges.push({
+                u: {x: xMin, z: zMax}, v: {x: xMin, z: zMin},
+                type: 'left'
+            });
+        }
+    });
+
+    if (edges.length === 0) return null;
+
+    // 2. Chain edges into loops
+    const key = (p) => `${p.x.toFixed(4)},${p.z.toFixed(4)}`;
+    const edgeMap = new Map();
+    // Assuming simple polygons (no vertex shared by >2 edges), we can map start point -> edge
+    edges.forEach(e => edgeMap.set(key(e.u), e));
+
+    const loops = [];
+    const usedEdges = new Set();
+
+    edges.forEach(startEdge => {
+        if (usedEdges.has(startEdge)) return;
+
+        const loop = [];
+        let curr = startEdge;
+        while (curr) {
+            usedEdges.add(curr);
+            loop.push(curr);
+
+            // Next edge starts where current ends
+            const nextKey = key(curr.v);
+            const next = edgeMap.get(nextKey);
+
+            if (!next) break; // Should not happen for closed loop
+            if (next === startEdge) break; // Loop closed
+            if (usedEdges.has(next)) break; // Merged into existing loop (shouldn't happen with startEdge check)
+
+            curr = next;
+        }
+        if (loop.length > 2) loops.push(loop);
+    });
+
     const shape = new THREE.Shape();
-    const startX = x - w / 2;
-    const startY = z - h / 2;
+    if (loops.length === 0) return shape;
 
-    const r_br = Math.min(radii[2], Math.min(w, h) / 2);
-    const r_tr = Math.min(radii[1], Math.min(w, h) / 2);
-    const r_tl = Math.min(radii[0], Math.min(w, h) / 2);
-    const r_bl = Math.min(radii[3], Math.min(w, h) / 2);
+    // Process main loop (largest area?) or all loops (if donuts)
+    // For now, assume single loop per room or handle all as holes.
+    // If multiple loops, they are likely islands.
 
-    shape.moveTo(startX + r_bl, startY);
-    shape.lineTo(startX + w - r_br, startY);
-    shape.quadraticCurveTo(startX + w, startY, startX + w, startY + r_br);
-    shape.lineTo(startX + w, startY + h - r_tr);
-    shape.quadraticCurveTo(startX + w, startY + h, startX + w - r_tr, startY + h);
-    shape.lineTo(startX + r_tl, startY + h);
-    shape.quadraticCurveTo(startX, startY + h, startX, startY + h - r_tl);
-    shape.lineTo(startX, startY + r_bl);
-    shape.quadraticCurveTo(startX, startY, startX + r_bl, startY);
+    loops.forEach(loop => {
+        // 3. Inset polygon by thick/2
+        const shiftedLines = loop.map(e => {
+            let sx = e.u.x, sz = e.u.z, ex = e.v.x, ez = e.v.z;
+            const half = thick / 2;
+
+            if (e.type === 'top') {
+                sz += half; ez += half;
+            } else if (e.type === 'right') {
+                sx -= half; ex -= half;
+            } else if (e.type === 'bottom') {
+                sz -= half; ez -= half;
+            } else if (e.type === 'left') {
+                sx += half; ex += half;
+            }
+            return {p1: {x: sx, z: sz}, p2: {x: ex, z: ez}, type: e.type};
+        });
+
+        // Reconstruct vertices from intersections
+        const newVerts = [];
+        for (let i = 0; i < shiftedLines.length; i++) {
+            const l1 = shiftedLines[i];
+            const l2 = shiftedLines[(i + 1) % shiftedLines.length];
+
+            let x, z;
+            if (l1.type === 'top' || l1.type === 'bottom') {
+                z = l1.p1.z;
+                x = l2.p1.x;
+            } else {
+                x = l1.p1.x;
+                z = l2.p1.z;
+            }
+            newVerts.push({x, z});
+        }
+
+        // 4. Draw path with rounded corners
+        const isTrayCorner = (p) => {
+            return (Math.abs(Math.abs(p.x) - l/2) < 0.1) && (Math.abs(Math.abs(p.z) - w/2) < 0.1);
+        };
+
+        const getRadius = (idx) => {
+            // Original vertex for corner i corresponds to start of edge (i+1)
+            const origV = loop[(idx + 1) % loop.length].u;
+            if (isTrayCorner(origV)) {
+                return Math.max(outerR - thick, 4);
+            }
+            return 4; // Standard radius for internal/wall corners
+        };
+
+        const len = newVerts.length;
+        for (let i = 0; i < len; i++) {
+            const curr = newVerts[i];
+            const prev = newVerts[(i - 1 + len) % len];
+            const next = newVerts[(i + 1) % len];
+
+            const r = getRadius(i);
+
+            const dPrev = Math.sqrt((curr.x - prev.x)**2 + (curr.z - prev.z)**2);
+            const dNext = Math.sqrt((curr.x - next.x)**2 + (curr.z - next.z)**2);
+            const effR = Math.min(r, dPrev/2, dNext/2);
+
+            // Vector to prev
+            const vPrev = {x: prev.x - curr.x, z: prev.z - curr.z};
+            const magPrev = Math.sqrt(vPrev.x**2 + vPrev.z**2);
+            vPrev.x /= magPrev; vPrev.z /= magPrev;
+
+            // Vector to next
+            const vNext = {x: next.x - curr.x, z: next.z - curr.z};
+            const magNext = Math.sqrt(vNext.x**2 + vNext.z**2);
+            vNext.x /= magNext; vNext.z /= magNext;
+
+            const start = {x: curr.x + vPrev.x * effR, z: curr.z + vPrev.z * effR};
+            const end = {x: curr.x + vNext.x * effR, z: curr.z + vNext.z * effR};
+
+            if (i === 0) {
+                shape.moveTo(start.x, start.z);
+            } else {
+                shape.lineTo(start.x, start.z);
+            }
+
+            shape.quadraticCurveTo(curr.x, curr.z, end.x, end.z);
+        }
+    });
 
     return shape;
 }
@@ -45,20 +191,14 @@ export function createAdaptiveHoleShape(x, z, w, h, radii) {
 export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}, colorTheme = 'brown') {
     const group = new THREE.Group();
 
-    // Materials based on theme
-    // User requested distinct contrast between Base and Wall.
-    // Wall should be lighter than Base.
-
     let colorBase, colorWall;
 
     if (colorTheme === 'white') {
-        // Ceramic White
-        colorBase = 0xD7CCC8; // Darker beige/white
-        colorWall = 0xFFFFFF; // Pure white
+        colorBase = 0xD7CCC8;
+        colorWall = 0xFFFFFF;
     } else {
-        // Ceramic Brown
-        colorBase = 0x4E342E; // Dark brown
-        colorWall = 0x8D6E63; // Lighter brown
+        colorBase = 0x4E342E;
+        colorWall = 0x8D6E63;
     }
 
     const matWall = new THREE.MeshPhongMaterial({ color: colorWall, shininess: 30, specular: 0x111111 });
@@ -67,7 +207,6 @@ export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}, colorTheme 
     const thick = 2;
     const outerShape = createRoundedRectShape(l, w, r);
 
-    // Prepare divider logic
     const sortedX = [-l/2, ...[...dX].sort((a,b) => a - b), l/2];
     const sortedZ = [-w/2, ...[...dZ].sort((a,b) => a - b), w/2];
     const visited = new Set();
@@ -93,7 +232,6 @@ export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}, colorTheme 
                 minJ = Math.min(minJ, curr.j);
                 maxJ = Math.max(maxJ, curr.j);
 
-                // Check neighbors
                 const directions = [
                     [1,0,'X'], [-1,0,'X'], [0,1,'Z'], [0,-1,'Z']
                 ];
@@ -125,41 +263,15 @@ export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}, colorTheme 
                     }
                 });
             }
-            rooms.push({bounds: {minI, maxI, minJ, maxJ}});
+            rooms.push({cells: roomCells, bounds: {minI, maxI, minJ, maxJ}});
         }
     }
 
     rooms.forEach(room => {
-        const xStart = sortedX[room.bounds.minI];
-        const xEnd = sortedX[room.bounds.maxI + 1];
-        const zStart = sortedZ[room.bounds.minJ];
-        const zEnd = sortedZ[room.bounds.maxJ + 1];
-
-        const roomW = xEnd - xStart;
-        const roomH = zEnd - zStart;
-        const centerX = xStart + roomW/2;
-        const centerZ = zStart + roomH/2;
-
-        const holeW = roomW - thick;
-        const holeH = roomH - thick;
-
-        if(holeW > 0 && holeH > 0) {
-            const touchingL = Math.abs(xStart - (-l/2)) < 0.1;
-            const touchingR = Math.abs(xEnd - (l/2)) < 0.1;
-            const touchingT = Math.abs(zStart - (-w/2)) < 0.1;
-            const touchingB = Math.abs(zEnd - (w/2)) < 0.1;
-
-            const stdR = 4;
-            const bigR = Math.max(stdR, r - thick);
-
-            const radii = [
-                (touchingL && touchingT) ? bigR : (touchingL || touchingT ? bigR : stdR), // TL
-                (touchingR && touchingT) ? bigR : (touchingR || touchingT ? bigR : stdR), // TR
-                (touchingR && touchingB) ? bigR : (touchingR || touchingB ? bigR : stdR), // BR
-                (touchingL && touchingB) ? bigR : (touchingL || touchingB ? bigR : stdR)  // BL
-            ];
-
-            outerShape.holes.push(createAdaptiveHoleShape(centerX, centerZ, holeW, holeH, radii));
+        // Use traceRoomBoundary for all rooms (handles both rectangles and complex shapes)
+        const holeShape = traceRoomBoundary(room.cells, sortedX, sortedZ, thick, l, w, r);
+        if (holeShape) {
+            outerShape.holes.push(holeShape);
         }
     });
 
