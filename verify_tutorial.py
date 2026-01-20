@@ -16,14 +16,23 @@ def verify_tutorial(page):
     page.screenshot(path="verification_step0.png")
 
     # Advance tutorial (simulate L change)
-    # We can try to manually change input to trigger advance
-    page.fill("#dim-l", "150")
-    page.dispatch_event("#dim-l", "change") # Trigger commit to maybe auto-zoom/advance?
-    # Actually TutorialSystem listens to 'dimensionsChanged' from store.
-    # Input change triggers store update.
+    # 1. Click the label to open input
+    # Note: 3D labels might take a moment to appear/position
+    page.wait_for_selector("#label-3d-l", state="visible")
+    page.click("#label-3d-l")
+
+    # 2. Wait for global input
+    page.wait_for_selector("#global-dim-input", state="visible")
+
+    # 3. Fill and commit
+    page.fill("#global-dim-input", "150")
+    page.press("#global-dim-input", "Enter")
 
     # Wait for Step 1 (Set Width)
-    page.wait_for_timeout(1000) # Wait for transition
+    # We might need to wait for the transition or text update
+    # The tutorial system advances on 'dimensionsChanged' event.
+    page.wait_for_function('document.getElementById("tut-text").innerText.includes("Set Width")')
+
     text = page.inner_text("#tut-text")
     print(f"Step 1 Text: {text}")
     page.screenshot(path="verification_step1.png")
