@@ -23,10 +23,9 @@ export class SceneManager {
     init() {
         // Scene Setup
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x1a1a1a);
 
         // Renderer Setup
-        this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+        this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true });
         this.renderer.setPixelRatio(window.devicePixelRatio);
 
         // Camera Setup
@@ -82,12 +81,13 @@ export class SceneManager {
     autoFitCamera() {
         const { l, w, h } = store.getState().dimensions;
         const maxDim = Math.max(l, w, h);
+        const labelPadding = 60; // Padding for labels
 
         // Fit Top View
         const rectTop = this.viewTopContainer.getBoundingClientRect();
         if (rectTop.height > 0) {
             const aspect = rectTop.width / rectTop.height;
-            this.frustumSize = Math.max(w, l / aspect) * 1.4;
+            this.frustumSize = Math.max(w + labelPadding, (l + labelPadding) / aspect) * 1.4;
 
             if (this.cameraTop) {
                 this.cameraTop.left = this.frustumSize * aspect / -2;
@@ -104,10 +104,10 @@ export class SceneManager {
             const aspect3D = rect3D.width / rect3D.height;
             const fovRad = (this.camera3D.fov * Math.PI) / 180;
 
-            const verticalSize = maxDim * 1.4;
+            const verticalSize = (maxDim + labelPadding) * 1.4;
             let distance = (verticalSize / 2) / Math.tan(fovRad / 2);
 
-            const horizontalSize = maxDim * 1.4;
+            const horizontalSize = (maxDim + labelPadding) * 1.4;
             const distanceH = (horizontalSize / 2) / (Math.tan(fovRad / 2) * aspect3D);
 
             distance = Math.max(distance, distanceH);

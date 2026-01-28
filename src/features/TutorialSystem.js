@@ -151,8 +151,8 @@ export class TutorialSystem {
         // Or better, I should implement the 3D labels in `DimensionControl`.
 
         const getLabel3D = (axis) => {
-            // Placeholder: currently we don't have 3D labels rendered in the new architecture yet.
-            // I'll target inputs for now as a robust fallback.
+            const label3D = document.getElementById(`label-3d-${axis}`);
+            if (label3D && label3D.offsetParent !== null) return label3D;
             return document.getElementById(`dim-${axis}`);
         };
 
@@ -202,6 +202,11 @@ export class TutorialSystem {
             top = rect.bottom + 10;
             left = rect.left + rect.width/2 - 50;
             this.arrow.style.opacity = 0; // Hide arrow for inputs
+        } else if (target.id.startsWith('label-3d-')) {
+            // 3D Label Targeting
+            top = rect.top + rect.height/2 - 50;
+            left = rect.left + rect.width/2 - 50;
+            this.arrow.style.opacity = 0;
         } else {
              // Logic for Viewport targets
             if (side === 'right-offset') {

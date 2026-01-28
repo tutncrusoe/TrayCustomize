@@ -17,8 +17,28 @@ export class Store extends EventBus {
             hiddenSegments: {},
             isEditing: false,
             mobileView: '3d', // '3d' or 'top'
-            tutorialStep: 0
+            tutorialStep: 0,
+            colorTheme: 'brown', // 'brown' or 'white'
+            logo: null // { type: 'image'|'text', data: string, x: number, z: number, scale: number }
         };
+    }
+
+    setColorTheme(theme) {
+        this.state.colorTheme = theme;
+        this.emit('colorThemeChanged', this.state.colorTheme);
+    }
+
+    setLogo(logoObj) {
+        this.state.logo = logoObj;
+        this.emit('logoChanged', this.state.logo);
+    }
+
+    updateLogoPosition(x, z) {
+        if (this.state.logo) {
+            this.state.logo.x = x;
+            this.state.logo.z = z;
+            this.emit('logoPositionChanged', { x, z });
+        }
     }
 
     setDimensions(newDims) {
@@ -27,23 +47,29 @@ export class Store extends EventBus {
     }
 
     addDivider(axis, pos) {
-        if (axis === 'x') {
-            this.state.dividers.x.push(pos);
-            this.state.dividers.x.sort((a, b) => a - b);
-        } else {
-            this.state.dividers.z.push(pos);
-            this.state.dividers.z.sort((a, b) => a - b);
-        }
+        const arr = axis === 'x' ? this.state.dividers.x : this.state.dividers.z;
+        // Prevent duplicates (tolerance 0.1)
+        if (arr.some(v => Math.abs(v - pos) < 0.1)) return;
+
+        arr.push(pos);
+        arr.sort((a, b) => a - b);
         this.emit('dividersChanged', this.state.dividers);
     }
 
     updateDividers(axis, newDividers) {
+        // Filter duplicates
+        const sorted = [...newDividers].sort((a, b) => a - b);
+        const unique = [];
+        sorted.forEach(v => {
+            if (unique.length === 0 || Math.abs(v - unique[unique.length - 1]) >= 0.1) {
+                unique.push(v);
+            }
+        });
+
         if (axis === 'x') {
-            this.state.dividers.x = newDividers;
-            this.state.dividers.x.sort((a, b) => a - b);
+            this.state.dividers.x = unique;
         } else {
-            this.state.dividers.z = newDividers;
-            this.state.dividers.z.sort((a, b) => a - b);
+            this.state.dividers.z = unique;
         }
         this.emit('dividersChanged', this.state.dividers);
     }
