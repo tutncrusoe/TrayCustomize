@@ -109,13 +109,6 @@ class App {
             if(radInput) radInput.value = 8;
         });
 
-        // Guide
-        document.getElementById('guide-btn')?.addEventListener('click', () => {
-             // Assuming TutorialSystem starts on restart
-             localStorage.removeItem('tutorialComplete');
-             location.reload();
-        });
-
         // Logo - Text
         document.getElementById('add-text-btn')?.addEventListener('click', () => {
             const text = document.getElementById('logo-text-input').value;
