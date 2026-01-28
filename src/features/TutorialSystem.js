@@ -121,7 +121,7 @@ export class TutorialSystem {
 
         // Z-Index adjustments
         if (this.underlay) {
-            this.underlay.style.zIndex = (stepIndex === 3 || stepIndex === 4) ? '50' : '5';
+            this.underlay.style.zIndex = (stepIndex === 3 || stepIndex === 4) ? '50' : '15';
         }
 
         if (stepIndex > 6) {
