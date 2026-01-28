@@ -214,7 +214,7 @@ export class TutorialSystem {
                 left = rect.right - 110;
                 this.arrow.style.opacity = 0;
             } else if (side === 'bottom-offset') {
-                top = rect.bottom + 10;
+                top = rect.bottom - 90;
                 left = rect.left + rect.width / 2 - 70;
                 arrowRot = 270;
                 this.arrow.style.opacity = 0;
