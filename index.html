@@ -102,7 +102,7 @@
     <canvas id="main-canvas"></canvas>
 
     <button id="tut-skip" class="tutorial-skip-btn">Skip Tutorial</button>
-    <div id="tutorial-underlay">
+    <div id="tutorial-underlay" style="z-index: 15;">
         <div id="tut-blob" class="tutorial-blob">
             <svg viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.5 45.5C8.5 65.5 -5.5 105.5 22.5 125.5C50.5 145.5 100.5 155.5 145.5 135.5C190.5 115.5 205.5 65.5 185.5 35.5C165.5 5.5 100.5 -15.5 55.5 15.5C35.5 28.5 22.5 45.5 22.5 45.5Z" fill="#FFD700"/>
@@ -147,11 +147,11 @@
         <main id="viewports-container" class="flex-1 flex flex-col md:flex-row relative p-4 gap-4 md:p-8 md:gap-8 md:mr-[20%]">
             <div id="view-3d-wrapper" class="flex-1 md:flex-1 flex flex-col min-h-0">
                 <h2 class="text-white font-bold mb-3 text-sm ml-1 hidden md:block">3D View</h2>
-                <div id="view-3d-placeholder" class="viewport-placeholder pointer-events-auto cursor-grab active:cursor-grabbing flex-1 rounded-3xl border border-white/10 bg-zinc-800/50 shadow-2xl relative"><div id="dim-container-3d" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
+                <div id="view-3d-placeholder" class="viewport-placeholder pointer-events-auto cursor-grab active:cursor-grabbing flex-1 rounded-3xl border border-white/10 bg-zinc-800/50 shadow-2xl relative"></div>
             </div>
             <div id="view-top-wrapper" class="flex-1 md:flex-1 flex flex-col min-h-0 hidden md:flex">
                 <h2 class="text-white font-bold mb-3 text-sm ml-1 hidden md:block">Top View</h2>
-                <div id="view-top-placeholder" class="viewport-placeholder pointer-events-auto flex-1 rounded-3xl border border-white/10 bg-zinc-800/50 shadow-2xl relative"><div id="dim-container" class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index: 50;"></div></div>
+                <div id="view-top-placeholder" class="viewport-placeholder pointer-events-auto flex-1 rounded-3xl border border-white/10 bg-zinc-800/50 shadow-2xl relative"></div>
             </div>
         </main>
 
@@ -254,6 +254,11 @@
             </div>
         </aside>
     </div>
+
+    <!-- Global Label Containers -->
+    <div id="dim-container-3d" class="fixed inset-0 pointer-events-none overflow-hidden" style="z-index: 2000;"></div>
+    <div id="dim-container" class="fixed inset-0 pointer-events-none overflow-hidden" style="z-index: 2000;"></div>
+
     <script type="module" src="./src/main.js"></script>
 </body>
 </html>
