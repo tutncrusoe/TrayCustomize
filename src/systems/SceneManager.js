@@ -35,6 +35,7 @@ export class SceneManager {
 
         this.cameraTop = new THREE.OrthographicCamera(-1, 1, 1, -1, 1, 1000);
         this.cameraTop.position.set(0, 200, 0);
+        this.cameraTop.up.set(0, 0, -1);
         this.cameraTop.lookAt(0, 0, 0);
 
         // Lighting

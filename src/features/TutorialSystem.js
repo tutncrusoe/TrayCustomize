@@ -6,6 +6,8 @@ export class TutorialSystem {
         this.sceneManager = sceneManager;
         this.step = 0;
         this.isActive = false;
+        this.lastAddedDividerX = null;
+        this.previousDividersX = [];
 
         // DOM Elements
         this.overlay = document.getElementById('tutorial-overlay');
@@ -47,6 +49,17 @@ export class TutorialSystem {
         });
 
         store.on('dividersChanged', (divs) => {
+             // Detect newly added X divider for Step 5 targeting
+             const newX = divs.x;
+             if (newX.length > this.previousDividersX.length) {
+                 // Find the value that is new
+                 const added = newX.find(val => !this.previousDividersX.includes(val));
+                 if (added !== undefined) {
+                     this.lastAddedDividerX = added;
+                 }
+             }
+             this.previousDividersX = [...newX];
+
              if (!this.isActive) return;
 
              // Step 3 (Add Horiz/Z)
@@ -181,10 +194,18 @@ export class TutorialSystem {
             case 5: // Drag
                 let dragTarget = topView;
                 if (this.sceneManager) {
+                    // Prefer the specifically tracked last added divider, fallback to last in list
                     const state = store.getState();
                     const divsX = state.dividers.x;
-                    if (divsX.length > 0) {
-                        const targetX = divsX[divsX.length - 1];
+                    let targetX = null;
+
+                    if (this.lastAddedDividerX !== null && divsX.includes(this.lastAddedDividerX)) {
+                        targetX = this.lastAddedDividerX;
+                    } else if (divsX.length > 0) {
+                        targetX = divsX[divsX.length - 1];
+                    }
+
+                    if (targetX !== null) {
                         const coords = this.sceneManager.getScreenCoordsFromTopWorld(targetX, 0);
                         dragTarget = {
                             getBoundingClientRect: () => ({
