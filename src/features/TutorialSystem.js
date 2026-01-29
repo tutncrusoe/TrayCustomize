@@ -7,7 +7,9 @@ export class TutorialSystem {
         this.step = 0;
         this.isActive = false;
         this.lastAddedDividerX = null;
+        this.lastAddedDividerZ = null;
         this.previousDividersX = [];
+        this.previousDividersZ = [];
 
         // DOM Elements
         this.overlay = document.getElementById('tutorial-overlay');
@@ -58,7 +60,21 @@ export class TutorialSystem {
                      this.lastAddedDividerX = added;
                  }
              }
+
+             // Detect newly added Z divider for Step 6 targeting
+             const newZ = divs.z;
+             if (newZ.length > this.previousDividersZ.length) {
+                 const added = newZ.find(val => !this.previousDividersZ.includes(val));
+                 if (added !== undefined) {
+                     this.lastAddedDividerZ = added;
+                 }
+             }
+
+             const xMoved = JSON.stringify(newX.sort()) !== JSON.stringify(this.previousDividersX.sort());
+             const zMoved = JSON.stringify(newZ.sort()) !== JSON.stringify(this.previousDividersZ.sort());
+
              this.previousDividersX = [...newX];
+             this.previousDividersZ = [...newZ];
 
              if (!this.isActive) return;
 
@@ -74,16 +90,22 @@ export class TutorialSystem {
                  return;
              }
 
-             // Step 5 (Drag)
-             // If we are already in step 5 when this event fires, it means the user moved a divider.
-             if (this.step === 5) {
+             // Step 5 (Drag X)
+             if (this.step === 5 && xMoved) {
                  this.advance();
+                 return;
+             }
+
+             // Step 6 (Drag Z)
+             if (this.step === 6 && zMoved) {
+                 this.advance();
+                 return;
              }
         });
 
-        // Step 6 (Delete)
+        // Step 7 (Delete)
         store.on('hiddenSegmentsChanged', () => {
-             if (this.isActive && this.step === 6) {
+             if (this.isActive && this.step === 7) {
                  this.complete(); // Finish tutorial
              }
         });
@@ -139,7 +161,7 @@ export class TutorialSystem {
             this.underlay.style.zIndex = (stepIndex === 3 || stepIndex === 4) ? '50' : '15';
         }
 
-        if (stepIndex > 6) {
+        if (stepIndex > 7) {
             this.complete();
             return;
         }
@@ -150,20 +172,6 @@ export class TutorialSystem {
 
     renderStep(stepIndex) {
         if (!this.blob) return;
-
-        // Target Identification Helper
-        // We need to find DOM elements.
-        // Dimensions: Inputs or 3D labels?
-        // Original code used 3D labels if available, fallback to inputs.
-        // We have 3D labels in SceneManager? No, SceneManager doesn't render DOM labels yet.
-        // Wait, the Original code had `update3DLabels` in `animate`.
-        // I haven't implemented `update3DLabels` in SceneManager fully!
-        // `SceneManager` emits `update3DOverlay`.
-        // Who handles that event? `DimensionControl`? Or a separate `OverlaySystem`?
-        // I haven't created an overlay system.
-        // I should probably add 3D label rendering to `DimensionControl` or `SceneManager` directly.
-        // Let's assume for now we target the DOM INPUTS for steps 0,1,2 if 3D labels aren't there.
-        // Or better, I should implement the 3D labels in `DimensionControl`.
 
         const getLabel3D = (axis) => {
             const label3D = document.getElementById(`label-3d-${axis}`);
@@ -191,10 +199,9 @@ export class TutorialSystem {
                 this.positionHint(topView, 'Add Vertical', 'bottom-offset');
                 this.playAnimation('cursor-scan-v', topView, 'bottom-edge-outer');
                 break;
-            case 5: // Drag
-                let dragTarget = topView;
+            case 5: // Drag X
+                let dragTargetX = topView;
                 if (this.sceneManager) {
-                    // Prefer the specifically tracked last added divider, fallback to last in list
                     const state = store.getState();
                     const divsX = state.dividers.x;
                     let targetX = null;
@@ -207,7 +214,7 @@ export class TutorialSystem {
 
                     if (targetX !== null) {
                         const coords = this.sceneManager.getScreenCoordsFromTopWorld(targetX, 0);
-                        dragTarget = {
+                        dragTargetX = {
                             getBoundingClientRect: () => ({
                                 left: coords.x - 1,
                                 top: coords.y - 1,
@@ -219,15 +226,51 @@ export class TutorialSystem {
                                 y: coords.y
                             }),
                             tagName: 'DIV',
-                            id: 'virtual-divider-target',
+                            id: 'virtual-divider-target-x',
                             classList: { contains: () => false }
                         };
                     }
                 }
-                this.positionHint(dragTarget, 'Drag to move divider', 'bottom');
-                this.playDragAnimation(dragTarget);
+                this.positionHint(dragTargetX, 'Drag to move divider', 'bottom');
+                this.playDragAnimation(dragTargetX, 'x');
                 break;
-            case 6: // Delete
+            case 6: // Drag Z
+                let dragTargetZ = topView;
+                if (this.sceneManager) {
+                    const state = store.getState();
+                    const divsZ = state.dividers.z;
+                    let targetZ = null;
+
+                    if (this.lastAddedDividerZ !== null && divsZ.includes(this.lastAddedDividerZ)) {
+                        targetZ = this.lastAddedDividerZ;
+                    } else if (divsZ.length > 0) {
+                        targetZ = divsZ[divsZ.length - 1];
+                    }
+
+                    if (targetZ !== null) {
+                        // For Z dividers (horizontal lines), X is 0 (center), Z is the position
+                        const coords = this.sceneManager.getScreenCoordsFromTopWorld(0, targetZ);
+                        dragTargetZ = {
+                            getBoundingClientRect: () => ({
+                                left: coords.x - 1,
+                                top: coords.y - 1,
+                                right: coords.x + 1,
+                                bottom: coords.y + 1,
+                                width: 2,
+                                height: 2,
+                                x: coords.x,
+                                y: coords.y
+                            }),
+                            tagName: 'DIV',
+                            id: 'virtual-divider-target-z',
+                            classList: { contains: () => false }
+                        };
+                    }
+                }
+                this.positionHint(dragTargetZ, 'Drag to move divider', 'right');
+                this.playDragAnimation(dragTargetZ, 'z');
+                break;
+            case 7: // Delete
                 this.positionHint(topView, 'Double click to delete', 'bottom');
                 this.playDeleteAnimation(topView);
                 break;
@@ -243,19 +286,15 @@ export class TutorialSystem {
 
         let top, left, arrowRot, arrowTop, arrowLeft;
 
-        // Simplified logic from original
         if (target.tagName === 'INPUT' || target.classList.contains('input-group')) {
-            // Center near input
             top = rect.bottom + 10;
             left = rect.left + rect.width/2 - 50;
-            this.arrow.style.opacity = 0; // Hide arrow for inputs
+            this.arrow.style.opacity = 0;
         } else if (target.id.startsWith('label-3d-')) {
-            // 3D Label Targeting
             top = rect.top + rect.height/2 - 50;
             left = rect.left + rect.width/2 - 50;
             this.arrow.style.opacity = 0;
         } else {
-             // Logic for Viewport targets
             if (side === 'right-offset') {
                 top = rect.top + rect.height / 2 - 50;
                 left = rect.right - 110;
@@ -265,6 +304,15 @@ export class TutorialSystem {
                 left = rect.left + rect.width / 2 - 70;
                 arrowRot = 270;
                 this.arrow.style.opacity = 0;
+            } else if (side === 'right') {
+                // New logic for Drag Z (Horizontal line)
+                top = rect.top + rect.height/2 - 50;
+                left = rect.right + 20;
+                if (left + 140 > window.innerWidth) left = rect.left - 120; // Flip if too far right
+                arrowRot = 180; // Point Left
+                arrowTop = rect.top;
+                arrowLeft = rect.right - 5;
+                this.arrow.style.opacity = 0; // Hide arrow for drag steps anyway as per request/design
             } else {
                 top = rect.bottom + 60;
                 left = rect.left + rect.width/2 - 70;
@@ -273,6 +321,18 @@ export class TutorialSystem {
                 arrowLeft = rect.left + rect.width/2 - 30;
                 if(side !== 'right-offset' && side !== 'bottom-offset') this.arrow.style.opacity = 1;
             }
+        }
+
+        // Hide arrow specifically for Drag steps (5 & 6) as we rely on the Hand Cursor
+        if (text === 'Drag to move divider') {
+             this.arrow.style.opacity = 0;
+             // Adjust bubble position for horizontal line drag (Step 6)
+             if (side === 'right') {
+                  // Center vertically on the line
+                  top = rect.top - 20;
+                  // Place to the right
+                  left = rect.right + 40;
+             }
         }
 
         // Bounds
@@ -293,7 +353,6 @@ export class TutorialSystem {
         if(!target || !this.cursor) return;
         const rect = target.getBoundingClientRect();
 
-        // Reuse original logic for positions
         if (edge === 'right-edge-outer') {
             const cursorX = rect.right - 130;
             const cursorYStart = rect.top + rect.height/2;
@@ -304,6 +363,7 @@ export class TutorialSystem {
             this.cursorTrail.style.left = `${cursorX + 6}px`;
             this.cursorTrail.style.top = `${cursorYStart - 75}px`;
             this.cursorTrail.style.height = '150px';
+            this.cursorTrail.style.width = '4px';
         } else if (edge === 'bottom-edge-outer') {
             const cursorX = rect.left + rect.width/2 - 75;
             const cursorY = rect.bottom - 130;
@@ -320,7 +380,7 @@ export class TutorialSystem {
         this.cursor.style.animation = `${animName} 4s infinite`;
     }
 
-    playDragAnimation(target) {
+    playDragAnimation(target, axis) {
         if(!target) return;
         const rect = target.getBoundingClientRect();
         const startX = rect.left + rect.width/2;
@@ -331,15 +391,24 @@ export class TutorialSystem {
         this.cursor.style.opacity = '1';
         // Grab/Fist Icon
         this.cursor.innerHTML = '<svg viewBox="0 0 24 24" fill="white" stroke="black" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M20 10.95V7c0-1.1-.9-2-2-2s-2 .9-2 2v2.5h-1V5c0-1.1-.9-2-2-2s-2 .9-2 2v4.5h-1V6c0-1.1-.9-2-2-2s-2 .9-2 2v7.5c0 3.31 2.69 6 6 6s6-2.69 6-6z" /></svg>';
-        this.cursor.style.animation = 'cursor-wiggle-x 4s infinite';
+
+        const anim = axis === 'z' ? 'cursor-wiggle-y' : 'cursor-wiggle-x';
+        this.cursor.style.animation = `${anim} 4s infinite`;
 
         this.ghostDivider.style.left = `${startX}px`;
         this.ghostDivider.style.top = `${startY}px`;
-        this.ghostDivider.style.width = '100px';
-        this.ghostDivider.style.height = '4px';
         this.ghostDivider.style.opacity = 0;
-        // Also wiggle the ghost divider to match cursor
-        this.ghostDivider.style.animation = 'cursor-wiggle-x 4s infinite';
+        this.ghostDivider.style.animation = `${anim} 4s infinite`;
+
+        if (axis === 'z') {
+            // Horizontal Line, Move Y
+            this.ghostDivider.style.width = '100px';
+            this.ghostDivider.style.height = '4px';
+        } else {
+            // Vertical Line, Move X
+            this.ghostDivider.style.width = '4px';
+            this.ghostDivider.style.height = '100px';
+        }
     }
 
     playDeleteAnimation(target) {
