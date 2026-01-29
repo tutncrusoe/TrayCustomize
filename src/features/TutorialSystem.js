@@ -328,6 +328,7 @@ export class TutorialSystem {
 
         this.cursor.style.left = `${startX}px`;
         this.cursor.style.top = `${startY}px`;
+        this.cursor.style.opacity = '1';
         // Grab/Fist Icon
         this.cursor.innerHTML = '<svg viewBox="0 0 24 24" fill="white" stroke="black" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M20 10.95V7c0-1.1-.9-2-2-2s-2 .9-2 2v2.5h-1V5c0-1.1-.9-2-2-2s-2 .9-2 2v4.5h-1V6c0-1.1-.9-2-2-2s-2 .9-2 2v7.5c0 3.31 2.69 6 6 6s6-2.69 6-6z" /></svg>';
         this.cursor.style.animation = 'cursor-wiggle-x 4s infinite';
