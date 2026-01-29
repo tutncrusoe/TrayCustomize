@@ -259,7 +259,7 @@ export class TutorialSystem {
             this.cursorTrail.style.height = '150px';
         } else if (edge === 'bottom-edge-outer') {
             const cursorX = rect.left + rect.width/2 - 75;
-            const cursorY = rect.bottom - 5;
+            const cursorY = rect.bottom - 130;
             this.cursor.style.left = `${cursorX}px`;
             this.cursor.style.top = `${cursorY}px`;
 
