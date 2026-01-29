@@ -219,11 +219,12 @@ export class TutorialSystem {
                                 y: coords.y
                             }),
                             tagName: 'DIV',
-                            id: 'virtual-divider-target'
+                            id: 'virtual-divider-target',
+                            classList: { contains: () => false }
                         };
                     }
                 }
-                this.positionHint(dragTarget, 'Click & Hold to move', 'bottom');
+                this.positionHint(dragTarget, 'Drag to move divider', 'bottom');
                 this.playDragAnimation(dragTarget);
                 break;
             case 6: // Delete
@@ -327,15 +328,17 @@ export class TutorialSystem {
 
         this.cursor.style.left = `${startX}px`;
         this.cursor.style.top = `${startY}px`;
-        this.cursor.innerHTML = '<svg viewBox="0 0 24 24" fill="white" stroke="black" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v1h-1V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v3h-1V2a2 2 0 0 0-2-2 2 2 0 0 0-2 2v5h-1V5a2 2 0 0 0-2-2 2 2 0 0 0-2 2v6c0 4.418 3.582 8 8 8s8-3.582 8-8z" /></svg>';
-        this.cursor.style.animation = 'cursor-drag-shadow 4s infinite';
+        // Grab/Fist Icon
+        this.cursor.innerHTML = '<svg viewBox="0 0 24 24" fill="white" stroke="black" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M20 10.95V7c0-1.1-.9-2-2-2s-2 .9-2 2v2.5h-1V5c0-1.1-.9-2-2-2s-2 .9-2 2v4.5h-1V6c0-1.1-.9-2-2-2s-2 .9-2 2v7.5c0 3.31 2.69 6 6 6s6-2.69 6-6z" /></svg>';
+        this.cursor.style.animation = 'cursor-wiggle-x 4s infinite';
 
         this.ghostDivider.style.left = `${startX}px`;
         this.ghostDivider.style.top = `${startY}px`;
         this.ghostDivider.style.width = '100px';
         this.ghostDivider.style.height = '4px';
         this.ghostDivider.style.opacity = 0;
-        this.ghostDivider.style.animation = 'divider-drag-shadow 4s infinite';
+        // Also wiggle the ghost divider to match cursor
+        this.ghostDivider.style.animation = 'cursor-wiggle-x 4s infinite';
     }
 
     playDeleteAnimation(target) {
