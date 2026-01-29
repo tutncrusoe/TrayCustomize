@@ -2,7 +2,8 @@
 import { store } from '../core/Store.js';
 
 export class TutorialSystem {
-    constructor() {
+    constructor(sceneManager) {
+        this.sceneManager = sceneManager;
         this.step = 0;
         this.isActive = false;
 
@@ -46,24 +47,25 @@ export class TutorialSystem {
         });
 
         store.on('dividersChanged', (divs) => {
-             // Step 3 (Add Horiz/Z), Step 4 (Add Vert/X)
-             // We need to check if count increased?
-             // Or just simple logic: if step 3 and Z added -> step 4.
-             // If step 4 and X added -> step 5.
-             // Let's keep it simple: any divider change in those steps advances.
-             if (this.isActive) {
-                 if (this.step === 3 && divs.z.length > 0) this.advance(); // Added Horizontal (Z)
-                 else if (this.step === 4 && divs.x.length > 0) this.advance(); // Added Vertical (X)
-             }
-        });
+             if (!this.isActive) return;
 
-        // For Step 5 (Drag), we need a "Drag Finished" event?
-        // DividerSystem doesn't explicitly emit "DragFinished", but it updates dividers.
-        // However, dividersChanged also fires on Drag.
-        // Step 5 is "Drag". If dividers changed and we are in step 5, advance?
-        // Yes, likely user moved something.
-        store.on('dividersChanged', () => {
-             if (this.isActive && this.step === 5) this.advance();
+             // Step 3 (Add Horiz/Z)
+             if (this.step === 3 && divs.z.length > 0) {
+                 this.advance();
+                 return;
+             }
+
+             // Step 4 (Add Vert/X)
+             if (this.step === 4 && divs.x.length > 0) {
+                 this.advance();
+                 return;
+             }
+
+             // Step 5 (Drag)
+             // If we are already in step 5 when this event fires, it means the user moved a divider.
+             if (this.step === 5) {
+                 this.advance();
+             }
         });
 
         // Step 6 (Delete)
@@ -177,8 +179,31 @@ export class TutorialSystem {
                 this.playAnimation('cursor-scan-v', topView, 'bottom-edge-outer');
                 break;
             case 5: // Drag
-                this.positionHint(topView, 'Click & Hold to move', 'bottom');
-                this.playDragAnimation(topView);
+                let dragTarget = topView;
+                if (this.sceneManager) {
+                    const state = store.getState();
+                    const divsX = state.dividers.x;
+                    if (divsX.length > 0) {
+                        const targetX = divsX[divsX.length - 1];
+                        const coords = this.sceneManager.getScreenCoordsFromTopWorld(targetX, 0);
+                        dragTarget = {
+                            getBoundingClientRect: () => ({
+                                left: coords.x - 1,
+                                top: coords.y - 1,
+                                right: coords.x + 1,
+                                bottom: coords.y + 1,
+                                width: 2,
+                                height: 2,
+                                x: coords.x,
+                                y: coords.y
+                            }),
+                            tagName: 'DIV',
+                            id: 'virtual-divider-target'
+                        };
+                    }
+                }
+                this.positionHint(dragTarget, 'Click & Hold to move', 'bottom');
+                this.playDragAnimation(dragTarget);
                 break;
             case 6: // Delete
                 this.positionHint(topView, 'Double click to delete', 'bottom');

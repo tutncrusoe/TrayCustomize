@@ -205,4 +205,22 @@ export class SceneManager {
             isInside: x >= 0 && x <= rect.width && y >= 0 && y <= rect.height
         };
     }
+
+    getScreenCoordsFromTopWorld(worldX, worldZ) {
+        const rect = this.viewTopContainer.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return { x: 0, y: 0 };
+
+        const aspect = rect.width / rect.height;
+
+        const mouseX = worldX / (this.frustumSize * aspect / 2);
+        const mouseY = -worldZ / (this.frustumSize / 2);
+
+        const x = ((mouseX + 1) / 2) * rect.width;
+        const y = ((1 - mouseY) / 2) * rect.height;
+
+        return {
+            x: rect.left + x,
+            y: rect.top + y
+        };
+    }
 }

@@ -27,7 +27,7 @@ class App {
             new ExportSystem(this.sceneManager),
             new InputSystem(this.sceneManager, viewTop),
             new DividerSystem(),
-            new TutorialSystem(),
+            new TutorialSystem(this.sceneManager),
             new LabelSystem(this.sceneManager),
             new EditSystem(this.sceneManager),
             new LogoSystem(this.sceneManager)
