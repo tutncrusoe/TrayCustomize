@@ -21,6 +21,34 @@ export class ExportSystem {
         }
     }
 
+    generateOrderCode() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let result = '';
+        for (let i = 0; i < 6; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    }
+
+    formatDate(date, includeTime = false) {
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+
+        let str = `${yyyy}${mm}${dd}`;
+        if (includeTime) {
+            const HH = String(date.getHours()).padStart(2, '0');
+            const MM = String(date.getMinutes()).padStart(2, '0');
+            str += `-${HH}${MM}`;
+        }
+        return str;
+    }
+
+    capitalize(str) {
+        if (!str) return '';
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
     exportSTL() {
         if (!this.sceneManager || !this.sceneManager.boxGroup) {
             console.warn('Nothing to export');
@@ -54,8 +82,19 @@ export class ExportSystem {
         document.body.appendChild(link);
         link.href = URL.createObjectURL(blob);
 
-        const { l, w, h } = store.getState().dimensions;
-        link.download = `BentoBox_${l}x${w}x${h}.stl`;
+        // Filename: OrderCode_Color_Time_Deadline.stl
+        const orderCode = this.generateOrderCode();
+        const now = new Date();
+        const orderTimeStr = this.formatDate(now, true);
+
+        const deadlineDate = new Date(now);
+        deadlineDate.setDate(deadlineDate.getDate() + 3);
+        const deadlineStr = this.formatDate(deadlineDate, false);
+
+        const theme = store.getState().colorTheme; // 'brown', 'white', 'red', 'blue'
+        const colorStr = this.capitalize(theme);
+
+        link.download = `${orderCode}_${colorStr}_${orderTimeStr}_${deadlineStr}.stl`;
 
         link.click();
         document.body.removeChild(link);

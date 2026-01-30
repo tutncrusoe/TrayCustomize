@@ -34,7 +34,13 @@ export function processLogo(source, themeColor) {
             const colorBrown = { r: 78, g: 52, b: 46 };   // #4E342E
             const colorWhite = { r: 239, g: 235, b: 233 }; // #EFEBE9
 
-            const inkColor = themeColor === 'brown' ? colorWhite : colorBrown;
+            let inkColor;
+            if (themeColor === 'white') {
+                inkColor = colorBrown;
+            } else {
+                // Brown, Red, Blue -> Dark Base -> White Ink
+                inkColor = colorWhite;
+            }
 
             for (let i = 0; i < data.length; i += 4) {
                 const r = data[i];
@@ -81,7 +87,13 @@ export function createTextLogo(text, themeColor) {
 
     const colorBrown = "#4E342E";
     const colorWhite = "#EFEBE9";
-    const inkColor = themeColor === 'brown' ? colorWhite : colorBrown;
+
+    let inkColor;
+    if (themeColor === 'white') {
+        inkColor = colorBrown;
+    } else {
+        inkColor = colorWhite;
+    }
 
     ctx.fillStyle = inkColor;
     ctx.font = "bold 100px 'Plus Jakarta Sans', sans-serif"; // Large font
