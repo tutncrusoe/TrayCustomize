@@ -149,9 +149,6 @@
                 <div class="w-10 h-10 bg-white rounded-2xl flex items-center justify-center shadow-xl"><div class="w-5 h-5 bg-black rotate-45 rounded-sm"></div></div>
                 <div><h1 class="font-bold text-lg leading-none text-white">Parameterized Tray</h1><p class="text-[10px] text-zinc-400 font-medium uppercase tracking-widest mt-1">Smart Editing Mode</p></div>
             </div>
-            <div class="flex gap-3 pointer-events-auto">
-                <button id="export-btn" class="bg-white text-black font-bold px-4 py-2 md:px-6 md:py-3 rounded-2xl text-xs md:text-sm flex items-center gap-2 hover:scale-105 active:scale-95 transition-all shadow-lg hover:bg-zinc-200"><i data-lucide="download" class="w-4 h-4"></i><span class="hidden md:inline">Export STL</span><span class="md:hidden">Export</span></button>
-            </div>
         </header>
 
         <div class="px-4 pb-2 md:hidden pointer-events-auto w-full flex justify-center">
@@ -252,6 +249,11 @@
                             Buy Now
                         </button>
                     </div>
+
+                    <button id="export-btn" class="w-full py-3 bg-zinc-700 hover:bg-zinc-600 text-white rounded-xl font-bold text-sm shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span>Export STL</span>
+                    </button>
 
                     <div class="border border-white/10 rounded-xl p-3 bg-zinc-800/30">
                         <p class="text-[10px] text-zinc-400 text-center">

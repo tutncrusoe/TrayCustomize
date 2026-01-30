@@ -1,11 +1,18 @@
 // src/features/ExportSystem.js
 import { store } from '../core/Store.js';
 
+const ENABLE_EXPORT = true;
+
 export class ExportSystem {
     constructor(sceneManager) {
         this.sceneManager = sceneManager;
         this.btn = document.getElementById('export-btn');
-        this.bindEvents();
+
+        if (!ENABLE_EXPORT) {
+            if (this.btn) this.btn.style.display = 'none';
+        } else {
+            this.bindEvents();
+        }
     }
 
     bindEvents() {
