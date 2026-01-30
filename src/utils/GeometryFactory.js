@@ -237,10 +237,10 @@ export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}, colorTheme 
 
     if (colorTheme === 'white') {
         // Neutral High-Contrast (User Request)
-        // Wall: Neutral White #F5F5F7 (Reduces glare)
-        // Base: Light Grey #E0E0E0 (Distinct but bright)
-        colorBase = 0xE0E0E0;
-        colorWall = 0xF5F5F7;
+        // Wall: Off-White #F8F9FA
+        // Base: Medium Grey #71767C
+        colorBase = 0x71767C;
+        colorWall = 0xF8F9FA;
     } else {
         colorBase = 0x4E342E;
         colorWall = 0x8D6E63;
