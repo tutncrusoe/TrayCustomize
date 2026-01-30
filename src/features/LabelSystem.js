@@ -67,8 +67,6 @@ export class LabelSystem {
     }
 
     updateLabels() {
-        if (store.getState().isEditing) return;
-
         this.dimContainer.innerHTML = '';
         this.dimContainer3D.innerHTML = '';
 
