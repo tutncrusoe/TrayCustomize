@@ -27,6 +27,8 @@ export class SceneManager {
         // Renderer Setup
         this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true });
         this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
         // Camera Setup
         this.camera3D = new THREE.PerspectiveCamera(40, 1, 1, 1000);
@@ -39,15 +41,20 @@ export class SceneManager {
         this.cameraTop.lookAt(0, 0, 0);
 
         // Lighting
-        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.45); // Slightly reduced to deepen shadows
         this.scene.add(ambientLight);
 
-        const spotLight = new THREE.SpotLight(0xfff5e6, 1.0);
+        const spotLight = new THREE.SpotLight(0xfff5e6, 0.8);
         spotLight.position.set(100, 250, 100);
+        spotLight.castShadow = true;
+        spotLight.shadow.mapSize.width = 2048;
+        spotLight.shadow.mapSize.height = 2048;
+        spotLight.shadow.bias = -0.0001;
         this.scene.add(spotLight);
 
-        const dirLight = new THREE.DirectionalLight(0xd4d4d8, 0.4);
+        const dirLight = new THREE.DirectionalLight(0xd4d4d8, 0.5);
         dirLight.position.set(-100, 100, -50);
+        // Optional: castShadow on directional light if needed, but spotlight is main key
         this.scene.add(dirLight);
 
         // Object Group
