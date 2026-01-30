@@ -236,15 +236,25 @@ export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}, colorTheme 
     let colorBase, colorWall;
 
     if (colorTheme === 'white') {
-        colorBase = 0xD7CCC8;
+        // Increased contrast: darker, warmer taupe for base vs bright white wall
+        colorBase = 0xBCAAA4;
         colorWall = 0xFFFFFF;
     } else {
         colorBase = 0x4E342E;
         colorWall = 0x8D6E63;
     }
 
-    const matWall = new THREE.MeshPhongMaterial({ color: colorWall, shininess: 30, specular: 0x111111 });
-    const matBase = new THREE.MeshPhongMaterial({ color: colorBase, shininess: 30, specular: 0x111111 });
+    // Switch to StandardMaterial for PBR (Matte Ceramic look)
+    const matWall = new THREE.MeshStandardMaterial({
+        color: colorWall,
+        roughness: 0.7,
+        metalness: 0.1
+    });
+    const matBase = new THREE.MeshStandardMaterial({
+        color: colorBase,
+        roughness: 0.8,
+        metalness: 0.1
+    });
 
     const thick = 2;
     const outerShape = createRoundedRectShape(l, w, r);
@@ -324,6 +334,8 @@ export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}, colorTheme 
 
     const mesh = new THREE.Mesh(geo, matWall);
     mesh.position.y = -h/2 + h;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
 
     const baseShape = createRoundedRectShape(l, w, r);
     const baseGeo = new THREE.ExtrudeGeometry(baseShape, { depth: 2, bevelEnabled: false, curveSegments: 24 });
@@ -331,6 +343,7 @@ export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}, colorTheme 
 
     const base = new THREE.Mesh(baseGeo, matBase);
     base.position.y = -h/2 + 2;
+    base.receiveShadow = true;
 
     group.add(mesh);
     group.add(base);
