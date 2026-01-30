@@ -174,6 +174,24 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
             newVerts.push({x, z});
         }
 
+        // Validate Area: If the inset polygon is too small or inverted, skip it (effectively filling the room)
+        const getPolyArea = (verts) => {
+            let a = 0;
+            for(let k=0; k<verts.length; k++) {
+                const p1 = verts[k];
+                const p2 = verts[(k+1)%verts.length];
+                a += (p1.x * p2.z - p2.x * p1.z);
+            }
+            return a / 2;
+        };
+        // Original loop area (approx)
+        const origArea = Math.abs(getArea(loop.map(e=>e.u)));
+        const newArea = getPolyArea(newVerts);
+
+        // If new area is very small or sign flipped relative to expectation (though sign depends on direction)
+        // Simple heuristic: If new area is < 1mm^2, it's too tight.
+        if (Math.abs(newArea) < 1) return;
+
         // 4. Draw path with rounded corners
         const isTrayCorner = (p) => {
             return (Math.abs(Math.abs(p.x) - l/2) < 0.1) && (Math.abs(Math.abs(p.z) - w/2) < 0.1);
