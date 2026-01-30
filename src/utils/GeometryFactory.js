@@ -236,9 +236,11 @@ export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}, colorTheme 
     let colorBase, colorWall;
 
     if (colorTheme === 'white') {
-        // Increased contrast: darker, warmer taupe for base vs bright white wall
-        colorBase = 0xBCAAA4;
-        colorWall = 0xFFFFFF;
+        // Neutral High-Contrast (User Request)
+        // Wall: Bright Gray #F5F5F7 (Reduces glare)
+        // Base: Deep Shadow #D2D2D7 (Separates bottom/wall)
+        colorBase = 0xD2D2D7;
+        colorWall = 0xF5F5F7;
     } else {
         colorBase = 0x4E342E;
         colorWall = 0x8D6E63;
