@@ -106,15 +106,25 @@ class App {
             });
         }
 
+        // Wall Thickness
+        const wallInput = document.getElementById('wall-thickness');
+        if (wallInput) {
+            wallInput.addEventListener('input', (e) => {
+                const t = parseFloat(e.target.value);
+                store.setDimensions({ wallThickness: t });
+            });
+        }
+
         // Reset
         document.getElementById('reset-btn')?.addEventListener('click', () => {
-            store.setDimensions({ l: 120, w: 120, h: 40, radius: 8 });
+            store.setDimensions({ l: 120, w: 120, h: 40, radius: 8, wallThickness: 2 });
             store.updateDividers('x', []);
             store.updateDividers('z', []);
             store.setLogo(null);
             store.setColorTheme('brown');
             this.updateActiveColorButton('brown');
             if(radInput) radInput.value = 8;
+            if(wallInput) wallInput.value = 2;
         });
 
         // Logo - Text
@@ -161,16 +171,16 @@ class App {
     }
 
     updatePrice() {
-        const { l, w, h } = store.getState().dimensions;
+        const { l, w, h, wallThickness } = store.getState().dimensions;
         // Volume Calculation
         // Approx: Base + Walls
-        // Base: l * w * 2mm
-        // Walls: (2*l + 2*w) * h * 2mm
+        // Base: l * w * 2mm (Base thickness fixed at 2mm)
+        // Walls: (2*l + 2*w) * h * wallThickness
         // Volume in cm3 = (mm3) / 1000
 
-        const thick = 2;
-        const volBase = l * w * thick;
-        const volWalls = (2 * l + 2 * w) * h * thick;
+        const baseThick = 2;
+        const volBase = l * w * baseThick;
+        const volWalls = (2 * l + 2 * w) * h * wallThickness;
         const totalVolMm3 = volBase + volWalls;
         const totalVolCm3 = totalVolMm3 / 1000;
 
@@ -219,7 +229,7 @@ class App {
 
     updateModel() {
         const state = store.getState();
-        const { l, w, h, radius } = state.dimensions;
+        const { l, w, h, radius, wallThickness } = state.dimensions;
         const { x: dX, z: dZ } = state.dividers;
 
         const minSegX = this.getMinSegmentSize(l, dX);
@@ -231,7 +241,10 @@ class App {
         const radDisplay = document.getElementById('radius-val');
         if(radDisplay) radDisplay.innerText = `${Math.round(effectiveR * 10) / 10}mm`;
 
-        const model = createModel(l, h, w, effectiveR, dX, dZ, state.hiddenSegments, state.colorTheme);
+        const wallDisplay = document.getElementById('wall-thickness-val');
+        if(wallDisplay) wallDisplay.innerText = `${Math.round(wallThickness * 10) / 10}mm`;
+
+        const model = createModel(l, h, w, effectiveR, wallThickness, dX, dZ, state.hiddenSegments, state.colorTheme);
         this.sceneManager.updateMesh(model);
         store.emit('modelRegenerated');
     }
