@@ -237,24 +237,24 @@ export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}, colorTheme 
 
     if (colorTheme === 'white') {
         // Neutral High-Contrast (User Request)
-        // Wall: Bright Gray #F5F5F7 (Reduces glare)
-        // Base: Deep Shadow #D2D2D7 (Separates bottom/wall)
-        colorBase = 0xD2D2D7;
+        // Wall: Neutral White #F5F5F7 (Reduces glare)
+        // Base: Light Grey #E0E0E0 (Distinct but bright)
+        colorBase = 0xE0E0E0;
         colorWall = 0xF5F5F7;
     } else {
         colorBase = 0x4E342E;
         colorWall = 0x8D6E63;
     }
 
-    // Switch to StandardMaterial for PBR (Matte Ceramic look)
+    // Switch to StandardMaterial for PBR (Ceramic look)
     const matWall = new THREE.MeshStandardMaterial({
         color: colorWall,
-        roughness: 0.7,
+        roughness: 0.5,
         metalness: 0.1
     });
     const matBase = new THREE.MeshStandardMaterial({
         color: colorBase,
-        roughness: 0.8,
+        roughness: 0.6,
         metalness: 0.1
     });
 

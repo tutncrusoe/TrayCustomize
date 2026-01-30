@@ -41,12 +41,12 @@ export class SceneManager {
         this.cameraTop.lookAt(0, 0, 0);
 
         // Lighting
-        const ambientLight = new THREE.AmbientLight(0x404040, 0.45); // Slightly reduced to deepen shadows
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.6); // Increased for softer look
         this.scene.add(ambientLight);
 
         const spotLight = new THREE.SpotLight(0xfff5e6, 0.8);
         spotLight.position.set(100, 250, 100);
-        spotLight.castShadow = true;
+        spotLight.castShadow = false; // Disabled to remove harsh black shadows per user feedback
         spotLight.shadow.mapSize.width = 2048;
         spotLight.shadow.mapSize.height = 2048;
         spotLight.shadow.bias = -0.0001;
