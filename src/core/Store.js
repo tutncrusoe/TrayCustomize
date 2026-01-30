@@ -44,6 +44,10 @@ export class Store extends EventBus {
 
     setDimensions(newDims) {
         this.state.dimensions = { ...this.state.dimensions, ...newDims };
+        // Clamp wallThickness
+        if (this.state.dimensions.wallThickness < 2) this.state.dimensions.wallThickness = 2;
+        if (this.state.dimensions.wallThickness > 10) this.state.dimensions.wallThickness = 10;
+
         this.emit('dimensionsChanged', this.state.dimensions);
     }
 

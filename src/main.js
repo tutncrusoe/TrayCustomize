@@ -110,7 +110,9 @@ class App {
         const wallInput = document.getElementById('wall-thickness');
         if (wallInput) {
             wallInput.addEventListener('input', (e) => {
-                const t = parseFloat(e.target.value);
+                let t = parseFloat(e.target.value);
+                if (isNaN(t)) t = 2;
+                t = Math.max(2, Math.min(10, t));
                 store.setDimensions({ wallThickness: t });
             });
         }
