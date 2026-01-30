@@ -241,6 +241,12 @@ export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}, colorTheme 
         // Base: Medium Grey #71767C
         colorBase = 0x71767C;
         colorWall = 0xF8F9FA;
+    } else if (colorTheme === 'red') {
+        colorBase = 0xB71C1C;
+        colorWall = 0xEF5350;
+    } else if (colorTheme === 'blue') {
+        colorBase = 0x0D47A1;
+        colorWall = 0x42A5F5;
     } else {
         colorBase = 0x4E342E;
         colorWall = 0x8D6E63;

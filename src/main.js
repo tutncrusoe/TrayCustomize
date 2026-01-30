@@ -88,6 +88,14 @@ class App {
             store.setColorTheme('white');
             this.updateActiveColorButton('white');
         });
+        document.getElementById('color-red')?.addEventListener('click', () => {
+            store.setColorTheme('red');
+            this.updateActiveColorButton('red');
+        });
+        document.getElementById('color-blue')?.addEventListener('click', () => {
+            store.setColorTheme('blue');
+            this.updateActiveColorButton('blue');
+        });
 
         // Radius
         const radInput = document.getElementById('radius');
@@ -143,8 +151,12 @@ class App {
     }
 
     updateActiveColorButton(theme) {
-        document.querySelectorAll('.active-theme-btn').forEach(b => b.classList.remove('border-white', 'scale-105'));
-        const btn = document.getElementById(theme === 'brown' ? 'color-brown' : 'color-white');
+        ['brown', 'white', 'red', 'blue'].forEach(t => {
+            const btn = document.getElementById(`color-${t}`);
+            if (btn) btn.classList.remove('border-white', 'scale-105');
+        });
+
+        const btn = document.getElementById(`color-${theme}`);
         if(btn) btn.classList.add('border-white');
     }
 
