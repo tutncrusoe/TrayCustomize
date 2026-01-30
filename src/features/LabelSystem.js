@@ -96,11 +96,18 @@ export class LabelSystem {
             const dist = sortedX[i+1] - sortedX[i];
             if(dist < 1) continue;
 
+            const segmentStart = sortedX[i];
+            const segmentEnd = sortedX[i+1];
+
             const cb = (nd) => {
                 const diff = nd - dist;
-                // Logic to shift dividers
-                const newX = [...dX];
-                for(let k=0; k<newX.length; k++) if(newX[k] >= sortedX[i+1] - 0.1) newX[k] += diff;
+                store.setDimensions({ l: l + diff });
+
+                const newX = dX.map(d => {
+                    if (d <= segmentStart + 0.001) return d - diff/2;
+                    if (d >= segmentEnd - 0.001) return d + diff/2;
+                    return d;
+                });
                 store.updateDividers('x', newX);
             };
 
@@ -116,10 +123,18 @@ export class LabelSystem {
             const dist = sortedZ[i+1] - sortedZ[i];
             if(dist < 1) continue;
 
+            const segmentStart = sortedZ[i];
+            const segmentEnd = sortedZ[i+1];
+
             const cb = (nd) => {
                 const diff = nd - dist;
-                const newZ = [...dZ];
-                for(let k=0; k<newZ.length; k++) if(newZ[k] >= sortedZ[i+1] - 0.1) newZ[k] += diff;
+                store.setDimensions({ w: w + diff });
+
+                const newZ = dZ.map(d => {
+                    if (d <= segmentStart + 0.001) return d - diff/2;
+                    if (d >= segmentEnd - 0.001) return d + diff/2;
+                    return d;
+                });
                 store.updateDividers('z', newZ);
             };
 

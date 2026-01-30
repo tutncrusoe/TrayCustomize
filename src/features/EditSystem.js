@@ -58,12 +58,13 @@ export class EditSystem {
     finishEditing() {
         if (!store.getState().isEditing) return;
         const val = parseFloat(this.input.value);
-
-        if (!isNaN(val) && this.currentCallback) {
-            this.currentCallback(val);
-        }
+        const cb = this.currentCallback;
 
         this.cleanup();
+
+        if (!isNaN(val) && cb) {
+            cb(val);
+        }
     }
 
     cancelEditing() {
