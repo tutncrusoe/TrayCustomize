@@ -271,8 +271,39 @@ export class TutorialSystem {
                 this.playDragAnimation(dragTargetZ, 'z');
                 break;
             case 7: // Delete
-                this.positionHint(topView, 'Double click to delete', 'bottom');
-                this.playDeleteAnimation(topView);
+                let deleteTarget = topView;
+                if (this.sceneManager) {
+                    const state = store.getState();
+                    const divsZ = state.dividers.z;
+                    let targetZ = null;
+
+                    if (this.lastAddedDividerZ !== null && divsZ.includes(this.lastAddedDividerZ)) {
+                        targetZ = this.lastAddedDividerZ;
+                    } else if (divsZ.length > 0) {
+                        targetZ = divsZ[divsZ.length - 1];
+                    }
+
+                    if (targetZ !== null) {
+                        const coords = this.sceneManager.getScreenCoordsFromTopWorld(0, targetZ);
+                        deleteTarget = {
+                            getBoundingClientRect: () => ({
+                                left: coords.x - 1,
+                                top: coords.y - 1,
+                                right: coords.x + 1,
+                                bottom: coords.y + 1,
+                                width: 2,
+                                height: 2,
+                                x: coords.x,
+                                y: coords.y
+                            }),
+                            tagName: 'DIV',
+                            id: 'virtual-divider-target-delete',
+                            classList: { contains: () => false }
+                        };
+                    }
+                }
+                this.positionHint(topView, 'Double click to delete', 'bottom-offset');
+                this.playDeleteAnimation(deleteTarget);
                 break;
             default:
                 this.complete();
