@@ -230,7 +230,7 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
     return shape;
 }
 
-export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}, colorTheme = 'brown') {
+export function createModel(l, h, w, r, wallThickness, dX, dZ, hiddenSegments = {}, colorTheme = 'brown') {
     const group = new THREE.Group();
 
     let colorBase, colorWall;
@@ -264,7 +264,7 @@ export function createModel(l, h, w, r, dX, dZ, hiddenSegments = {}, colorTheme 
         metalness: 0.1
     });
 
-    const thick = 2;
+    const thick = wallThickness;
     const outerShape = createRoundedRectShape(l, w, r);
 
     const sortedX = [-l/2, ...[...dX].sort((a,b) => a - b), l/2];

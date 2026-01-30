@@ -8,7 +8,8 @@ export class Store extends EventBus {
                 l: 120,
                 w: 120,
                 h: 40,
-                radius: 8
+                radius: 8,
+                wallThickness: 2
             },
             dividers: {
                 x: [],
