@@ -201,7 +201,7 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
             // Original vertex for corner i corresponds to start of edge (i+1)
             const origV = loop[(idx + 1) % loop.length].u;
             if (isTrayCorner(origV)) {
-                return Math.max(outerR - thick, 4);
+                return Math.max(outerR - thick, 0.1);
             }
             return 4; // Standard radius for internal/wall corners
         };
@@ -283,7 +283,8 @@ export function createModel(l, h, w, r, wallThickness, dX, dZ, hiddenSegments = 
     });
 
     const thick = wallThickness;
-    const outerShape = createRoundedRectShape(l, w, r);
+    const effectiveOuterR = Math.min(r + wallThickness, Math.min(l, w) / 2);
+    const outerShape = createRoundedRectShape(l, w, effectiveOuterR);
 
     const sortedX = [-l/2, ...[...dX].sort((a,b) => a - b), l/2];
     const sortedZ = [-w/2, ...[...dZ].sort((a,b) => a - b), w/2];
@@ -348,7 +349,7 @@ export function createModel(l, h, w, r, wallThickness, dX, dZ, hiddenSegments = 
     const roomShapes = [];
     rooms.forEach(room => {
         // Use traceRoomBoundary for all rooms (handles both rectangles and complex shapes)
-        const holeShape = traceRoomBoundary(room.cells, sortedX, sortedZ, thick, l, w, r);
+        const holeShape = traceRoomBoundary(room.cells, sortedX, sortedZ, thick, l, w, effectiveOuterR);
         if (holeShape) {
             roomShapes.push(holeShape);
             outerShape.holes.push(holeShape);
@@ -363,7 +364,7 @@ export function createModel(l, h, w, r, wallThickness, dX, dZ, hiddenSegments = 
     mesh.castShadow = true;
     mesh.receiveShadow = true;
 
-    const baseShape = createRoundedRectShape(l, w, r);
+    const baseShape = createRoundedRectShape(l, w, effectiveOuterR);
     const baseGeo = new THREE.ExtrudeGeometry(baseShape, { depth: 2, bevelEnabled: false, curveSegments: 24 });
     baseGeo.rotateX(Math.PI / 2);
 
