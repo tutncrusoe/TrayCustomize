@@ -106,6 +106,9 @@ export class SceneManager {
             }
         }
 
+        // Emit event so labels can update positions based on new frustum
+        store.emit('frustumChanged', this.frustumSize);
+
         // Fit 3D View
         const rect3D = this.view3DContainer.getBoundingClientRect();
         if (rect3D.height > 0) {
