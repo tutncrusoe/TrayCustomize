@@ -43,11 +43,23 @@ export class Store extends EventBus {
     }
 
     setDimensions(newDims) {
-        this.state.dimensions = { ...this.state.dimensions, ...newDims };
-        // Clamp wallThickness
-        if (this.state.dimensions.wallThickness < 2) this.state.dimensions.wallThickness = 2;
-        if (this.state.dimensions.wallThickness > 10) this.state.dimensions.wallThickness = 10;
+        const nextDims = { ...this.state.dimensions, ...newDims };
 
+        // Clamp wallThickness
+        if (nextDims.wallThickness < 2) nextDims.wallThickness = 2;
+        if (nextDims.wallThickness > 10) nextDims.wallThickness = 10;
+
+        // Calculate dynamic minimum based on wall thickness
+        // Ensure at least 10mm overall, and enough space for walls + 1mm hole
+        const minDim = Math.max(10, (nextDims.wallThickness * 2) + 1);
+        const maxDim = 280;
+
+        // Clamp Dimensions
+        nextDims.l = Math.max(minDim, Math.min(maxDim, nextDims.l));
+        nextDims.w = Math.max(minDim, Math.min(maxDim, nextDims.w));
+        nextDims.h = Math.max(minDim, Math.min(maxDim, nextDims.h));
+
+        this.state.dimensions = nextDims;
         this.emit('dimensionsChanged', this.state.dimensions);
     }
 
