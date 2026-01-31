@@ -159,6 +159,7 @@ export class LabelSystem {
                         return d;
                     });
                     store.updateDividers('x', newX);
+                    store.emit('dimensionsCommitted');
                 };
 
                 const el = this.createEditableLabel(Math.round(dist), cb);
@@ -186,6 +187,7 @@ export class LabelSystem {
                         return d;
                     });
                     store.updateDividers('z', newZ);
+                    store.emit('dimensionsCommitted');
                 };
 
                 const el = this.createEditableLabel(Math.round(dist), cb);
