@@ -16,6 +16,9 @@ export class LabelSystem {
         store.on('dimensionsChanged', () => this.updateLabels());
         store.on('dividersChanged', () => this.updateLabels());
 
+        // Listen for frustum changes to update label positions (Auto-Zoom fix)
+        store.on('frustumChanged', () => this.updateLabels());
+
         // Listen to frame update for positioning
         // SceneManager emits this every frame
         store.on('update3DOverlay', ({ camera, rect }) => {
@@ -102,6 +105,8 @@ export class LabelSystem {
         const rect = document.getElementById('view-top-placeholder').getBoundingClientRect();
 
         // Check if update is needed to avoid jitter from DOM recreation
+        // Include frustumSize in check
+        const frustum = this.sceneManager.frustumSize;
         if (this.lastState) {
             const s = this.lastState;
             const dimsMatch = Math.abs(s.l - l) < 0.01 &&
@@ -117,7 +122,9 @@ export class LabelSystem {
             const divZMatch = s.dZ.length === dZ.length &&
                               s.dZ.every((v, i) => Math.abs(v - dZ[i]) < 0.01);
 
-            if (dimsMatch && rectMatch && divXMatch && divZMatch) return;
+            const frustumMatch = Math.abs(s.frustum - frustum) < 0.01;
+
+            if (dimsMatch && rectMatch && divXMatch && divZMatch && frustumMatch) return;
         }
 
         this.lastState = {
@@ -125,7 +132,8 @@ export class LabelSystem {
             rectW: rect.width,
             rectH: rect.height,
             dX: [...dX],
-            dZ: [...dZ]
+            dZ: [...dZ],
+            frustum
         };
 
         this.dimContainer.innerHTML = '';
