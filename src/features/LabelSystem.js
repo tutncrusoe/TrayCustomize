@@ -8,7 +8,7 @@ export class LabelSystem {
         this.dimContainer3D = document.getElementById('dim-container-3d'); // 3D View
 
         this.bindEvents();
-        this.updateLabels();
+        this.updateVisibility();
     }
 
     bindEvents() {
@@ -20,6 +20,34 @@ export class LabelSystem {
         store.on('update3DOverlay', ({ camera, rect }) => {
             this.update3DPositions(camera, rect);
         });
+
+        store.on('mobileViewChanged', () => {
+            setTimeout(() => this.updateVisibility(), 0);
+        });
+
+        window.addEventListener('resize', () => {
+            setTimeout(() => this.updateVisibility(), 0);
+        });
+    }
+
+    updateVisibility() {
+        const isMobile = window.innerWidth < 768;
+        const mobileView = store.getState().mobileView;
+
+        if (!isMobile) {
+            this.dimContainer.style.display = 'block';
+            this.dimContainer3D.style.display = 'block';
+        } else {
+            if (mobileView === '3d') {
+                this.dimContainer.style.display = 'none';
+                this.dimContainer3D.style.display = 'block';
+            } else {
+                this.dimContainer.style.display = 'block';
+                this.dimContainer3D.style.display = 'none';
+            }
+        }
+
+        this.updateLabels();
     }
 
     createEditableLabel(text, cb, worldPos3D = null) {
