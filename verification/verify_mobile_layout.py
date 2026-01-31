@@ -1,40 +1,42 @@
-from playwright.sync_api import sync_playwright
+import re
+from playwright.sync_api import sync_playwright, expect
 
-def verify_mobile_layout():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        # iPhone X viewport
-        page = browser.new_page(viewport={"width": 375, "height": 812}, device_scale_factor=3)
+def run(playwright):
+    browser = playwright.chromium.launch(headless=True)
+    # Emulate iPhone 12 Pro (390x844)
+    device = playwright.devices['iPhone 12 Pro']
+    context = browser.new_context(**device)
+    page = context.new_page()
 
-        page.goto("http://localhost:8000")
+    print("Navigating to app...")
+    page.goto("http://localhost:8000")
 
-        # Wait for app to load (checking for 3D View placeholder)
-        page.wait_for_selector("#view-3d-placeholder")
+    # Wait for the app to load
+    print("Waiting for canvas...")
+    page.wait_for_selector("#main-canvas")
 
-        # Wait a bit for 3D rendering (though capturing exact 3D content isn't critical, layout is)
-        page.wait_for_timeout(2000)
+    # Wait for 3D view wrapper
+    print("Waiting for 3D wrapper...")
+    page.wait_for_selector("#view-3d-wrapper")
 
-        # Screenshot Top (View + Toggle)
-        page.screenshot(path="verification/mobile_top.png")
+    # Verify Color Buttons are circular
+    print("Verifying UI elements...")
+    brown_btn = page.locator("#color-brown")
+    expect(brown_btn).to_have_class(re.compile(r"rounded-full"))
+    expect(brown_btn).to_have_class(re.compile(r"w-12"))
+    expect(brown_btn).to_have_class(re.compile(r"h-12"))
 
-        # Scroll down to see Controls
-        page.evaluate("window.scrollBy(0, 500)")
-        page.wait_for_timeout(500)
+    # Verify Action Buttons
+    export_btn = page.locator("#export-btn")
+    expect(export_btn).to_be_visible()
 
-        # Screenshot Bottom (Controls)
-        page.screenshot(path="verification/mobile_bottom.png")
+    # Take Screenshot of initial state
+    print("Taking screenshot...")
+    page.screenshot(path="verification/mobile_layout.png")
 
-        # Screenshot full page? Playwright full_page might work if body scrolls
-        # But we made a div scrollable. "body" has overflow hidden.
-        # We need to target the scrollable div.
-        # The scrollable div is the one with class "overflow-y-auto"
-        # We can find it by class or structure.
-        scrollable_div = page.locator(".overflow-y-auto").first
-
-        # Take screenshot of the scrollable container (if possible, but scrolling manually is safer for "what user sees")
-
-        print("Screenshots taken.")
-        browser.close()
+    browser.close()
+    print("Done.")
 
 if __name__ == "__main__":
-    verify_mobile_layout()
+    with sync_playwright() as playwright:
+        run(playwright)
