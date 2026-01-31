@@ -67,12 +67,12 @@ export class SceneManager {
     }
 
     bindEvents() {
-        // Listen to Store changes if needed for global scene settings
-        // For now, specific geometry updates will be handled by main.js or a separate controller
-        // calling methods on SceneManager, but decoupling suggests listening to store.
-
-        // We will listen for resize events
-        // window.addEventListener('resize', ...) // We can handle this in the animate loop like the original code did
+        // Refit camera when mobile view changes (view visibility changes)
+        store.on('mobileViewChanged', () => {
+            setTimeout(() => {
+                this.autoFitCamera();
+            }, 50);
+        });
     }
 
     updateMesh(mesh) {
