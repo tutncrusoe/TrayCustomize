@@ -143,7 +143,7 @@
     </div>
 
     <input type="number" id="global-dim-input" aria-label="Global Dimension Editor" />
-    <div class="absolute inset-0 z-10 flex flex-col pointer-events-none">
+    <div class="absolute inset-0 z-10 flex flex-col pointer-events-auto overflow-y-auto overflow-x-hidden md:overflow-hidden">
         <header class="w-full p-4 md:p-6 flex justify-between items-center pointer-events-none">
             <div class="flex items-center gap-3 pointer-events-auto">
                 <div class="w-10 h-10 bg-white rounded-2xl flex items-center justify-center shadow-xl"><div class="w-5 h-5 bg-black rotate-45 rounded-sm"></div></div>
@@ -151,28 +151,30 @@
             </div>
         </header>
 
-        <div class="px-4 pb-2 md:hidden pointer-events-auto w-full flex justify-center">
-            <div class="bg-zinc-800/80 backdrop-blur-md p-1 rounded-xl flex gap-1 border border-white/10 shadow-lg">
-                <button id="tab-3d" class="px-6 py-2 rounded-lg text-xs font-bold transition-all bg-zinc-600 text-white shadow-sm">3D View</button>
-                <button id="tab-top" class="px-6 py-2 rounded-lg text-xs font-bold transition-all text-zinc-400 hover:text-white">Top View</button>
-            </div>
-        </div>
+        <main id="viewports-container" class="shrink-0 md:flex-1 flex flex-col md:flex-row relative p-4 gap-4 md:p-8 md:gap-8 md:mr-[20%]">
 
-        <main id="viewports-container" class="flex-1 flex flex-col md:flex-row relative p-4 gap-4 md:p-8 md:gap-8 md:mr-[20%]">
-            <div id="view-3d-wrapper" class="flex-1 md:flex-1 flex flex-col min-h-0">
+            <div class="absolute top-6 right-6 z-40 md:hidden pointer-events-auto">
+                <div class="bg-zinc-800/80 backdrop-blur-md p-1 rounded-xl flex gap-1 border border-white/10 shadow-lg">
+                    <button id="tab-3d" class="px-6 py-2 rounded-lg text-xs font-bold transition-all bg-zinc-600 text-white shadow-sm">3D View</button>
+                    <button id="tab-top" class="px-6 py-2 rounded-lg text-xs font-bold transition-all text-zinc-400 hover:text-white">Top View</button>
+                </div>
+            </div>
+
+            <div id="view-3d-wrapper" class="h-[55vh] md:h-auto md:flex-1 flex flex-col min-h-0">
                 <h2 class="text-white font-bold mb-3 text-sm ml-1 hidden md:block">3D View</h2>
                 <div id="view-3d-placeholder" class="viewport-placeholder pointer-events-auto cursor-grab active:cursor-grabbing flex-1 rounded-3xl border border-white/10 bg-zinc-800/50 shadow-2xl relative"></div>
             </div>
-            <div id="view-top-wrapper" class="flex-1 md:flex-1 flex flex-col min-h-0 hidden md:flex">
+            <div id="view-top-wrapper" class="h-[55vh] md:h-auto md:flex-1 flex flex-col min-h-0 hidden md:flex">
                 <h2 class="text-white font-bold mb-3 text-sm ml-1 hidden md:block">Top View</h2>
-                <div id="view-top-placeholder" class="viewport-placeholder pointer-events-auto flex-1 rounded-3xl border border-white/10 bg-zinc-800/50 shadow-2xl relative"></div>
+                <div id="view-top-placeholder" class="viewport-placeholder pointer-events-auto touch-action-none flex-1 rounded-3xl border border-white/10 bg-zinc-800/50 shadow-2xl relative"></div>
             </div>
         </main>
 
-        <aside class="fixed z-50 bg-[#1e1e1e] border-t md:border-t-0 md:border-l border-white/10 flex flex-col
-                      w-full h-auto bottom-0 right-0 md:top-0 md:w-1/5 md:h-full
+        <aside class="relative z-50 bg-[#1e1e1e] border-t md:border-t-0 md:border-l border-white/10 flex flex-col
+                      w-full h-auto rounded-3xl mt-4 md:mt-0 md:rounded-none
+                      md:fixed md:top-0 md:right-0 md:w-1/5 md:h-full
                       overflow-y-auto overflow-x-hidden transition-all duration-300 pointer-events-auto
-                      shadow-2xl md:shadow-none">
+                      shadow-2xl md:shadow-none shrink-0">
 
             <div class="p-4 md:p-6 flex flex-col gap-6">
                 <!-- Color Selection -->
