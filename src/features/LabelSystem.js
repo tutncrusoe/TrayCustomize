@@ -6,6 +6,7 @@ export class LabelSystem {
         this.sceneManager = sceneManager;
         this.dimContainer = document.getElementById('dim-container'); // Top View
         this.dimContainer3D = document.getElementById('dim-container-3d'); // 3D View
+        this.lastState = null;
 
         this.bindEvents();
         this.updateVisibility();
@@ -95,15 +96,42 @@ export class LabelSystem {
     }
 
     updateLabels() {
-        this.dimContainer.innerHTML = '';
-        this.dimContainer3D.innerHTML = '';
-
         const state = store.getState();
         const { l, w, h } = state.dimensions;
         const { x: dX, z: dZ } = state.dividers;
+        const rect = document.getElementById('view-top-placeholder').getBoundingClientRect();
+
+        // Check if update is needed to avoid jitter from DOM recreation
+        if (this.lastState) {
+            const s = this.lastState;
+            const dimsMatch = Math.abs(s.l - l) < 0.01 &&
+                              Math.abs(s.w - w) < 0.01 &&
+                              Math.abs(s.h - h) < 0.01;
+
+            const rectMatch = Math.abs(s.rectW - rect.width) < 0.1 &&
+                              Math.abs(s.rectH - rect.height) < 0.1;
+
+            const divXMatch = s.dX.length === dX.length &&
+                              s.dX.every((v, i) => Math.abs(v - dX[i]) < 0.01);
+
+            const divZMatch = s.dZ.length === dZ.length &&
+                              s.dZ.every((v, i) => Math.abs(v - dZ[i]) < 0.01);
+
+            if (dimsMatch && rectMatch && divXMatch && divZMatch) return;
+        }
+
+        this.lastState = {
+            l, w, h,
+            rectW: rect.width,
+            rectH: rect.height,
+            dX: [...dX],
+            dZ: [...dZ]
+        };
+
+        this.dimContainer.innerHTML = '';
+        this.dimContainer3D.innerHTML = '';
 
         // --- Top View Labels ---
-        const rect = document.getElementById('view-top-placeholder').getBoundingClientRect();
 
         // Only generate Top View labels if visible
         if (rect.width > 0) {
