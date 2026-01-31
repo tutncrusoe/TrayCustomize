@@ -55,6 +55,7 @@ class App {
         store.on('dimensionsChanged', () => {
             this.updateModel();
             this.updatePrice();
+            this.sceneManager.checkAutoZoom();
         });
         store.on('dividersChanged', () => this.updateModel());
         store.on('hiddenSegmentsChanged', () => this.updateModel());
