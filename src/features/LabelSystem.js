@@ -75,72 +75,69 @@ export class LabelSystem {
         const { x: dX, z: dZ } = state.dividers;
 
         // --- Top View Labels ---
-        // We need SceneManager's frustum/rect to calculate position?
-        // Or we can rely on `sceneManager.getTopWorldCoords` inverse?
-        // Original code used `rect` from `viewTop`.
         const rect = document.getElementById('view-top-placeholder').getBoundingClientRect();
-        if (rect.width === 0) return; // Hidden
 
-        const aspect = rect.width / rect.height;
-        // Need Frustum Size. SceneManager has it.
-        // We can access it via sceneManager instance since we passed it in.
-        const frustum = this.sceneManager.frustumSize;
+        // Only generate Top View labels if visible
+        if (rect.width > 0) {
+            const aspect = rect.width / rect.height;
+            const frustum = this.sceneManager.frustumSize;
 
-        const w2pX = (wx) => rect.left + rect.width/2 + (wx / (frustum * aspect / 2)) * (rect.width/2);
-        const w2pZ = (wz) => rect.top + rect.height/2 + (wz / (frustum / 2)) * (rect.height/2);
+            const w2pX = (wx) => rect.left + rect.width/2 + (wx / (frustum * aspect / 2)) * (rect.width/2);
+            const w2pZ = (wz) => rect.top + rect.height/2 + (wz / (frustum / 2)) * (rect.height/2);
 
-        const sortedX = [-l/2, ...[...dX].sort((a,b) => a-b), l/2];
-        for(let i=0; i < sortedX.length - 1; i++) {
-            const dist = sortedX[i+1] - sortedX[i];
-            if(dist < 1) continue;
+            const sortedX = [-l/2, ...[...dX].sort((a,b) => a-b), l/2];
+            for(let i=0; i < sortedX.length - 1; i++) {
+                const dist = sortedX[i+1] - sortedX[i];
+                if(dist < 1) continue;
 
-            const segmentStart = sortedX[i];
-            const segmentEnd = sortedX[i+1];
+                const segmentStart = sortedX[i];
+                const segmentEnd = sortedX[i+1];
 
-            const cb = (nd) => {
-                const diff = nd - dist;
-                store.setDimensions({ l: l + diff });
+                const cb = (nd) => {
+                    const diff = nd - dist;
+                    store.setDimensions({ l: l + diff });
 
-                const newX = dX.map(d => {
-                    if (d <= segmentStart + 0.001) return d - diff/2;
-                    if (d >= segmentEnd - 0.001) return d + diff/2;
-                    return d;
-                });
-                store.updateDividers('x', newX);
-            };
+                    const newX = dX.map(d => {
+                        if (d <= segmentStart + 0.001) return d - diff/2;
+                        if (d >= segmentEnd - 0.001) return d + diff/2;
+                        return d;
+                    });
+                    store.updateDividers('x', newX);
+                };
 
-            const el = this.createEditableLabel(Math.round(dist), cb);
-            el.style.left = `${w2pX((sortedX[i] + sortedX[i+1]) / 2)}px`;
-            el.style.top = `${w2pZ(-w/2) - 25}px`;
-            el.style.transform = 'translateX(-50%)';
-            this.dimContainer.appendChild(el);
-        }
+                const el = this.createEditableLabel(Math.round(dist), cb);
+                el.style.left = `${w2pX((sortedX[i] + sortedX[i+1]) / 2)}px`;
+                el.style.top = `${w2pZ(-w/2) - 25}px`;
+                el.style.transform = 'translateX(-50%)';
+                this.dimContainer.appendChild(el);
+            }
 
-        const sortedZ = [-w/2, ...[...dZ].sort((a,b) => a-b), w/2];
-        for(let i=0; i < sortedZ.length - 1; i++) {
-            const dist = sortedZ[i+1] - sortedZ[i];
-            if(dist < 1) continue;
+            const sortedZ = [-w/2, ...[...dZ].sort((a,b) => a-b), w/2];
+            for(let i=0; i < sortedZ.length - 1; i++) {
+                const dist = sortedZ[i+1] - sortedZ[i];
+                if(dist < 1) continue;
 
-            const segmentStart = sortedZ[i];
-            const segmentEnd = sortedZ[i+1];
+                const segmentStart = sortedZ[i];
+                const segmentEnd = sortedZ[i+1];
 
-            const cb = (nd) => {
-                const diff = nd - dist;
-                store.setDimensions({ w: w + diff });
+                const cb = (nd) => {
+                    const diff = nd - dist;
+                    store.setDimensions({ w: w + diff });
 
-                const newZ = dZ.map(d => {
-                    if (d <= segmentStart + 0.001) return d - diff/2;
-                    if (d >= segmentEnd - 0.001) return d + diff/2;
-                    return d;
-                });
-                store.updateDividers('z', newZ);
-            };
+                    const newZ = dZ.map(d => {
+                        if (d <= segmentStart + 0.001) return d - diff/2;
+                        if (d >= segmentEnd - 0.001) return d + diff/2;
+                        return d;
+                    });
+                    store.updateDividers('z', newZ);
+                };
 
-            const el = this.createEditableLabel(Math.round(dist), cb);
-            el.style.left = `${w2pX(-l/2) - 35}px`;
-            el.style.top = `${w2pZ((sortedZ[i] + sortedZ[i+1]) / 2)}px`;
-            el.style.transform = 'translateY(-50%)';
-            this.dimContainer.appendChild(el);
+                const el = this.createEditableLabel(Math.round(dist), cb);
+                el.style.left = `${w2pX(-l/2) - 35}px`;
+                el.style.top = `${w2pZ((sortedZ[i] + sortedZ[i+1]) / 2)}px`;
+                el.style.transform = 'translateY(-50%)';
+                this.dimContainer.appendChild(el);
+            }
         }
 
         // --- 3D View Labels ---
