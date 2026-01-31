@@ -140,19 +140,24 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
         // Use Shape for outer, Path for holes
         const path = isOuter ? shape : new THREE.Path();
 
-        // 3. Inset polygon by thick/2
+        // 3. Inset polygon by thick/2 (or thick if outer boundary)
         const shiftedLines = loop.map(e => {
             let sx = e.u.x, sz = e.u.z, ex = e.v.x, ez = e.v.z;
-            const half = thick / 2;
+            const EPS = 0.001;
+            let inset = thick / 2;
 
             if (e.type === 'top') {
-                sz += half; ez += half;
+                if (Math.abs(e.u.z - (-w/2)) < EPS) inset = thick;
+                sz += inset; ez += inset;
             } else if (e.type === 'right') {
-                sx -= half; ex -= half;
+                if (Math.abs(e.u.x - (l/2)) < EPS) inset = thick;
+                sx -= inset; ex -= inset;
             } else if (e.type === 'bottom') {
-                sz -= half; ez -= half;
+                if (Math.abs(e.u.z - (w/2)) < EPS) inset = thick;
+                sz -= inset; ez -= inset;
             } else if (e.type === 'left') {
-                sx += half; ex += half;
+                if (Math.abs(e.u.x - (-l/2)) < EPS) inset = thick;
+                sx += inset; ex += inset;
             }
             return {p1: {x: sx, z: sz}, p2: {x: ex, z: ez}, type: e.type};
         });

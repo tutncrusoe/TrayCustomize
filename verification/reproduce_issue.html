@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <div id="result">Running...</div>
+    <script type="module">
+        import { createModel } from '../src/utils/GeometryFactory.js';
+
+        window.runGeometryTest = () => {
+            const l = 100;
+            const w = 100;
+            const h = 20;
+            const r = 5; // small radius to ensure we have straight sections
+            const thick = 10;
+            const dX = [];
+            const dZ = [];
+
+            // createModel returns a Group
+            const group = createModel(l, h, w, r, thick, dX, dZ, {}, 'brown');
+            const wallMesh = group.children[0];
+            const geo = wallMesh.geometry;
+            const pos = geo.attributes.position;
+
+            const uniqueX = new Set();
+            for (let i = 0; i < pos.count; i++) {
+                const x = pos.getX(i);
+                // Round to precision to avoid float noise
+                const xr = Math.round(x * 100) / 100;
+                uniqueX.add(xr);
+            }
+
+            const sortedX = Array.from(uniqueX).sort((a,b) => a - b);
+
+            // Filter relevant X values (flat walls).
+            // We expect values around 50 (outer) and 40/45 (inner).
+            // Let's just return the ones > 30 to keep it clean.
+            return sortedX.filter(v => Math.abs(v) > 30);
+        }
+    </script>
+</body>
+</html>
