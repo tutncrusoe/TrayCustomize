@@ -45,9 +45,12 @@ export class EditSystem {
 
         // Mobile viewport lock
         if (window.innerWidth < 768) {
-            const h = window.innerHeight + 'px';
-            document.body.style.height = h;
-            document.documentElement.style.height = h;
+            // Only lock if not already locked to prevent capturing compressed height during switches
+            if (!document.body.style.height) {
+                const h = window.innerHeight + 'px';
+                document.body.style.height = h;
+                document.documentElement.style.height = h;
+            }
             // Canvas resize lock handled by store.isEditing check in resize listeners if implemented
         }
 
