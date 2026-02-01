@@ -264,6 +264,39 @@ class App {
 }
 
 window.addEventListener('load', () => {
+    // Mobile Viewport Height Lock Logic
+    // Prevents interface jump when keyboard opens by setting a fixed pixel height on body
+    const fixMobileHeight = () => {
+        if (window.innerWidth < 768) {
+            // Only set height if not already set or if width changed (orientation change)
+            // We store the 'locked' width to detect true orientation changes vs keyboard resizes
+            const currentWidth = window.innerWidth;
+            const lastWidth = parseFloat(document.body.dataset.lastWidth || 0);
+
+            if (Math.abs(currentWidth - lastWidth) > 50) {
+                const h = window.innerHeight;
+                document.body.style.height = `${h}px`;
+                document.body.style.overflow = 'hidden'; // Ensure no scrolling on body
+                document.documentElement.style.height = `${h}px`;
+                document.documentElement.style.overflow = 'hidden';
+                document.body.dataset.lastWidth = currentWidth;
+            }
+        } else {
+             // Reset on desktop
+             document.body.style.height = '';
+             document.documentElement.style.height = '';
+             document.body.style.overflow = '';
+             document.documentElement.style.overflow = '';
+             delete document.body.dataset.lastWidth;
+        }
+    };
+
+    fixMobileHeight();
+    window.addEventListener('resize', () => {
+        // Debounce slightly to wait for layout settle? No, immediate is usually fine.
+        fixMobileHeight();
+    });
+
     window.app = new App();
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();

@@ -39,19 +39,18 @@ export class EditSystem {
         this.current3DPos = worldPos3D;
 
         this.input.style.display = 'block';
-        this.input.style.left = `${x}px`;
-        this.input.style.top = `${y}px`;
         this.input.value = val;
 
-        // Mobile viewport lock
         if (window.innerWidth < 768) {
-            // Only lock if not already locked to prevent capturing compressed height during switches
-            if (!document.body.style.height) {
-                const h = window.innerHeight + 'px';
-                document.body.style.height = h;
-                document.documentElement.style.height = h;
-            }
-            // Canvas resize lock handled by store.isEditing check in resize listeners if implemented
+            // Mobile: Position input at top center to avoid keyboard occlusion and viewport jumping
+            // We ignore the passed x, y to ensure the input is always in the safe zone
+            this.input.style.left = '50%';
+            this.input.style.top = '15%'; // Safe zone near top
+            // Note: Global height locking is now handled in main.js, so we don't need to lock here.
+        } else {
+            // Desktop: Position at click target
+            this.input.style.left = `${x}px`;
+            this.input.style.top = `${y}px`;
         }
 
         this.input.focus();
@@ -85,6 +84,7 @@ export class EditSystem {
     }
 
     updatePosition(camera, rect3D) {
+        if (window.innerWidth < 768) return; // Mobile: Input is fixed at top, do not update with 3D projection
         if (!store.getState().isEditing || !this.current3DPos) return;
         if (rect3D.width === 0 || rect3D.height === 0) return;
 
