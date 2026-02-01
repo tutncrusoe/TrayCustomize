@@ -41,17 +41,9 @@ export class EditSystem {
         this.input.style.display = 'block';
         this.input.value = val;
 
-        if (window.innerWidth < 768) {
-            // Mobile: Position input at top center to avoid keyboard occlusion and viewport jumping
-            // We ignore the passed x, y to ensure the input is always in the safe zone
-            this.input.style.left = '50%';
-            this.input.style.top = '15%'; // Safe zone near top
-            // Note: Global height locking is now handled in main.js, so we don't need to lock here.
-        } else {
-            // Desktop: Position at click target
-            this.input.style.left = `${x}px`;
-            this.input.style.top = `${y}px`;
-        }
+        // Position at click target (or initial 3D projection)
+        this.input.style.left = `${x}px`;
+        this.input.style.top = `${y}px`;
 
         this.input.focus();
         this.input.select();
@@ -78,13 +70,9 @@ export class EditSystem {
         this.current3DPos = null;
         this.input.style.display = 'none';
         this.currentCallback = null;
-
-        document.body.style.height = '';
-        document.documentElement.style.height = '';
     }
 
     updatePosition(camera, rect3D) {
-        if (window.innerWidth < 768) return; // Mobile: Input is fixed at top, do not update with 3D projection
         if (!store.getState().isEditing || !this.current3DPos) return;
         if (rect3D.width === 0 || rect3D.height === 0) return;
 
