@@ -100,15 +100,9 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
         if (loop.length > 2) loops.push(loop);
     });
 
-    const shape = new THREE.Shape();
-    if (loops.length === 0) return shape;
+    if (loops.length === 0) return new THREE.Shape();
 
-    // Calculate signed area to identify outer loop vs holes
-    // Area > 0 : Counter-Clockwise (Standard for Shape in 2D usually? Wait, checking Three.js)
-    // Three.js ShapeUtils.area(): positive if CCW (Y up).
-    // Our Z is "down" on screen in 2D sense if we map Z->Y.
-    // Let's rely on absolute area. Largest area is Outer.
-
+    // 3. Identify Outer Loop vs Holes based on Area
     // Convert loops to polygons (vertices) to calc area
     const polygons = loops.map(loop => {
         return loop.map(e => e.u);
@@ -135,12 +129,11 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
         }
     });
 
-    loops.forEach((loop, loopIdx) => {
+    // 4. Process Vertices for all loops (Inset + Radius Calc)
+    const processedLoops = loops.map((loop, loopIdx) => {
         const isOuter = (loopIdx === outerIdx);
-        // Use Shape for outer, Path for holes
-        const path = isOuter ? shape : new THREE.Path();
 
-        // 3. Inset polygon by thick/2 (or thick if outer boundary)
+        // Inset polygon by thick/2 (or thick if outer boundary)
         const shiftedLines = loop.map(e => {
             let sx = e.u.x, sz = e.u.z, ex = e.v.x, ez = e.v.z;
             const EPS = 0.001;
@@ -179,7 +172,7 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
             newVerts.push({x, z});
         }
 
-        // Validate Area: If the inset polygon is too small or inverted, skip it (effectively filling the room)
+        // Validate Area
         const getPolyArea = (verts) => {
             let a = 0;
             for(let k=0; k<verts.length; k++) {
@@ -189,15 +182,10 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
             }
             return a / 2;
         };
-        // Original loop area (approx)
-        const origArea = Math.abs(getArea(loop.map(e=>e.u)));
-        const newArea = getPolyArea(newVerts);
 
-        // If new area is very small or sign flipped relative to expectation (though sign depends on direction)
-        // Simple heuristic: If new area is < 1mm^2, it's too tight.
-        if (Math.abs(newArea) < 1) return;
+        if (Math.abs(getPolyArea(newVerts)) < 1) return null; // Skip invalid loops
 
-        // 4. Draw path with rounded corners
+        // Radius Logic
         const isTrayCorner = (p) => {
             return (Math.abs(Math.abs(p.x) - l/2) < 0.1) && (Math.abs(Math.abs(p.z) - w/2) < 0.1);
         };
@@ -211,44 +199,149 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
             return 4; // Standard radius for internal/wall corners
         };
 
-        const len = newVerts.length;
-        for (let i = 0; i < len; i++) {
-            const curr = newVerts[i];
-            const prev = newVerts[(i - 1 + len) % len];
-            const next = newVerts[(i + 1) % len];
+        const vertices = newVerts.map((v, i) => {
+            return { x: v.x, z: v.z, r: getRadius(i) };
+        });
 
-            const r = getRadius(i);
+        return { vertices, isOuter };
+    }).filter(l => l !== null);
 
-            const dPrev = Math.sqrt((curr.x - prev.x)**2 + (curr.z - prev.z)**2);
-            const dNext = Math.sqrt((curr.x - next.x)**2 + (curr.z - next.z)**2);
-            const effR = Math.min(r, dPrev/2, dNext/2);
+    const outerLoopData = processedLoops.find(l => l.isOuter);
+    // If no valid outer loop, return empty shape
+    if (!outerLoopData) return new THREE.Shape();
 
-            // Vector to prev
-            const vPrev = {x: prev.x - curr.x, z: prev.z - curr.z};
-            const magPrev = Math.sqrt(vPrev.x**2 + vPrev.z**2);
-            vPrev.x /= magPrev; vPrev.z /= magPrev;
+    const innerLoopsData = processedLoops.filter(l => !l.isOuter);
 
-            // Vector to next
-            const vNext = {x: next.x - curr.x, z: next.z - curr.z};
-            const magNext = Math.sqrt(vNext.x**2 + vNext.z**2);
-            vNext.x /= magNext; vNext.z /= magNext;
+    // 5. Merge Inner Loops (Islands) into Outer Loop via Bridge
+    let mergedVertices = [...outerLoopData.vertices];
 
-            const start = {x: curr.x + vPrev.x * effR, z: curr.z + vPrev.z * effR};
-            const end = {x: curr.x + vNext.x * effR, z: curr.z + vNext.z * effR};
+    innerLoopsData.forEach(inner => {
+        if (inner.vertices.length === 0) return;
 
-            if (i === 0) {
-                path.moveTo(start.x, start.z);
-            } else {
-                path.lineTo(start.x, start.z);
+        // Find best bridge: Inner Vertex with Min X
+        let innerCand = inner.vertices[0];
+        let innerCandIdx = 0;
+        inner.vertices.forEach((v, i) => {
+            if (v.x < innerCand.x) {
+                innerCand = v;
+                innerCandIdx = i;
+            }
+        });
+
+        // Ray Cast -X from innerCand.
+        // Find intersection with mergedVertices edges
+        let bestHitX = -Infinity;
+        let bestEdgeIdx = -1;
+        let bestHitP = null;
+
+        for (let i = 0; i < mergedVertices.length; i++) {
+            const v1 = mergedVertices[i];
+            const v2 = mergedVertices[(i + 1) % mergedVertices.length];
+
+            // Edge checks (must span z)
+            const minZ = Math.min(v1.z, v2.z);
+            const maxZ = Math.max(v1.z, v2.z);
+
+            // Strict inequality for at least one side to avoid double counting,
+            // but since we look for max X, we just need valid intersections.
+            // Using logic: v1.z <= z < v2.z or v2.z <= z < v1.z
+
+            if ((v1.z <= innerCand.z && innerCand.z < v2.z) || (v2.z <= innerCand.z && innerCand.z < v1.z)) {
+                // Compute X intersection
+                // avoid div by zero if vertical (handled by span check?)
+                // if horizontal (z equal), span check fails (minZ=maxZ). So horizontal ignored. Correct.
+
+                const t = (innerCand.z - v1.z) / (v2.z - v1.z);
+                const ix = v1.x + t * (v2.x - v1.x);
+
+                // Must be to the left of innerCand (or equal)
+                if (ix <= innerCand.x + 0.001) {
+                    if (ix > bestHitX) {
+                        bestHitX = ix;
+                        bestEdgeIdx = i;
+                        bestHitP = { x: ix, z: innerCand.z };
+                    }
+                }
+            }
+        }
+
+        if (bestEdgeIdx !== -1) {
+            // Reorder inner vertices to start at innerCand
+            const orderedInner = [];
+            for(let k=0; k<inner.vertices.length; k++) {
+                orderedInner.push(inner.vertices[(innerCandIdx + k) % inner.vertices.length]);
             }
 
-            path.quadraticCurveTo(curr.x, curr.z, end.x, end.z);
-        }
+            // Bridge Points (Radius 0)
+            const bridgeOut = { ...bestHitP, r: 0 };
+            const bridgeIn = { ...innerCand, r: 0 };
 
-        if (!isOuter) {
-            shape.holes.push(path);
+            // Also enforce radius 0 for the start/end of the inner loop sequence involved in the bridge
+            orderedInner[0] = { ...orderedInner[0], r: 0 };
+
+            // Construct Insertion Sequence
+            // Outer... -> v1 -> bridgeOut -> bridgeIn -> Inner... -> bridgeIn -> bridgeOut -> v2 ...
+            const insertion = [
+                bridgeOut,
+                bridgeIn,
+                ...orderedInner.slice(1), // innerCand (bridgeIn) is already added
+                { ...orderedInner[0], r: 0 }, // Add it again to close loop
+                bridgeIn, // Return to bridge start (redundant if orderedInner closed loop? No, bridgeIn is the link)
+                // Wait. Path: bridgeOut -> bridgeIn -> (Loop) -> bridgeIn -> bridgeOut
+                // orderedInner starts at bridgeIn.
+                // so: bridgeOut, orderedInner[0] (bridgeIn), orderedInner[1...], orderedInner[0] (bridgeIn), bridgeOut
+
+                bridgeOut
+            ];
+
+            // Correction: orderedInner[0] is bridgeIn.
+            // So: bridgeOut, orderedInner[0], ..., orderedInner[last], orderedInner[0], bridgeOut.
+
+            const seq = [ bridgeOut, ...orderedInner, { ...orderedInner[0], r:0 }, bridgeOut ];
+
+            mergedVertices.splice(bestEdgeIdx + 1, 0, ...seq);
         }
     });
+
+    // 6. Draw Merged Path
+    const shape = new THREE.Shape();
+    const finalVerts = mergedVertices;
+    const len = finalVerts.length;
+
+    if (len < 3) return shape;
+
+    for (let i = 0; i < len; i++) {
+        const curr = finalVerts[i];
+        const prev = finalVerts[(i - 1 + len) % len];
+        const next = finalVerts[(i + 1) % len];
+
+        const r = curr.r;
+
+        const dPrev = Math.sqrt((curr.x - prev.x)**2 + (curr.z - prev.z)**2);
+        const dNext = Math.sqrt((curr.x - next.x)**2 + (curr.z - next.z)**2);
+        const effR = Math.min(r, dPrev/2, dNext/2);
+
+        // Vector to prev
+        const vPrev = {x: prev.x - curr.x, z: prev.z - curr.z};
+        const magPrev = Math.sqrt(vPrev.x**2 + vPrev.z**2);
+        if (magPrev < 0.0001) { vPrev.x = 0; vPrev.z = 0; } else { vPrev.x /= magPrev; vPrev.z /= magPrev; }
+
+        // Vector to next
+        const vNext = {x: next.x - curr.x, z: next.z - curr.z};
+        const magNext = Math.sqrt(vNext.x**2 + vNext.z**2);
+        if (magNext < 0.0001) { vNext.x = 0; vNext.z = 0; } else { vNext.x /= magNext; vNext.z /= magNext; }
+
+        const start = {x: curr.x + vPrev.x * effR, z: curr.z + vPrev.z * effR};
+        const end = {x: curr.x + vNext.x * effR, z: curr.z + vNext.z * effR};
+
+        if (i === 0) {
+            shape.moveTo(start.x, start.z);
+        } else {
+            shape.lineTo(start.x, start.z);
+        }
+
+        shape.quadraticCurveTo(curr.x, curr.z, end.x, end.z);
+    }
 
     return shape;
 }
