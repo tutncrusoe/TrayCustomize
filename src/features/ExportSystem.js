@@ -65,9 +65,9 @@ export class ExportSystem {
         const exporter = new THREE.STLExporter();
         const boxGroup = this.sceneManager.boxGroup;
 
-        // Rotate -90 degrees around X axis for export (Clockwise)
+        // Rotate -270 degrees around X axis for export (Clockwise + 180 flip)
         const currentRotX = boxGroup.rotation.x;
-        boxGroup.rotation.x -= Math.PI / 2;
+        boxGroup.rotation.x -= (Math.PI / 2 + Math.PI);
         boxGroup.updateMatrixWorld();
 
         const result = exporter.parse(boxGroup, { binary: true });
