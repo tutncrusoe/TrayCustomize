@@ -372,18 +372,18 @@ export function createModel(l, h, w, r, wallThickness, dX, dZ, hiddenSegments = 
     // Assign Voids to Solids
     voids.forEach(v => {
         // Find best solid: smallest area that fully contains the void
-        // Approximation: Use Center Point of Void
-        const cx = (v.bounds.minX + v.bounds.maxX) / 2;
-        const cz = (v.bounds.minZ + v.bounds.maxZ) / 2;
+        // Check containment using Bounding Boxes
+        // Allow small tolerance EPS
+        const EPS = 0.1;
 
         let bestSolid = null;
         let minArea = Infinity;
 
         solids.forEach(s => {
-            // Check containment
-            if (cx >= s.bounds.minX && cx <= s.bounds.maxX &&
-                cz >= s.bounds.minZ && cz <= s.bounds.maxZ) {
+            const containsX = (v.bounds.minX >= s.bounds.minX - EPS) && (v.bounds.maxX <= s.bounds.maxX + EPS);
+            const containsZ = (v.bounds.minZ >= s.bounds.minZ - EPS) && (v.bounds.maxZ <= s.bounds.maxZ + EPS);
 
+            if (containsX && containsZ) {
                 const w = s.bounds.maxX - s.bounds.minX;
                 const h = s.bounds.maxZ - s.bounds.minZ;
                 const area = w * h;
