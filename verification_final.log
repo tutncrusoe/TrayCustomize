@@ -1,0 +1,14 @@
+Browser Console: cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation
+Browser Console: [GroupMarkerNotSet(crbug.com/242999)!:A0501800DC0C0000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.
+Browser Console: [.WebGL-0x314400145e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+Browser Console: [.WebGL-0x314400145e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+Browser Console: [.WebGL-0x314400145e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+Setting up initial 3x3 grid...
+Browser Console: [.WebGL-0x314400145e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+Saved step_0_grid.png
+Step 1: Hiding X_0_0 (Top edge (left))...
+Saved verification/step_1.png
+Step 2: Hiding X_1_0 (Top edge (right))...
+Saved verification/step_2.png
+Step 3: Hiding Z_0_2 (Right edge (top))...
+Saved verification/step_3.png
