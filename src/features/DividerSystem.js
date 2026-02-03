@@ -336,14 +336,27 @@ export class DividerSystem {
                     if(!hidden[`X_${i}_${j}`]) { allHidden = false; break; }
                 }
                 if(allHidden) {
-                    const val = dX[i];
-                    const sortedX = [...dX].sort((a,b)=>a-b);
-                    const spatialIdx = sortedX.indexOf(val);
+                    // Check if removing this divider merges segments with different visibility
+                    let canRemove = true;
+                    for(let k=0; k<dZ.length; k++) {
+                        const before = hidden[`Z_${k}_${i}`];
+                        const after = hidden[`Z_${k}_${i+1}`];
+                        if (!!before !== !!after) {
+                            canRemove = false;
+                            break;
+                        }
+                    }
 
-                    dX.splice(i, 1);
-                    hidden = updateHiddenMap('X', i, spatialIdx);
-                    changed = true;
-                    break;
+                    if (canRemove) {
+                        const val = dX[i];
+                        const sortedX = [...dX].sort((a,b)=>a-b);
+                        const spatialIdx = sortedX.indexOf(val);
+
+                        dX.splice(i, 1);
+                        hidden = updateHiddenMap('X', i, spatialIdx);
+                        changed = true;
+                        break;
+                    }
                 }
             }
             if(changed) continue;
@@ -355,14 +368,27 @@ export class DividerSystem {
                     if(!hidden[`Z_${i}_${j}`]) { allHidden = false; break; }
                 }
                 if(allHidden) {
-                    const val = dZ[i];
-                    const sortedZ = [...dZ].sort((a,b)=>a-b);
-                    const spatialIdx = sortedZ.indexOf(val);
+                    // Check if removing this divider merges segments with different visibility
+                    let canRemove = true;
+                    for(let k=0; k<dX.length; k++) {
+                        const before = hidden[`X_${k}_${i}`];
+                        const after = hidden[`X_${k}_${i+1}`];
+                        if (!!before !== !!after) {
+                            canRemove = false;
+                            break;
+                        }
+                    }
 
-                    dZ.splice(i, 1);
-                    hidden = updateHiddenMap('Z', i, spatialIdx);
-                    changed = true;
-                    break;
+                    if (canRemove) {
+                        const val = dZ[i];
+                        const sortedZ = [...dZ].sort((a,b)=>a-b);
+                        const spatialIdx = sortedZ.indexOf(val);
+
+                        dZ.splice(i, 1);
+                        hidden = updateHiddenMap('Z', i, spatialIdx);
+                        changed = true;
+                        break;
+                    }
                 }
             }
         }
