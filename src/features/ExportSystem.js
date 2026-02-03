@@ -65,15 +65,15 @@ export class ExportSystem {
         const exporter = new THREE.STLExporter();
         const boxGroup = this.sceneManager.boxGroup;
 
-        // Reset rotation for export
-        const currentRotation = boxGroup.rotation.y;
-        boxGroup.rotation.y = 0;
+        // Rotate -90 degrees around X axis for export (Clockwise)
+        const currentRotX = boxGroup.rotation.x;
+        boxGroup.rotation.x -= Math.PI / 2;
         boxGroup.updateMatrixWorld();
 
         const result = exporter.parse(boxGroup, { binary: true });
 
         // Restore rotation
-        boxGroup.rotation.y = currentRotation;
+        boxGroup.rotation.x = currentRotX;
         boxGroup.updateMatrixWorld();
 
         const blob = new Blob([result], { type: 'application/octet-stream' });
