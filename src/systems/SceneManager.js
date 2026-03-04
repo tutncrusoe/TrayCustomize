@@ -92,7 +92,15 @@ export class SceneManager {
         const labelPadding = 60; // Padding for labels
 
         // Fit Top View
-        const rectTop = this.viewTopContainer.getBoundingClientRect();
+        let rectTop = this.viewTopContainer.getBoundingClientRect();
+
+        // On mobile (tab=3D), top view is hidden → height=0.
+        // Fall back to the 3D container's rect so we can still calculate a valid frustum.
+        const rectFallback = this.view3DContainer.getBoundingClientRect();
+        if (rectTop.height === 0 && rectFallback.height > 0) {
+            rectTop = rectFallback;
+        }
+
         if (rectTop.height > 0) {
             const aspect = rectTop.width / rectTop.height;
             this.frustumSize = Math.max(w + labelPadding, (l + labelPadding) / aspect) * 1.4;
