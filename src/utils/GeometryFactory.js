@@ -1,4 +1,3 @@
-// src/utils/GeometryFactory.js
 
 export function createRoundedRectShape(w, h, r) {
     const ctx = new THREE.Shape();
@@ -17,6 +16,48 @@ export function createRoundedRectShape(w, h, r) {
     ctx.quadraticCurveTo(x, y, x + radius, y);
 
     return ctx;
+}
+
+// Helper to convert processed vertices to a Shape (with rounded corners)
+function verticesToShape(vertices) {
+    const shape = new THREE.Shape();
+    const len = vertices.length;
+
+    if (len < 3) return shape;
+
+    for (let i = 0; i < len; i++) {
+        const curr = vertices[i];
+        const prev = vertices[(i - 1 + len) % len];
+        const next = vertices[(i + 1) % len];
+
+        const r = curr.r;
+
+        const dPrev = Math.sqrt((curr.x - prev.x)**2 + (curr.z - prev.z)**2);
+        const dNext = Math.sqrt((curr.x - next.x)**2 + (curr.z - next.z)**2);
+        const effR = Math.min(r, dPrev/2, dNext/2);
+
+        // Vector to prev
+        const vPrev = {x: prev.x - curr.x, z: prev.z - curr.z};
+        const magPrev = Math.sqrt(vPrev.x**2 + vPrev.z**2);
+        if (magPrev < 0.0001) { vPrev.x = 0; vPrev.z = 0; } else { vPrev.x /= magPrev; vPrev.z /= magPrev; }
+
+        // Vector to next
+        const vNext = {x: next.x - curr.x, z: next.z - curr.z};
+        const magNext = Math.sqrt(vNext.x**2 + vNext.z**2);
+        if (magNext < 0.0001) { vNext.x = 0; vNext.z = 0; } else { vNext.x /= magNext; vNext.z /= magNext; }
+
+        const start = {x: curr.x + vPrev.x * effR, z: curr.z + vPrev.z * effR};
+        const end = {x: curr.x + vNext.x * effR, z: curr.z + vNext.z * effR};
+
+        if (i === 0) {
+            shape.moveTo(start.x, start.z);
+        } else {
+            shape.lineTo(start.x, start.z);
+        }
+
+        shape.quadraticCurveTo(curr.x, curr.z, end.x, end.z);
+    }
+    return shape;
 }
 
 function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
@@ -61,7 +102,7 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
         }
     });
 
-    // Filter out zero-length edges (caused by duplicate dividers)
+    // Filter out zero-length edges
     const validEdges = edges.filter(e => {
         const dist = Math.abs(e.u.x - e.v.x) + Math.abs(e.u.z - e.v.z);
         return dist > 0.0001;
@@ -72,7 +113,6 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
     // 2. Chain edges into loops
     const key = (p) => `${p.x.toFixed(4)},${p.z.toFixed(4)}`;
     const edgeMap = new Map();
-    // Assuming simple polygons (no vertex shared by >2 edges), we can map start point -> edge
     validEdges.forEach(e => edgeMap.set(key(e.u), e));
 
     const loops = [];
@@ -87,33 +127,20 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
             usedEdges.add(curr);
             loop.push(curr);
 
-            // Next edge starts where current ends
             const nextKey = key(curr.v);
             const next = edgeMap.get(nextKey);
-
-            if (!next) break; // Should not happen for closed loop
-            if (next === startEdge) break; // Loop closed
-            if (usedEdges.has(next)) break; // Merged into existing loop (shouldn't happen with startEdge check)
-
+            if (!next) break;
+            if (next === startEdge) break;
+            if (usedEdges.has(next)) break;
             curr = next;
         }
         if (loop.length > 2) loops.push(loop);
     });
 
-    const shape = new THREE.Shape();
-    if (loops.length === 0) return shape;
+    if (loops.length === 0) return null;
 
-    // Calculate signed area to identify outer loop vs holes
-    // Area > 0 : Counter-Clockwise (Standard for Shape in 2D usually? Wait, checking Three.js)
-    // Three.js ShapeUtils.area(): positive if CCW (Y up).
-    // Our Z is "down" on screen in 2D sense if we map Z->Y.
-    // Let's rely on absolute area. Largest area is Outer.
-
-    // Convert loops to polygons (vertices) to calc area
-    const polygons = loops.map(loop => {
-        return loop.map(e => e.u);
-    });
-
+    // 3. Identify Outer Loop vs Holes based on Area
+    const polygons = loops.map(loop => loop.map(e => e.u));
     const getArea = (poly) => {
         let area = 0;
         for (let i = 0; i < poly.length; i++) {
@@ -125,7 +152,6 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
     };
 
     const areas = polygons.map(p => getArea(p));
-    // Find largest absolute area
     let maxArea = -1;
     let outerIdx = -1;
     areas.forEach((a, i) => {
@@ -135,34 +161,35 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
         }
     });
 
-    loops.forEach((loop, loopIdx) => {
+    // 4. Process Vertices (Inset + Radius)
+    const processedLoops = loops.map((loop, loopIdx) => {
         const isOuter = (loopIdx === outerIdx);
-        // Use Shape for outer, Path for holes
-        const path = isOuter ? shape : new THREE.Path();
 
-        // 3. Inset polygon by thick/2
         const shiftedLines = loop.map(e => {
             let sx = e.u.x, sz = e.u.z, ex = e.v.x, ez = e.v.z;
-            const half = thick / 2;
+            const EPS = 0.001;
+            let inset = thick / 2;
 
             if (e.type === 'top') {
-                sz += half; ez += half;
+                if (Math.abs(e.u.z - (-w/2)) < EPS) inset = thick;
+                sz += inset; ez += inset;
             } else if (e.type === 'right') {
-                sx -= half; ex -= half;
+                if (Math.abs(e.u.x - (l/2)) < EPS) inset = thick;
+                sx -= inset; ex -= inset;
             } else if (e.type === 'bottom') {
-                sz -= half; ez -= half;
+                if (Math.abs(e.u.z - (w/2)) < EPS) inset = thick;
+                sz -= inset; ez -= inset;
             } else if (e.type === 'left') {
-                sx += half; ex += half;
+                if (Math.abs(e.u.x - (-l/2)) < EPS) inset = thick;
+                sx += inset; ex += inset;
             }
             return {p1: {x: sx, z: sz}, p2: {x: ex, z: ez}, type: e.type};
         });
 
-        // Reconstruct vertices from intersections
         const newVerts = [];
         for (let i = 0; i < shiftedLines.length; i++) {
             const l1 = shiftedLines[i];
             const l2 = shiftedLines[(i + 1) % shiftedLines.length];
-
             let x, z;
             if (l1.type === 'top' || l1.type === 'bottom') {
                 z = l1.p1.z;
@@ -174,7 +201,6 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
             newVerts.push({x, z});
         }
 
-        // Validate Area: If the inset polygon is too small or inverted, skip it (effectively filling the room)
         const getPolyArea = (verts) => {
             let a = 0;
             for(let k=0; k<verts.length; k++) {
@@ -184,68 +210,50 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
             }
             return a / 2;
         };
-        // Original loop area (approx)
-        const origArea = Math.abs(getArea(loop.map(e=>e.u)));
-        const newArea = getPolyArea(newVerts);
 
-        // If new area is very small or sign flipped relative to expectation (though sign depends on direction)
-        // Simple heuristic: If new area is < 1mm^2, it's too tight.
-        if (Math.abs(newArea) < 1) return;
+        if (Math.abs(getPolyArea(newVerts)) < 1) return null;
 
-        // 4. Draw path with rounded corners
         const isTrayCorner = (p) => {
             return (Math.abs(Math.abs(p.x) - l/2) < 0.1) && (Math.abs(Math.abs(p.z) - w/2) < 0.1);
         };
 
         const getRadius = (idx) => {
-            // Original vertex for corner i corresponds to start of edge (i+1)
             const origV = loop[(idx + 1) % loop.length].u;
             if (isTrayCorner(origV)) {
                 return Math.max(outerR - thick, 0.1);
             }
-            return 4; // Standard radius for internal/wall corners
+            return 4;
         };
 
-        const len = newVerts.length;
-        for (let i = 0; i < len; i++) {
-            const curr = newVerts[i];
-            const prev = newVerts[(i - 1 + len) % len];
-            const next = newVerts[(i + 1) % len];
+        const vertices = newVerts.map((v, i) => {
+            return { x: v.x, z: v.z, r: getRadius(i) };
+        });
 
-            const r = getRadius(i);
+        // Calculate Bounding Box
+        let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+        vertices.forEach(v => {
+            if (v.x < minX) minX = v.x;
+            if (v.x > maxX) maxX = v.x;
+            if (v.z < minZ) minZ = v.z;
+            if (v.z > maxZ) maxZ = v.z;
+        });
 
-            const dPrev = Math.sqrt((curr.x - prev.x)**2 + (curr.z - prev.z)**2);
-            const dNext = Math.sqrt((curr.x - next.x)**2 + (curr.z - next.z)**2);
-            const effR = Math.min(r, dPrev/2, dNext/2);
+        // Convert to Shape
+        const shape = verticesToShape(vertices);
 
-            // Vector to prev
-            const vPrev = {x: prev.x - curr.x, z: prev.z - curr.z};
-            const magPrev = Math.sqrt(vPrev.x**2 + vPrev.z**2);
-            vPrev.x /= magPrev; vPrev.z /= magPrev;
+        return { shape, vertices, isOuter, bounds: { minX, maxX, minZ, maxZ } };
+    }).filter(l => l !== null);
 
-            // Vector to next
-            const vNext = {x: next.x - curr.x, z: next.z - curr.z};
-            const magNext = Math.sqrt(vNext.x**2 + vNext.z**2);
-            vNext.x /= magNext; vNext.z /= magNext;
+    const outerLoopData = processedLoops.find(l => l.isOuter);
+    if (!outerLoopData) return null;
 
-            const start = {x: curr.x + vPrev.x * effR, z: curr.z + vPrev.z * effR};
-            const end = {x: curr.x + vNext.x * effR, z: curr.z + vNext.z * effR};
+    const innerLoopsData = processedLoops.filter(l => !l.isOuter);
 
-            if (i === 0) {
-                path.moveTo(start.x, start.z);
-            } else {
-                path.lineTo(start.x, start.z);
-            }
-
-            path.quadraticCurveTo(curr.x, curr.z, end.x, end.z);
-        }
-
-        if (!isOuter) {
-            shape.holes.push(path);
-        }
-    });
-
-    return shape;
+    return {
+        shape: outerLoopData.shape,
+        bounds: outerLoopData.bounds,
+        islands: innerLoopsData.map(l => ({ shape: l.shape, bounds: l.bounds }))
+    };
 }
 
 export function createModel(l, h, w, r, wallThickness, dX, dZ, hiddenSegments = {}, colorTheme = 'brown') {
@@ -254,9 +262,6 @@ export function createModel(l, h, w, r, wallThickness, dX, dZ, hiddenSegments = 
     let colorBase, colorWall;
 
     if (colorTheme === 'white') {
-        // Neutral High-Contrast (User Request)
-        // Wall: Off-White #F8F9FA
-        // Base: Medium Grey #71767C
         colorBase = 0x71767C;
         colorWall = 0xF8F9FA;
     } else if (colorTheme === 'red') {
@@ -270,7 +275,6 @@ export function createModel(l, h, w, r, wallThickness, dX, dZ, hiddenSegments = 
         colorWall = 0x8D6E63;
     }
 
-    // Switch to StandardMaterial for PBR (Ceramic look)
     const matWall = new THREE.MeshStandardMaterial({
         color: colorWall,
         roughness: 0.5,
@@ -284,7 +288,12 @@ export function createModel(l, h, w, r, wallThickness, dX, dZ, hiddenSegments = 
 
     const thick = wallThickness;
     const effectiveOuterR = Math.min(r + wallThickness, Math.min(l, w) / 2);
+
+    // Base Tray Shape (Main Solid)
     const outerShape = createRoundedRectShape(l, w, effectiveOuterR);
+
+    const solids = [ { shape: outerShape, bounds: { minX: -l/2, maxX: l/2, minZ: -w/2, maxZ: w/2 } } ];
+    const voids = [];
 
     const sortedX = [-l/2, ...[...dX].sort((a,b) => a - b), l/2];
     const sortedZ = [-w/2, ...[...dZ].sort((a,b) => a - b), w/2];
@@ -292,6 +301,7 @@ export function createModel(l, h, w, r, wallThickness, dX, dZ, hiddenSegments = 
     const rooms = [];
     const getCellId = (i, j) => `${i},${j}`;
 
+    // Room Detection
     for(let i=0; i<sortedX.length-1; i++) {
         for(let j=0; j<sortedZ.length-1; j++) {
             if(visited.has(getCellId(i,j))) continue;
@@ -342,27 +352,65 @@ export function createModel(l, h, w, r, wallThickness, dX, dZ, hiddenSegments = 
                     }
                 });
             }
-            rooms.push({cells: roomCells, bounds: {minI, maxI, minJ, maxJ}});
+            rooms.push({cells: roomCells});
         }
     }
 
-    const roomShapes = [];
+    // Process Rooms
     rooms.forEach(room => {
-        // Use traceRoomBoundary for all rooms (handles both rectangles and complex shapes)
-        const holeShape = traceRoomBoundary(room.cells, sortedX, sortedZ, thick, l, w, effectiveOuterR);
-        if (holeShape) {
-            roomShapes.push(holeShape);
-            outerShape.holes.push(holeShape);
+        const res = traceRoomBoundary(room.cells, sortedX, sortedZ, thick, l, w, effectiveOuterR);
+        if (res) {
+            voids.push({ shape: res.shape, bounds: res.bounds });
+            if (res.islands) {
+                res.islands.forEach(island => {
+                    solids.push({ shape: island.shape, bounds: island.bounds });
+                });
+            }
         }
     });
 
-    const geo = new THREE.ExtrudeGeometry(outerShape, { depth: h, bevelEnabled: false, curveSegments: 24 });
-    geo.rotateX(Math.PI / 2);
+    // Assign Voids to Solids
+    voids.forEach(v => {
+        // Find best solid: smallest area that fully contains the void
+        // Check containment using Bounding Boxes
+        // Allow small tolerance EPS
+        const EPS = 0.1;
 
-    const mesh = new THREE.Mesh(geo, matWall);
-    mesh.position.y = -h/2 + h;
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
+        let bestSolid = null;
+        let minArea = Infinity;
+
+        solids.forEach(s => {
+            const containsX = (v.bounds.minX >= s.bounds.minX - EPS) && (v.bounds.maxX <= s.bounds.maxX + EPS);
+            const containsZ = (v.bounds.minZ >= s.bounds.minZ - EPS) && (v.bounds.maxZ <= s.bounds.maxZ + EPS);
+
+            if (containsX && containsZ) {
+                const w = s.bounds.maxX - s.bounds.minX;
+                const h = s.bounds.maxZ - s.bounds.minZ;
+                const area = w * h;
+
+                if (area < minArea) {
+                    minArea = area;
+                    bestSolid = s;
+                }
+            }
+        });
+
+        if (bestSolid) {
+            bestSolid.shape.holes.push(v.shape);
+        }
+    });
+
+    // Generate Geometry
+    solids.forEach((s, idx) => {
+        const geo = new THREE.ExtrudeGeometry(s.shape, { depth: h, bevelEnabled: false, curveSegments: 24 });
+        geo.rotateX(Math.PI / 2);
+
+        const mesh = new THREE.Mesh(geo, matWall);
+        mesh.position.y = -h/2 + h;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        group.add(mesh);
+    });
 
     const baseShape = createRoundedRectShape(l, w, effectiveOuterR);
     const baseGeo = new THREE.ExtrudeGeometry(baseShape, { depth: 2, bevelEnabled: false, curveSegments: 24 });
@@ -372,7 +420,6 @@ export function createModel(l, h, w, r, wallThickness, dX, dZ, hiddenSegments = 
     base.position.y = -h/2 + 2;
     base.receiveShadow = true;
 
-    group.add(mesh);
     group.add(base);
 
     return group;

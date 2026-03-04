@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-visual">
     <title>Parameterized Tray - Pro Segment Designer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -53,7 +53,7 @@
         .ghost-cursor { position: absolute; width: 32px; height: 32px; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 10002; transform-origin: 0 0; }
         .ghost-cursor svg { filter: drop-shadow(0 0 5px #fff) drop-shadow(0 0 10px #fff); }
 
-        .ghost-divider { position: absolute; background: rgba(59, 130, 246, 0.5); pointer-events: none; opacity: 0; z-index: 9998; border-radius: 2px; }
+        .ghost-divider { position: absolute; background: rgba(59, 130, 246, 0.6); pointer-events: none; opacity: 0; z-index: 9998; border-radius: 2px; box-shadow: 0 0 8px rgba(59, 130, 246, 0.8); transition: opacity 0.3s; }
         .cursor-trail { position: absolute; width: 4px; background: rgba(59, 130, 246, 0.6); border-radius: 2px; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 9998; box-shadow: 0 0 8px rgba(59, 130, 246, 0.8); }
 
         @keyframes cursor-scan-h {
@@ -64,9 +64,14 @@
             100% { opacity: 0; transform: translate(0, -75px); }
         }
         @keyframes cursor-wiggle-y {
-            0%, 100% { transform: translateY(0); }
-            25% { transform: translateY(-40px); }
-            75% { transform: translateY(40px); }
+            0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+            25% { transform: translate(-50%, -50%) translateY(-40px); }
+            75% { transform: translate(-50%, -50%) translateY(40px); }
+        }
+        @keyframes cursor-wiggle-x {
+            0%, 100% { transform: translate(-50%, -50%) translateX(0); }
+            25% { transform: translate(-50%, -50%) translateX(-40px); }
+            75% { transform: translate(-50%, -50%) translateX(40px); }
         }
         @keyframes cursor-scan-v {
             0% { opacity: 0; transform: translate(0, 0); }
@@ -154,7 +159,7 @@
             </div>
         </header>
 
-        <main id="viewports-container" class="w-full h-[45vh] shrink-0 md:h-auto md:flex-1 flex flex-col md:flex-row relative p-0 md:p-8 gap-0 md:gap-8 md:mr-[20%]">
+        <main id="viewports-container" class="w-full md:w-4/5 h-[45%] shrink-0 md:h-auto md:flex-1 flex flex-col md:flex-row relative p-0 md:p-8 gap-0 md:gap-8">
 
             <div class="absolute top-4 right-4 z-40 md:hidden pointer-events-auto">
                 <div class="bg-zinc-800/90 backdrop-blur-md p-1 rounded-xl flex gap-1 border border-white/10 shadow-lg scale-[0.8]">
@@ -174,7 +179,7 @@
         </main>
 
         <aside class="relative z-50 bg-[#1e1e1e] border-t md:border-t-0 md:border-l border-white/10 flex flex-col
-                      w-full flex-1 rounded-t-3xl md:rounded-none
+                      w-full flex-1 md:rounded-t-3xl md:rounded-none
                       md:fixed md:top-0 md:right-0 md:w-1/5 md:h-full
                       overflow-hidden transition-all duration-300 pointer-events-auto
                       shadow-[0_-4px_30px_rgba(0,0,0,0.6)] md:shadow-none shrink-0">
