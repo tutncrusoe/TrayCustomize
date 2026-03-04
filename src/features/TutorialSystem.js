@@ -137,6 +137,7 @@ export class TutorialSystem {
         document.body.classList.remove('tutorial-active');
         if (this.skipBtn) this.skipBtn.innerText = "Tutorial";
         if (this.overlay) this.overlay.style.pointerEvents = 'none';
+        store.emit('tutorialCompleted');
     }
 
     advance() {
@@ -146,6 +147,7 @@ export class TutorialSystem {
     showStep(stepIndex) {
         if (!this.isActive) return;
         this.step = stepIndex;
+        store.setTutorialStep(stepIndex);
 
         // Reset animations
         if (this.cursor) {
@@ -276,7 +278,7 @@ export class TutorialSystem {
                         };
                     }
                 }
-                this.positionHint(dragTargetZ, 'Drag to move divider', 'right');
+                this.positionHint(dragTargetZ, 'Drag to move divider', 'bottom');
                 this.playDragAnimation(dragTargetZ, 'z');
                 break;
             case 7: // Delete
@@ -330,17 +332,33 @@ export class TutorialSystem {
             top = rect.bottom + 10;
             left = rect.left + rect.width/2 - 50;
             this.arrow.style.opacity = 0;
-        } else if (target.id.startsWith('label-3d-')) {
+        } else if (target.id && (target.id.startsWith('label-3d-') || target.id.startsWith('dim-'))) {
             top = rect.top + rect.height/2 - 50;
             left = rect.left + rect.width/2 - 50;
             this.arrow.style.opacity = 0;
         } else {
             if (side === 'right-offset') {
                 top = rect.top + rect.height / 2 - 50;
-                left = rect.right - 110;
+                let wallX = rect.right; // fallback
+                if (this.sceneManager) {
+                    const { l } = store.getState().dimensions;
+                    // Right wall world coordinate is l/2
+                    const coords = this.sceneManager.getScreenCoordsFromTopWorld(l / 2, 0);
+                    wallX = coords.x;
+                }
+                left = wallX + 20; // 20px from right edge of the 3D tray
                 this.arrow.style.opacity = 0;
             } else if (side === 'bottom-offset') {
                 top = rect.bottom - 90;
+                let wallY = rect.bottom; // fallback
+                if (this.sceneManager) {
+                    const { w } = store.getState().dimensions;
+                    // Bottom wall world coordinate is currently Top View's -w/2, 
+                    // or let's check coordinate logic: getScreenCoordsFromTopWorld(0, w/2)
+                    const coords = this.sceneManager.getScreenCoordsFromTopWorld(0, w / 2);
+                    wallY = coords.y;
+                }
+                top = wallY + 20;
                 left = rect.left + rect.width / 2 - 70;
                 arrowRot = 270;
                 this.arrow.style.opacity = 0;
@@ -366,18 +384,28 @@ export class TutorialSystem {
         // Hide arrow specifically for Drag steps (5 & 6) as we rely on the Hand Cursor
         if (text === 'Drag to move divider') {
              this.arrow.style.opacity = 0;
-             // Adjust bubble position for horizontal line drag (Step 6)
-             if (side === 'right') {
-                  // Center vertically on the line
-                  top = rect.top - 20;
-                  // Place to the right
-                  left = rect.right + 40;
-             }
+             // No specific 'right' offset needed anymore since Drag Z now uses 'bottom'
         }
 
         // Bounds
-        if (left + 140 > window.innerWidth) left = window.innerWidth - 160;
-        if (left < 0) left = 10;
+        if (target.id && (target.id.startsWith('label-3d-') || target.id.startsWith('dim-'))) {
+            // Allow going negative slightly to keep center alignment with edge labels
+            if (left < -30) left = -30;
+        } else {
+            if (left < 10) left = 10;
+        }
+        
+        // Remove strict right bound limitation because it prevents manual right offset
+        if (side !== 'right-offset' && left + 140 > window.innerWidth) {
+            left = window.innerWidth - 160;
+        }
+
+        // Apply scale down on mobile screens
+        if (window.innerWidth < 768) {
+            this.blob.style.transform = 'scale(0.8)';
+        } else {
+            this.blob.style.transform = '';
+        }
 
         this.blob.style.top = `${top}px`;
         this.blob.style.left = `${left}px`;
@@ -394,7 +422,14 @@ export class TutorialSystem {
         const rect = target.getBoundingClientRect();
 
         if (edge === 'right-edge-outer') {
-            const cursorX = rect.right - 130;
+            let wallX = rect.right; // fallback
+            if (this.sceneManager) {
+                const { l } = store.getState().dimensions;
+                // Right wall world coordinate is l/2
+                const coords = this.sceneManager.getScreenCoordsFromTopWorld(l / 2, 0);
+                wallX = coords.x;
+            }
+            const cursorX = wallX + 5; // 5px from right wall
             const cursorYStart = rect.top + rect.height/2;
             this.cursor.style.left = `${cursorX}px`;
             this.cursor.style.top = `${cursorYStart}px`;
@@ -405,8 +440,15 @@ export class TutorialSystem {
             this.cursorTrail.style.height = '150px';
             this.cursorTrail.style.width = '4px';
         } else if (edge === 'bottom-edge-outer') {
+            let wallY = rect.bottom; // fallback
+            if (this.sceneManager) {
+                const { w } = store.getState().dimensions;
+                // Bottom wall world coordinate is w/2
+                const coords = this.sceneManager.getScreenCoordsFromTopWorld(0, w / 2);
+                wallY = coords.y;
+            }
             const cursorX = rect.left + rect.width/2 - 75;
-            const cursorY = rect.bottom - 130;
+            const cursorY = wallY + 5; // 5px below bottom wall
             this.cursor.style.left = `${cursorX}px`;
             this.cursor.style.top = `${cursorY}px`;
 
@@ -428,6 +470,7 @@ export class TutorialSystem {
 
         this.cursor.style.left = `${startX}px`;
         this.cursor.style.top = `${startY}px`;
+        this.cursor.style.transform = 'translate(-50%, -50%)';
         this.cursor.style.opacity = '1';
         // Grab/Fist Icon
         this.cursor.innerHTML = '<svg viewBox="0 0 24 24" fill="white" stroke="black" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M20 10.95V7c0-1.1-.9-2-2-2s-2 .9-2 2v2.5h-1V5c0-1.1-.9-2-2-2s-2 .9-2 2v4.5h-1V6c0-1.1-.9-2-2-2s-2 .9-2 2v7.5c0 3.31 2.69 6 6 6s6-2.69 6-6z" /></svg>';
@@ -437,17 +480,18 @@ export class TutorialSystem {
 
         this.ghostDivider.style.left = `${startX}px`;
         this.ghostDivider.style.top = `${startY}px`;
-        this.ghostDivider.style.opacity = 0;
-        this.ghostDivider.style.animation = `${anim} 4s infinite`;
+        this.ghostDivider.style.transform = 'translate(-50%, -50%)';
+        this.ghostDivider.style.opacity = '0.7';
+        this.ghostDivider.style.animation = 'none';
 
         if (axis === 'z') {
             // Horizontal Line, Move Y
-            this.ghostDivider.style.width = '100px';
+            this.ghostDivider.style.width = '180px';
             this.ghostDivider.style.height = '4px';
         } else {
             // Vertical Line, Move X
             this.ghostDivider.style.width = '4px';
-            this.ghostDivider.style.height = '100px';
+            this.ghostDivider.style.height = '180px';
         }
     }
 
