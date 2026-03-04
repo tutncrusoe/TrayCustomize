@@ -332,8 +332,13 @@ export class TutorialSystem {
             this.arrow.style.opacity = 0;
         } else if (target.id.startsWith('label-3d-')) {
             top = rect.top + rect.height/2 - 50;
-            left = rect.left + rect.width/2 - 50;
-            this.arrow.style.opacity = 0;
+            // Step 0 (Set Length, label-3d-l): Bỏ phần tính theo rect.left đi
+            if (target.id === 'label-3d-l' || text === 'Set Length') {
+                left = rect.width/2 - 50;
+            } else {
+                left = rect.left + rect.width/2 - 50;
+            }
+            this.arrow.style.opacity = 0; // Luôn ẩn mũi tên theo yêu cầu (Step 0, 1, 2)
         } else {
             if (side === 'right-offset') {
                 top = rect.top + rect.height / 2 - 50;
