@@ -22,13 +22,14 @@ export class TutorialSystem {
         this.ghostDivider = document.getElementById('ghost-divider');
         this.cursorTrail = document.getElementById('cursor-trail');
 
+        this.pendingStart = false;
         this.bindEvents();
         this.init();
     }
 
     init() {
         if (!sessionStorage.getItem('tutorial_seen')) {
-            this.start();
+            this.pendingStart = true;
             sessionStorage.setItem('tutorial_seen', 'true');
         } else {
             if (this.skipBtn) this.skipBtn.innerText = "Tutorial";
@@ -41,6 +42,14 @@ export class TutorialSystem {
         if (this.skipBtn) {
             this.skipBtn.addEventListener('click', () => this.toggle());
         }
+
+        // Start tutorial only after the model is generated and everything is ready for the first time
+        store.on('modelRegenerated', () => {
+            if (this.pendingStart) {
+                this.pendingStart = false;
+                this.start();
+            }
+        });
 
         // Subscribe to Store events to advance steps automatically
         store.on('dimensionsChanged', () => {
