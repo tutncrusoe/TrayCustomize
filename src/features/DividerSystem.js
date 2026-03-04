@@ -102,8 +102,8 @@ export class DividerSystem {
                 newZ[this.draggingDivider.index] = val;
                 store.updateDividers('z', newZ);
             }
-
-            this.updateIndicator(client, '↔', 'active move');
+            const icon = this.draggingDivider.type === 'X' ? '↔' : '↕';
+            this.updateIndicator(client, icon, 'active move');
             return;
         }
 
@@ -263,6 +263,9 @@ export class DividerSystem {
         this.indicator.style.top = `${client.y - 18}px`;
         this.indicator.innerText = text;
         this.indicator.className = classes;
+        
+        // Reset rotation by default
+        this.indicator.style.transform = ''; 
 
         if (classes.includes('active')) {
              this.indicator.style.opacity = 1;

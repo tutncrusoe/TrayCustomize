@@ -53,7 +53,7 @@
         .ghost-cursor { position: absolute; width: 32px; height: 32px; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 10002; transform-origin: 0 0; }
         .ghost-cursor svg { filter: drop-shadow(0 0 5px #fff) drop-shadow(0 0 10px #fff); }
 
-        .ghost-divider { position: absolute; background: rgba(59, 130, 246, 0.5); pointer-events: none; opacity: 0; z-index: 9998; border-radius: 2px; }
+        .ghost-divider { position: absolute; background: rgba(59, 130, 246, 0.6); pointer-events: none; opacity: 0; z-index: 9998; border-radius: 2px; box-shadow: 0 0 8px rgba(59, 130, 246, 0.8); transition: opacity 0.3s; }
         .cursor-trail { position: absolute; width: 4px; background: rgba(59, 130, 246, 0.6); border-radius: 2px; pointer-events: none; opacity: 0; transition: opacity 0.3s; z-index: 9998; box-shadow: 0 0 8px rgba(59, 130, 246, 0.8); }
 
         @keyframes cursor-scan-h {
@@ -64,9 +64,14 @@
             100% { opacity: 0; transform: translate(0, -75px); }
         }
         @keyframes cursor-wiggle-y {
-            0%, 100% { transform: translateY(0); }
-            25% { transform: translateY(-40px); }
-            75% { transform: translateY(40px); }
+            0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+            25% { transform: translate(-50%, -50%) translateY(-40px); }
+            75% { transform: translate(-50%, -50%) translateY(40px); }
+        }
+        @keyframes cursor-wiggle-x {
+            0%, 100% { transform: translate(-50%, -50%) translateX(0); }
+            25% { transform: translate(-50%, -50%) translateX(-40px); }
+            75% { transform: translate(-50%, -50%) translateX(40px); }
         }
         @keyframes cursor-scan-v {
             0% { opacity: 0; transform: translate(0, 0); }

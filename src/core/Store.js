@@ -106,6 +106,11 @@ export class Store extends EventBus {
         this.emit('mobileViewChanged', this.state.mobileView);
     }
 
+    setTutorialStep(step) {
+        this.state.tutorialStep = step;
+        this.emit('tutorialStepChanged', this.state.tutorialStep);
+    }
+
     getState() {
         return this.state;
     }
