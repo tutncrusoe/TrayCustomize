@@ -220,8 +220,12 @@ export class LabelSystem {
             const aspect = rect.width / rect.height;
             const frustum = this.sceneManager.frustumSize;
 
-            const w2pX = (wx) => rect.left + rect.width/2 + (wx / (frustum * aspect / 2)) * (rect.width/2);
-            const w2pZ = (wz) => rect.top + rect.height/2 + (wz / (frustum / 2)) * (rect.height/2);
+            const vv = window.visualViewport;
+            const vvLeft = vv ? vv.offsetLeft : 0;
+            const vvTop  = vv ? vv.offsetTop  : 0;
+
+            const w2pX = (wx) => (rect.left + vvLeft) + rect.width/2 + (wx / (frustum * aspect / 2)) * (rect.width/2);
+            const w2pZ = (wz) => (rect.top + vvTop)   + rect.height/2 + (wz / (frustum / 2)) * (rect.height/2);
 
             // --- X-axis labels (widths of merged rooms along X) ---
             const sortedX = [-l/2, ...[...dX].sort((a,b) => a-b), l/2];
@@ -284,6 +288,10 @@ export class LabelSystem {
         const labels = this.dimContainer3D.querySelectorAll('.dim-label-3d');
         const boxGroup = this.sceneManager.boxGroup;
 
+        const vv = window.visualViewport;
+        const vvLeft = vv ? vv.offsetLeft : 0;
+        const vvTop  = vv ? vv.offsetTop  : 0;
+
         labels.forEach(el => {
             // If editing, logic might pause, but we check Store.isEditing in SceneManager loop usually?
             // Original code: update3DLabels executed every frame WITHOUT isEditing guard.
@@ -296,8 +304,8 @@ export class LabelSystem {
 
             vector.project(camera);
 
-            const x = rect3D.left + (vector.x * 0.5 + 0.5) * rect3D.width;
-            const y = rect3D.top + (-(vector.y) * 0.5 + 0.5) * rect3D.height;
+            const x = (rect3D.left + vvLeft) + (vector.x * 0.5 + 0.5) * rect3D.width;
+            const y = (rect3D.top + vvTop)   + (-(vector.y) * 0.5 + 0.5) * rect3D.height;
 
             if (vector.z < 1) {
                 el.style.display = 'block';

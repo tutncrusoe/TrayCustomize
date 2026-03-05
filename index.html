@@ -151,8 +151,8 @@
     </div>
 
     <input type="number" id="global-dim-input" aria-label="Global Dimension Editor" />
-    <div class="absolute inset-0 z-10 flex flex-col pointer-events-auto overflow-hidden">
-        <header class="w-full p-4 md:p-6 flex justify-between items-center pointer-events-none shrink-0">
+    <div class="absolute inset-0 flex flex-col pointer-events-auto overflow-hidden">
+        <header class="relative z-20 w-full p-4 md:p-6 flex justify-between items-center pointer-events-none shrink-0">
             <div class="flex items-center gap-3 pointer-events-auto">
                 <div class="w-10 h-10 bg-white rounded-2xl flex items-center justify-center shadow-xl"><div class="w-5 h-5 bg-black rotate-45 rounded-sm"></div></div>
                 <div><h1 class="font-bold text-lg leading-none text-white">Parameterized Tray</h1><p class="text-[10px] text-zinc-400 font-medium uppercase tracking-widest mt-1">Smart Editing Mode</p></div>
@@ -170,16 +170,16 @@
 
             <div id="view-3d-wrapper" class="h-full w-full md:h-auto md:flex-1 flex flex-col min-h-0 relative">
                 <h2 class="text-white font-bold mb-3 text-sm ml-1 hidden md:block">3D View</h2>
-                <div id="view-3d-placeholder" class="viewport-placeholder pointer-events-auto cursor-grab active:cursor-grabbing flex-1 md:rounded-3xl border-b md:border border-white/10 bg-zinc-800/50 shadow-2xl relative"></div>
+                <div id="view-3d-placeholder" class="viewport-placeholder pointer-events-auto cursor-grab active:cursor-grabbing flex-1 md:rounded-3xl border-b md:border border-white/10 bg-zinc-700/50 shadow-2xl relative"></div>
             </div>
             <div id="view-top-wrapper" class="h-full w-full md:h-auto md:flex-1 flex flex-col min-h-0 hidden md:flex relative">
                 <h2 class="text-white font-bold mb-3 text-sm ml-1 hidden md:block">Top View</h2>
-                <div id="view-top-placeholder" class="viewport-placeholder pointer-events-auto touch-action-none flex-1 md:rounded-3xl border-b md:border border-white/10 bg-zinc-800/50 shadow-2xl relative"></div>
+                <div id="view-top-placeholder" class="viewport-placeholder pointer-events-auto touch-action-none flex-1 md:rounded-3xl border-b md:border border-white/10 bg-zinc-700/50 shadow-2xl relative"></div>
             </div>
         </main>
 
         <aside class="relative z-50 bg-[#1e1e1e] border-t md:border-t-0 md:border-l border-white/10 flex flex-col
-                      w-full flex-1 md:rounded-t-3xl md:rounded-none
+                      w-full flex-1 rounded-none
                       md:fixed md:top-0 md:right-0 md:w-1/5 md:h-full
                       overflow-hidden transition-all duration-300 pointer-events-auto
                       shadow-[0_-4px_30px_rgba(0,0,0,0.6)] md:shadow-none shrink-0">
