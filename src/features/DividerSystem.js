@@ -232,13 +232,17 @@ export class DividerSystem {
 
     checkHit(wx, wz, l, w, dividers) {
         const hitMargin = 10;
+        const hiddenSegments = store.getState().hiddenSegments;
 
         for (let i = 0; i < dividers.x.length; i++) {
             if (Math.abs(wx - dividers.x[i]) < hitMargin && Math.abs(wz) < w/2) {
                 const sortedZ = [-w/2, ...[...dividers.z].sort((a,b)=>a-b), w/2];
                 for(let j=0; j<sortedZ.length-1; j++) {
                     if(wz >= sortedZ[j] && wz <= sortedZ[j+1]) {
-                        return { axis: 'X', lineIdx: i, segIdx: j };
+                        // Ensure we don't return a hit on a segment that is already hidden
+                        if (!hiddenSegments[`X_${i}_${j}`]) {
+                            return { axis: 'X', lineIdx: i, segIdx: j };
+                        }
                     }
                 }
             }
@@ -249,7 +253,10 @@ export class DividerSystem {
                  const sortedX = [-l/2, ...[...dividers.x].sort((a,b)=>a-b), l/2];
                  for(let j=0; j<sortedX.length-1; j++) {
                      if(wx >= sortedX[j] && wx <= sortedX[j+1]) {
-                         return { axis: 'Z', lineIdx: i, segIdx: j };
+                         // Ensure we don't return a hit on a segment that is already hidden
+                         if (!hiddenSegments[`Z_${i}_${j}`]) {
+                             return { axis: 'Z', lineIdx: i, segIdx: j };
+                         }
                      }
                  }
             }
@@ -298,97 +305,89 @@ export class DividerSystem {
         let { x: dX, z: dZ } = state.dividers;
         let hidden = { ...state.hiddenSegments };
 
-        const updateHiddenMap = (removedAxis, removedArrIdx, removedSpatialIdx) => {
-            const newHidden = {};
-            for (let key in hidden) {
-                const parts = key.split('_');
-                const axis = parts[0];
-                const lineIdx = parseInt(parts[1]);
-                const segIdx = parseInt(parts[2]);
-
-                if (axis === removedAxis) {
-                    if (lineIdx < removedArrIdx) newHidden[key] = true;
-                    else if (lineIdx > removedArrIdx) newHidden[`${axis}_${lineIdx - 1}_${segIdx}`] = true;
-                } else {
-                    if (segIdx < removedSpatialIdx) newHidden[key] = true;
-                    else if (segIdx > removedSpatialIdx + 1) newHidden[`${axis}_${lineIdx}_${segIdx - 1}`] = true;
-                }
-            }
-
-            // Check for merged segments that should remain hidden
-            const crossAxis = removedAxis === 'X' ? 'Z' : 'X';
-            const crossDividers = removedAxis === 'X' ? dZ : dX;
-
-            for (let i = 0; i < crossDividers.length; i++) {
-                const k1 = `${crossAxis}_${i}_${removedSpatialIdx}`;
-                const k2 = `${crossAxis}_${i}_${removedSpatialIdx + 1}`;
-                if (hidden[k1] && hidden[k2]) {
-                    newHidden[`${crossAxis}_${i}_${removedSpatialIdx}`] = true;
-                }
-            }
-
-            return newHidden;
-        };
+        // Helper to get true spatial array index
+        const getSpatialIdx = (val, arr) => [...arr].sort((a,b)=>a-b).indexOf(val);
 
         while(changed) {
             changed = false;
-            // Check X
+            
+            // --- Check X Dividers (Verticals) ---
             for(let i=0; i<dX.length; i++) {
                 let allHidden = true;
                 for(let j=0; j <= dZ.length; j++) {
                     if(!hidden[`X_${i}_${j}`]) { allHidden = false; break; }
                 }
                 if(allHidden) {
-                    // Check if removing this divider merges segments with different visibility
+                    const spatialIdx = getSpatialIdx(dX[i], dX);
+                    // Check if crossing walls have identical visibility on both sides
                     let canRemove = true;
                     for(let k=0; k<dZ.length; k++) {
-                        const before = hidden[`Z_${k}_${i}`];
-                        const after = hidden[`Z_${k}_${i+1}`];
-                        if (!!before !== !!after) {
-                            canRemove = false;
-                            break;
+                        if (!!hidden[`Z_${k}_${spatialIdx}`] !== !!hidden[`Z_${k}_${spatialIdx+1}`]) {
+                            canRemove = false; break;
                         }
                     }
 
                     if (canRemove) {
-                        const val = dX[i];
-                        const sortedX = [...dX].sort((a,b)=>a-b);
-                        const spatialIdx = sortedX.indexOf(val);
-
                         dX.splice(i, 1);
-                        hidden = updateHiddenMap('X', i, spatialIdx);
+                        
+                        // Rebuild hidden map
+                        const newHidden = {};
+                        for (let k in hidden) {
+                            const [axis, lineStr, segStr] = k.split('_');
+                            const lineIdx = parseInt(lineStr);
+                            const segIdx = parseInt(segStr);
+
+                            if (axis === 'X') {
+                                if (lineIdx < i) newHidden[k] = hidden[k];
+                                else if (lineIdx > i) newHidden[`X_${lineIdx-1}_${segIdx}`] = hidden[k];
+                            } else { // Z axis
+                                if (segIdx < spatialIdx) newHidden[k] = hidden[k];
+                                else if (segIdx > spatialIdx) newHidden[`Z_${lineIdx}_${segIdx-1}`] = hidden[k];
+                            }
+                        }
+                        hidden = newHidden;
                         changed = true;
                         break;
                     }
                 }
             }
-            if(changed) continue;
+            if (changed) continue;
 
-            // Check Z
+            // --- Check Z Dividers (Horizontals) ---
             for(let i=0; i<dZ.length; i++) {
                 let allHidden = true;
                 for(let j=0; j <= dX.length; j++) {
                     if(!hidden[`Z_${i}_${j}`]) { allHidden = false; break; }
                 }
                 if(allHidden) {
-                    // Check if removing this divider merges segments with different visibility
+                    const spatialIdx = getSpatialIdx(dZ[i], dZ);
+                    // Check if crossing walls have identical visibility on both sides
                     let canRemove = true;
                     for(let k=0; k<dX.length; k++) {
-                        const before = hidden[`X_${k}_${i}`];
-                        const after = hidden[`X_${k}_${i+1}`];
-                        if (!!before !== !!after) {
-                            canRemove = false;
-                            break;
+                        if (!!hidden[`X_${k}_${spatialIdx}`] !== !!hidden[`X_${k}_${spatialIdx+1}`]) {
+                            canRemove = false; break;
                         }
                     }
 
                     if (canRemove) {
-                        const val = dZ[i];
-                        const sortedZ = [...dZ].sort((a,b)=>a-b);
-                        const spatialIdx = sortedZ.indexOf(val);
-
                         dZ.splice(i, 1);
-                        hidden = updateHiddenMap('Z', i, spatialIdx);
+                        
+                        // Rebuild hidden map
+                        const newHidden = {};
+                        for (let k in hidden) {
+                            const [axis, lineStr, segStr] = k.split('_');
+                            const lineIdx = parseInt(lineStr);
+                            const segIdx = parseInt(segStr);
+
+                            if (axis === 'Z') {
+                                if (lineIdx < i) newHidden[k] = hidden[k];
+                                else if (lineIdx > i) newHidden[`Z_${lineIdx-1}_${segIdx}`] = hidden[k];
+                            } else { // X axis
+                                if (segIdx < spatialIdx) newHidden[k] = hidden[k];
+                                else if (segIdx > spatialIdx) newHidden[`X_${lineIdx}_${segIdx-1}`] = hidden[k];
+                            }
+                        }
+                        hidden = newHidden;
                         changed = true;
                         break;
                     }

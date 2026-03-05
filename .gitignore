@@ -1,0 +1,10 @@
+# AI assistant config - local only
+.agent/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
