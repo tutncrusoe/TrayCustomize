@@ -17,8 +17,8 @@ export class EditSystem {
         if (!this.input) return;
 
         // Listen for requests to start editing
-        store.on('REQUEST_EDIT', ({ x, y, value, callback, worldPos3D }) => {
-            this.startEditing(x, y, value, callback, worldPos3D);
+        store.on('REQUEST_EDIT', ({ x, y, value, callback, worldPos3D, sourceElement }) => {
+            this.startEditing(x, y, value, callback, worldPos3D, sourceElement);
         });
 
         // Input events
@@ -35,10 +35,11 @@ export class EditSystem {
         });
     }
 
-    startEditing(x, y, val, cb, worldPos3D = null) {
+    startEditing(x, y, val, cb, worldPos3D = null, sourceElement = null) {
         store.setEditing(true);
         this.currentCallback = cb;
         this.current3DPos = worldPos3D;
+        this.currentSourceElement = sourceElement;
         this._keyboardSettled = false;
 
         this.input.style.display = 'block';
@@ -53,47 +54,11 @@ export class EditSystem {
         this.input.focus({ preventScroll: true });
         this.input.select();
 
-        // SECONDARY FIX: lock body scroll for iOS Safari
-        this._lockScroll();
+        // SECONDARY FIX: Removed _lockScroll() as we now freeze the entire SceneManager render loop.
+        // This allows native browser pinch-zoom to work as if the 3D scene is a static image.
+        
         // Allow 3D position updates only after keyboard has fully animated in
         setTimeout(() => { this._keyboardSettled = true; }, 500);
-    }
-
-    _lockScroll() {
-        // Fix body to prevent iOS Safari rubber-band scrolling
-        const scrollY = window.scrollY;
-        document.body.style.position = 'fixed';
-        document.body.style.top = `-${scrollY}px`;
-        document.body.style.left = '0';
-        document.body.style.right = '0';
-        this._savedScrollY = scrollY;
-
-        // Fallback: instant scrollTo (no animation) in case any scroll slips through
-        const lock = () => window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-        lock();
-        this._scrollLockListener = lock;
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', lock);
-            window.visualViewport.addEventListener('scroll', lock);
-        }
-    }
-
-    _unlockScroll() {
-        // Restore body scroll position (undo the position:fixed trick)
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.left = '';
-        document.body.style.right = '';
-        if (this._savedScrollY !== undefined) {
-            window.scrollTo({ top: this._savedScrollY, left: 0, behavior: 'instant' });
-            this._savedScrollY = undefined;
-        }
-
-        if (this._scrollLockListener && window.visualViewport) {
-            window.visualViewport.removeEventListener('resize', this._scrollLockListener);
-            window.visualViewport.removeEventListener('scroll', this._scrollLockListener);
-        }
-        this._scrollLockListener = null;
     }
 
     finishEditing() {
@@ -116,7 +81,9 @@ export class EditSystem {
         store.setEditing(false);
         this.current3DPos = null;
         this._keyboardSettled = false;
-        this._unlockScroll();
+        if (this.currentSourceElement) {
+            this.currentSourceElement = null;
+        }
         this.input.style.display = 'none';
         this.currentCallback = null;
     }

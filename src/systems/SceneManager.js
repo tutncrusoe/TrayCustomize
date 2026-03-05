@@ -161,6 +161,10 @@ export class SceneManager {
     animate() {
         requestAnimationFrame(this.animate);
 
+        // Freeze geometry and overlay updates while user is typing on mobile,
+        // allowing natural pinch-to-zoom over a static view.
+        if (store.getState().isEditing) return;
+
         // ─── Layout-stable sizing ────────────────────────────────────────────────
         // CRITICAL: Use document.documentElement.clientWidth/Height ("layout viewport")
         // instead of canvas.clientWidth/Height.
@@ -192,9 +196,8 @@ export class SceneManager {
         // Render 3D View
         const rect3D = this.view3DContainer.getBoundingClientRect();
         if (rect3D.width > 0 && rect3D.height > 0) {
-            // Convert from visual viewport coords → layout viewport coords
-            const x3D = rect3D.left;
-            const y3D = height - rect3D.bottom; // WebGL: bottom-up
+            const x3D = rect3D.left   + vvOffsetLeft;
+            const y3D = height - (rect3D.bottom + vvOffsetTop); // WebGL: bottom-up
 
             this.renderer.setViewport(x3D, y3D, rect3D.width, rect3D.height);
             this.renderer.setScissor(x3D, y3D, rect3D.width, rect3D.height);
@@ -212,8 +215,8 @@ export class SceneManager {
 
         const rectTop = this.viewTopContainer.getBoundingClientRect();
         if (rectTop.width > 0 && rectTop.height > 0) {
-            const xT = rectTop.left;
-            const yT = height - rectTop.bottom;
+            const xT = rectTop.left   + vvOffsetLeft;
+            const yT = height - (rectTop.bottom + vvOffsetTop);
 
             this.renderer.setViewport(xT, yT, rectTop.width, rectTop.height);
             this.renderer.setScissor(xT, yT, rectTop.width, rectTop.height);

@@ -161,7 +161,8 @@ export class LabelSystem {
                 y: r.top + r.height/2,
                 value: parseFloat(text),
                 callback: cb,
-                worldPos3D: worldPos3D
+                worldPos3D: worldPos3D,
+                sourceElement: el
             });
         };
         el.addEventListener('mousedown', handler);
@@ -362,20 +363,20 @@ export class LabelSystem {
         const labels = this.dimContainer3D.querySelectorAll('.dim-label-3d');
         const boxGroup = this.sceneManager.boxGroup;
 
-        labels.forEach(el => {
-            // If editing, logic might pause, but we check Store.isEditing in SceneManager loop usually?
-            // Original code: update3DLabels executed every frame WITHOUT isEditing guard.
+        const vv = window.visualViewport;
+        const vvLeft = vv ? vv.offsetLeft : 0;
+        const vvTop  = vv ? vv.offsetTop  : 0;
 
+        labels.forEach(el => {
             const worldPos = JSON.parse(el.dataset.worldPos);
             const vector = new THREE.Vector3(worldPos.x, worldPos.y, worldPos.z);
 
-            // Apply box rotation
             if (boxGroup) vector.applyQuaternion(boxGroup.quaternion);
 
             vector.project(camera);
 
-            const x = rect3D.left + (vector.x * 0.5 + 0.5) * rect3D.width;
-            const y = rect3D.top + (-(vector.y) * 0.5 + 0.5) * rect3D.height;
+            const x = (rect3D.left + vvLeft) + (vector.x * 0.5 + 0.5) * rect3D.width;
+            const y = (rect3D.top  + vvTop)  + (-(vector.y) * 0.5 + 0.5) * rect3D.height;
 
             if (vector.z < 1) {
                 el.style.display = 'block';
