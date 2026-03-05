@@ -79,7 +79,9 @@ export class LabelSystem {
             const maxCoord = sorted[Math.max(...cells) + 1];
             rooms.push({
                 center: (minCoord + maxCoord) / 2,
-                size: maxCoord - minCoord
+                size: maxCoord - minCoord,
+                minCoord,
+                maxCoord
             });
         }
 
@@ -220,12 +222,8 @@ export class LabelSystem {
             const aspect = rect.width / rect.height;
             const frustum = this.sceneManager.frustumSize;
 
-            const vv = window.visualViewport;
-            const vvLeft = vv ? vv.offsetLeft : 0;
-            const vvTop  = vv ? vv.offsetTop  : 0;
-
-            const w2pX = (wx) => (rect.left + vvLeft) + rect.width/2 + (wx / (frustum * aspect / 2)) * (rect.width/2);
-            const w2pZ = (wz) => (rect.top + vvTop)   + rect.height/2 + (wz / (frustum / 2)) * (rect.height/2);
+            const w2pX = (wx) => rect.left + rect.width/2 + (wx / (frustum * aspect / 2)) * (rect.width/2);
+            const w2pZ = (wz) => rect.top + rect.height/2 + (wz / (frustum / 2)) * (rect.height/2);
 
             // --- X-axis labels (widths of merged rooms along X) ---
             const sortedX = [-l/2, ...[...dX].sort((a,b) => a-b), l/2];
@@ -234,9 +232,47 @@ export class LabelSystem {
             const mergedX = this.getMergedRooms(sortedX, 'X', dZ, hiddenSegs);
             mergedX.forEach(room => {
                 if (room.size < 1) return;
-                const cb = (nd) => {
+                const cb = (inputNd) => {
+                    const { radius, wallThickness } = state.dimensions;
+                    const minSize = (radius * 2) + 1;
+                    let nd = Math.max(minSize, inputNd); // Always clamp min
+                    
+                    let moved = false;
+                    const newDX = [...dX];
+                    
+                    // Logic 1: move internal divider
+                    const maxIdx = newDX.findIndex(v => Math.abs(v - room.maxCoord) < 0.01);
+                    if (maxIdx !== -1) {
+                        const sortedIdx = sortedX.findIndex(v => Math.abs(v - room.maxCoord) < 0.01);
+                        const nextBound = sortedX[sortedIdx + 1];
+                        const totalSpace = nextBound - room.minCoord;
+                        const maxSize = totalSpace - minSize;
+                        nd = Math.min(maxSize, nd);
+                        
+                        const diff = nd - room.size;
+                        newDX[maxIdx] += diff;
+                        moved = true;
+                    } else {
+                        const minIdx = newDX.findIndex(v => Math.abs(v - room.minCoord) < 0.01);
+                        if (minIdx !== -1) {
+                            const sortedIdx = sortedX.findIndex(v => Math.abs(v - room.minCoord) < 0.01);
+                            const prevBound = sortedX[sortedIdx - 1];
+                            const totalSpace = room.maxCoord - prevBound;
+                            const maxSize = totalSpace - minSize;
+                            nd = Math.min(maxSize, nd);
+                            
+                            const diff = nd - room.size;
+                            newDX[minIdx] -= diff;
+                            moved = true;
+                        }
+                    }
+
                     const diff = nd - room.size;
-                    store.setDimensions({ l: l + diff });
+                    if (moved) {
+                        store.updateDividers('x', newDX);
+                    } else {
+                        store.setDimensions({ l: l + diff });
+                    }
                     store.emit('dimensionsCommitted');
                 };
                 const el = this.createEditableLabel(Math.round(room.size), cb);
@@ -250,9 +286,47 @@ export class LabelSystem {
             const mergedZ = this.getMergedRooms(sortedZ, 'Z', dX, hiddenSegs);
             mergedZ.forEach(room => {
                 if (room.size < 1) return;
-                const cb = (nd) => {
+                const cb = (inputNd) => {
+                    const { radius, wallThickness } = state.dimensions;
+                    const minSize = (radius * 2) + 1;
+                    let nd = Math.max(minSize, inputNd);
+                    
+                    let moved = false;
+                    const newDZ = [...dZ];
+                    
+                    // Logic 1: move internal divider
+                    const maxIdx = newDZ.findIndex(v => Math.abs(v - room.maxCoord) < 0.01);
+                    if (maxIdx !== -1) {
+                        const sortedIdx = sortedZ.findIndex(v => Math.abs(v - room.maxCoord) < 0.01);
+                        const nextBound = sortedZ[sortedIdx + 1];
+                        const totalSpace = nextBound - room.minCoord;
+                        const maxSize = totalSpace - minSize;
+                        nd = Math.min(maxSize, nd);
+                        
+                        const diff = nd - room.size;
+                        newDZ[maxIdx] += diff;
+                        moved = true;
+                    } else {
+                        const minIdx = newDZ.findIndex(v => Math.abs(v - room.minCoord) < 0.01);
+                        if (minIdx !== -1) {
+                            const sortedIdx = sortedZ.findIndex(v => Math.abs(v - room.minCoord) < 0.01);
+                            const prevBound = sortedZ[sortedIdx - 1];
+                            const totalSpace = room.maxCoord - prevBound;
+                            const maxSize = totalSpace - minSize;
+                            nd = Math.min(maxSize, nd);
+                            
+                            const diff = nd - room.size;
+                            newDZ[minIdx] -= diff;
+                            moved = true;
+                        }
+                    }
+
                     const diff = nd - room.size;
-                    store.setDimensions({ w: w + diff });
+                    if (moved) {
+                        store.updateDividers('z', newDZ);
+                    } else {
+                        store.setDimensions({ w: w + diff });
+                    }
                     store.emit('dimensionsCommitted');
                 };
                 const el = this.createEditableLabel(Math.round(room.size), cb);
@@ -288,10 +362,6 @@ export class LabelSystem {
         const labels = this.dimContainer3D.querySelectorAll('.dim-label-3d');
         const boxGroup = this.sceneManager.boxGroup;
 
-        const vv = window.visualViewport;
-        const vvLeft = vv ? vv.offsetLeft : 0;
-        const vvTop  = vv ? vv.offsetTop  : 0;
-
         labels.forEach(el => {
             // If editing, logic might pause, but we check Store.isEditing in SceneManager loop usually?
             // Original code: update3DLabels executed every frame WITHOUT isEditing guard.
@@ -304,8 +374,8 @@ export class LabelSystem {
 
             vector.project(camera);
 
-            const x = (rect3D.left + vvLeft) + (vector.x * 0.5 + 0.5) * rect3D.width;
-            const y = (rect3D.top + vvTop)   + (-(vector.y) * 0.5 + 0.5) * rect3D.height;
+            const x = rect3D.left + (vector.x * 0.5 + 0.5) * rect3D.width;
+            const y = rect3D.top + (-(vector.y) * 0.5 + 0.5) * rect3D.height;
 
             if (vector.z < 1) {
                 el.style.display = 'block';

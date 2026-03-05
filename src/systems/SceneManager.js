@@ -187,15 +187,14 @@ export class SceneManager {
         const vv          = window.visualViewport;
         const vvOffsetLeft = vv ? vv.offsetLeft : 0;
         const vvOffsetTop  = vv ? vv.offsetTop  : 0;
-
         this.renderer.setScissorTest(true);
 
         // Render 3D View
         const rect3D = this.view3DContainer.getBoundingClientRect();
         if (rect3D.width > 0 && rect3D.height > 0) {
             // Convert from visual viewport coords → layout viewport coords
-            const x3D = rect3D.left   + vvOffsetLeft;
-            const y3D = height - (rect3D.bottom + vvOffsetTop); // WebGL: bottom-up
+            const x3D = rect3D.left;
+            const y3D = height - rect3D.bottom; // WebGL: bottom-up
 
             this.renderer.setViewport(x3D, y3D, rect3D.width, rect3D.height);
             this.renderer.setScissor(x3D, y3D, rect3D.width, rect3D.height);
@@ -213,8 +212,8 @@ export class SceneManager {
 
         const rectTop = this.viewTopContainer.getBoundingClientRect();
         if (rectTop.width > 0 && rectTop.height > 0) {
-            const xT = rectTop.left   + vvOffsetLeft;
-            const yT = height - (rectTop.bottom + vvOffsetTop);
+            const xT = rectTop.left;
+            const yT = height - rectTop.bottom;
 
             this.renderer.setViewport(xT, yT, rectTop.width, rectTop.height);
             this.renderer.setScissor(xT, yT, rectTop.width, rectTop.height);
