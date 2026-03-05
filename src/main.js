@@ -265,18 +265,25 @@ class App {
 
 window.addEventListener('load', () => {
     // Mobile Viewport Height Lock Logic
-    // Prevents interface jump when keyboard opens by setting a fixed pixel height on body
+    // Prevents interface jump when keyboard opens by setting a fixed pixel height on body.
+    //
+    // IMPORTANT: We must NOT resize when the user is pinch-zooming (visual viewport change).
+    // On some browsers window.innerHeight tracks the VISUAL viewport so it shrinks during zoom,
+    // which would incorrectly shrink the canvas and the 3D geometry with it.
+    // Fix: use document.documentElement.clientHeight which always reflects the LAYOUT viewport
+    // (unaffected by visual zoom), and skip updates if only height changed (zoom, not rotation).
     const fixMobileHeight = () => {
         if (window.innerWidth < 768) {
-            // Only set height if not already set or if width changed (orientation change)
-            // We store the 'locked' width to detect true orientation changes vs keyboard resizes
+            // Only act on real orientation/layout changes (width changed significantly).
+            // A pure pinch-zoom changes height but NOT width, so we can ignore height-only resizes.
             const currentWidth = window.innerWidth;
             const lastWidth = parseFloat(document.body.dataset.lastWidth || 0);
 
             if (Math.abs(currentWidth - lastWidth) > 50) {
-                const h = window.innerHeight;
+                // Use clientHeight (layout viewport) — NOT innerHeight (can be visual viewport)
+                const h = document.documentElement.clientHeight;
                 document.body.style.height = `${h}px`;
-                document.body.style.overflow = 'hidden'; // Ensure no scrolling on body
+                document.body.style.overflow = 'hidden';
                 document.documentElement.style.height = `${h}px`;
                 document.documentElement.style.overflow = 'hidden';
                 document.body.dataset.lastWidth = currentWidth;
@@ -293,7 +300,6 @@ window.addEventListener('load', () => {
 
     fixMobileHeight();
     window.addEventListener('resize', () => {
-        // Debounce slightly to wait for layout settle? No, immediate is usually fine.
         fixMobileHeight();
     });
 

@@ -73,6 +73,11 @@ export class SceneManager {
                 this.autoFitCamera();
             }, 50);
         });
+
+        // Refit camera when window is resized OR desktop browser zoom changes (Ctrl+)
+        store.on('viewportResize', () => {
+            this.autoFitCamera();
+        });
     }
 
     updateMesh(mesh) {
@@ -156,48 +161,71 @@ export class SceneManager {
     animate() {
         requestAnimationFrame(this.animate);
 
-        const width = this.canvas.clientWidth;
-        const height = this.canvas.clientHeight;
+        // Freeze geometry and overlay updates while user is typing on mobile,
+        // allowing natural pinch-to-zoom over a static view.
+        if (store.getState().isEditing) return;
 
-        if (this.canvas.width !== width || this.canvas.height !== height) {
+        // ─── Layout-stable sizing ────────────────────────────────────────────────
+        // CRITICAL: Use document.documentElement.clientWidth/Height ("layout viewport")
+        // instead of canvas.clientWidth/Height.
+        //
+        // On iOS Safari, canvas.clientHeight can track the VISUAL viewport height
+        // (which shrinks during pinch-zoom). document.documentElement.clientHeight
+        // always equals the layout viewport and is NEVER affected by visual zoom.
+        //
+        // getBoundingClientRect() returns coordinates relative to the VISUAL viewport
+        // origin, so we convert to layout space by adding visualViewport.offsetLeft/Top.
+        // Both sides of every calculation now use the same (layout) coordinate space.
+        const docEl = document.documentElement;
+        const width  = docEl.clientWidth;
+        const height = docEl.clientHeight;
+
+        const bufW = Math.round(width  * window.devicePixelRatio);
+        const bufH = Math.round(height * window.devicePixelRatio);
+        if (this.canvas.width !== bufW || this.canvas.height !== bufH || this.renderer.getPixelRatio() !== window.devicePixelRatio) {
+            this.renderer.setPixelRatio(window.devicePixelRatio);
             this.renderer.setSize(width, height, false);
-            // Trigger a dimension update/repaint via event if needed?
-            // In original code, updateDimensions() was called here.
             store.emit('viewportResize');
         }
 
+        const vv          = window.visualViewport;
+        const vvOffsetLeft = vv ? vv.offsetLeft : 0;
+        const vvOffsetTop  = vv ? vv.offsetTop  : 0;
         this.renderer.setScissorTest(true);
-        const { isEditing } = store.getState();
 
         // Render 3D View
         const rect3D = this.view3DContainer.getBoundingClientRect();
         if (rect3D.width > 0 && rect3D.height > 0) {
-            this.renderer.setViewport(rect3D.left, height - rect3D.bottom, rect3D.width, rect3D.height);
-            this.renderer.setScissor(rect3D.left, height - rect3D.bottom, rect3D.width, rect3D.height);
+            const x3D = rect3D.left   + vvOffsetLeft;
+            const y3D = height - (rect3D.bottom + vvOffsetTop); // WebGL: bottom-up
+
+            this.renderer.setViewport(x3D, y3D, rect3D.width, rect3D.height);
+            this.renderer.setScissor(x3D, y3D, rect3D.width, rect3D.height);
             this.camera3D.aspect = rect3D.width / rect3D.height;
             this.camera3D.updateProjectionMatrix();
             this.renderer.render(this.scene, this.camera3D);
 
-            // Notify system to update 3D labels overlay position
             store.emit('update3DOverlay', { camera: this.camera3D, rect: rect3D, object: this.boxGroup });
         }
 
-        // Render Top View
-        // Temporary rotation reset for Top View rendering
+        // Render Top View — temporarily zero the rotation so top view is flat
         const curRot = this.boxGroup.rotation.y;
         this.boxGroup.rotation.y = 0;
         this.boxGroup.updateMatrixWorld();
 
         const rectTop = this.viewTopContainer.getBoundingClientRect();
         if (rectTop.width > 0 && rectTop.height > 0) {
-            this.renderer.setViewport(rectTop.left, height - rectTop.bottom, rectTop.width, rectTop.height);
-            this.renderer.setScissor(rectTop.left, height - rectTop.bottom, rectTop.width, rectTop.height);
+            const xT = rectTop.left   + vvOffsetLeft;
+            const yT = height - (rectTop.bottom + vvOffsetTop);
+
+            this.renderer.setViewport(xT, yT, rectTop.width, rectTop.height);
+            this.renderer.setScissor(xT, yT, rectTop.width, rectTop.height);
 
             const aspectTop = rectTop.width / rectTop.height;
-            this.cameraTop.left = this.frustumSize * aspectTop / -2;
-            this.cameraTop.right = this.frustumSize * aspectTop / 2;
-            this.cameraTop.top = this.frustumSize / 2;
-            this.cameraTop.bottom = this.frustumSize / -2;
+            this.cameraTop.left   =  this.frustumSize * aspectTop / -2;
+            this.cameraTop.right  =  this.frustumSize * aspectTop /  2;
+            this.cameraTop.top    =  this.frustumSize / 2;
+            this.cameraTop.bottom = -this.frustumSize / 2;
             this.cameraTop.updateProjectionMatrix();
 
             this.renderer.render(this.scene, this.cameraTop);

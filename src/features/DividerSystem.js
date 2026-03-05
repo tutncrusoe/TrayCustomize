@@ -87,22 +87,25 @@ export class DividerSystem {
         if (this.draggingDivider) {
             this.draggingDivider.hasMoved = true;
 
-            // Limit to valid range
-            const limit = (this.draggingDivider.type === 'X' ? l : w) / 2 - 2;
-            const val = Math.max(-limit, Math.min(limit, this.draggingDivider.type === 'X' ? world.x : world.z));
+            const { radius } = state.dimensions;
+            const minSize = (radius * 2) + 1;
+            const isX = this.draggingDivider.type === 'X';
+            const { leftBound, rightBound } = this.draggingDivider;
+
+            // Strict Clamping: current divider must be at least minSize from neighbors
+            const minPos = leftBound + minSize;
+            const maxPos = rightBound - minSize;
+
+            let val = isX ? world.x : world.z;
+            val = Math.max(minPos, Math.min(maxPos, val));
 
             // Update
-            const divs = state.dividers;
-            if (this.draggingDivider.type === 'X') {
-                const newX = [...divs.x];
-                newX[this.draggingDivider.index] = val;
-                store.updateDividers('x', newX);
-            } else {
-                const newZ = [...divs.z];
-                newZ[this.draggingDivider.index] = val;
-                store.updateDividers('z', newZ);
-            }
-            const icon = this.draggingDivider.type === 'X' ? '↔' : '↕';
+            const divs = isX ? state.dividers.x : state.dividers.z;
+            const newDivs = [...divs];
+            newDivs[this.draggingDivider.index] = val;
+            store.updateDividers(isX ? 'x' : 'z', newDivs);
+            
+            const icon = isX ? '↔' : '↕';
             this.updateIndicator(client, icon, 'active move');
             return;
         }
@@ -139,24 +142,58 @@ export class DividerSystem {
             const pxPerUnit = rect.height / frustum;
 
             if (isNearH && isInsideW) {
-                this.pendingAction = { type: 'addX', pos: world.x };
-                this.updateIndicator(client, '+', 'active');
+                const wallT = state.dimensions.wallThickness;
+                const radius = state.dimensions.radius;
+                const minSize = (radius * 2) + 1;
+                const pos = world.x;
 
-                this.previewLine.style.display = 'block';
-                this.previewLine.style.width = '2px';
-                this.previewLine.style.height = `${w * pxPerUnit}px`;
-                this.previewLine.style.left = `${client.x}px`;
-                this.previewLine.style.top = `${rect.top + rect.height/2 - (w * pxPerUnit)/2}px`;
+                // Check distance to other vertical dividers
+                const tooClose = state.dividers.x.some(v => Math.abs(v - pos) < minSize) ||
+                                Math.abs(pos - (-l/2)) < minSize ||
+                                Math.abs(pos - (l/2)) < minSize;
+
+                const maxN = this.getMaxDividers(l, wallT, radius);
+                
+                if (state.dividers.x.length < maxN && !tooClose) {
+                    this.pendingAction = { type: 'addX', pos: pos };
+                    this.updateIndicator(client, '+', 'active');
+
+                    this.previewLine.style.display = 'block';
+                    this.previewLine.style.width = '2px';
+                    this.previewLine.style.height = `${w * pxPerUnit}px`;
+                    this.previewLine.style.left = `${client.x}px`;
+                    this.previewLine.style.top = `${rect.top + rect.height/2 - (w * pxPerUnit)/2}px`;
+                } else {
+                    this.hideUI();
+                    this.pendingAction = null;
+                }
 
             } else if (isNearV && isInsideD) {
-                this.pendingAction = { type: 'addZ', pos: world.z };
-                this.updateIndicator(client, '+', 'active');
+                const wallT = state.dimensions.wallThickness;
+                const radius = state.dimensions.radius;
+                const minSize = (radius * 2) + 1;
+                const pos = world.z;
 
-                this.previewLine.style.display = 'block';
-                this.previewLine.style.height = '2px';
-                this.previewLine.style.width = `${l * pxPerUnit}px`;
-                this.previewLine.style.top = `${client.y}px`;
-                this.previewLine.style.left = `${rect.left + rect.width/2 - (l * pxPerUnit)/2}px`;
+                // Check distance to other horizontal dividers
+                const tooClose = state.dividers.z.some(v => Math.abs(v - pos) < minSize) ||
+                                Math.abs(pos - (-w/2)) < minSize ||
+                                Math.abs(pos - (w/2)) < minSize;
+
+                const maxN = this.getMaxDividers(w, wallT, radius);
+                
+                if (state.dividers.z.length < maxN && !tooClose) {
+                    this.pendingAction = { type: 'addZ', pos: pos };
+                    this.updateIndicator(client, '+', 'active');
+
+                    this.previewLine.style.display = 'block';
+                    this.previewLine.style.height = '2px';
+                    this.previewLine.style.width = `${l * pxPerUnit}px`;
+                    this.previewLine.style.top = `${client.y}px`;
+                    this.previewLine.style.left = `${rect.left + rect.width/2 - (l * pxPerUnit)/2}px`;
+                } else {
+                    this.hideUI();
+                    this.pendingAction = null;
+                }
 
             } else {
                 this.hideUI();
@@ -174,8 +211,20 @@ export class DividerSystem {
         const hit = this.checkHit(world.x, world.z, l, w, state.dividers);
 
         if (hit) {
-            // Start Drag
-            this.draggingDivider = { type: hit.axis, index: hit.lineIdx, segment: hit.segIdx, hasMoved: false };
+            // Start Drag - Lock boundaries to prevent index-swapping chaos
+            const isX = hit.axis === 'X';
+            const divs = isX ? state.dividers.x : state.dividers.z;
+            const maxDim = isX ? l : w;
+            const dIndex = hit.lineIdx;
+
+            this.draggingDivider = { 
+                type: hit.axis, 
+                index: dIndex, 
+                segment: hit.segIdx, 
+                hasMoved: false,
+                leftBound: dIndex === 0 ? -maxDim / 2 : divs[dIndex - 1],
+                rightBound: dIndex === divs.length - 1 ? maxDim / 2 : divs[dIndex + 1]
+            };
             document.body.style.cursor = 'grabbing';
         } else {
             if (this.selectedForRemoval) {
@@ -398,5 +447,14 @@ export class DividerSystem {
         store.updateDividers('x', dX);
         store.updateDividers('z', dZ);
         store.setHiddenSegments(hidden);
+    }
+
+    getMaxDividers(totalLength, wallThickness, radius) {
+        const minSize = (radius * 2) + 1;
+        // Formula: N <= (L - 2*WT - minSize) / (WT + minSize)
+        const availableInternalSpace = totalLength - (2 * wallThickness) - minSize;
+        const spacePerNewDivider = wallThickness + minSize;
+        if (availableInternalSpace < 0) return 0;
+        return Math.floor(availableInternalSpace / spacePerNewDivider);
     }
 }
