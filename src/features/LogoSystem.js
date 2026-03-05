@@ -20,13 +20,15 @@ export class LogoSystem {
 
         // Listen to scene updates to ensure logo stays attached if needed (though parenting handles this)
         // Bind input events for dragging
-        const canvas = document.getElementById('main-canvas');
-        canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
-        canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
-        canvas.addEventListener('mouseup', () => this.onMouseUp());
-        canvas.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: false });
-        canvas.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
-        canvas.addEventListener('touchend', () => this.onMouseUp());
+        const canvas = document.getElementById('canvas-3d');
+        if (canvas) {
+            canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
+            canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
+            canvas.addEventListener('mouseup', () => this.onMouseUp());
+            canvas.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: false });
+            canvas.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
+            canvas.addEventListener('touchend', () => this.onMouseUp());
+        }
     }
 
     async updateLogo(logo) {
@@ -135,7 +137,7 @@ export class LogoSystem {
 
     // Drag Logic
     getIntersects(event, object) {
-        const rect = this.sceneManager.renderer.domElement.getBoundingClientRect();
+        const rect = this.sceneManager.renderer3D.domElement.getBoundingClientRect();
         const clientX = event.changedTouches ? event.changedTouches[0].clientX : event.clientX;
         const clientY = event.changedTouches ? event.changedTouches[0].clientY : event.clientY;
 
@@ -179,7 +181,7 @@ export class LogoSystem {
         // Let's use the invisible mathematical plane at y = logo.y (world space)
         // We need world position of logo plane.
 
-        const rect = this.sceneManager.renderer.domElement.getBoundingClientRect();
+        const rect = this.sceneManager.renderer3D.domElement.getBoundingClientRect();
         const clientX = event.changedTouches ? event.changedTouches[0].clientX : event.clientX;
         const clientY = event.changedTouches ? event.changedTouches[0].clientY : event.clientY;
 

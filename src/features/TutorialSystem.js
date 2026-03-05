@@ -190,7 +190,7 @@ export class TutorialSystem {
             return document.getElementById(`dim-${axis}`);
         };
 
-        const topView = document.getElementById('view-top-placeholder');
+        const topView = document.getElementById('dim-container');
 
         switch(stepIndex) {
             case 0: // Set Length
