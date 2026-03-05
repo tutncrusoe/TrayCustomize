@@ -136,7 +136,7 @@ export class DividerSystem {
             const isNearH = Math.abs(world.z - w/2) < margin || Math.abs(world.z + w/2) < margin;
             const isNearV = Math.abs(world.x - l/2) < margin || Math.abs(world.x + l/2) < margin;
 
-            const rect = document.getElementById('view-top-placeholder').getBoundingClientRect();
+            const rect = document.getElementById('dim-container').getBoundingClientRect();
             const aspect = rect.width / rect.height;
             const frustum = Math.max(w, l/aspect) * 1.4;
             const pxPerUnit = rect.height / frustum;

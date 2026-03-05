@@ -20,11 +20,7 @@ export class LabelSystem {
         // Listen for frustum changes to update label positions (Auto-Zoom fix)
         store.on('frustumChanged', () => this.updateLabels());
 
-        // Listen to frame update for positioning
-        // SceneManager emits this every frame
-        store.on('update3DOverlay', ({ camera, rect }) => {
-            this.update3DPositions(camera, rect);
-        });
+
 
         store.on('mobileViewChanged', () => {
             setTimeout(() => this.updateVisibility(), 0);
@@ -175,7 +171,7 @@ export class LabelSystem {
         const state = store.getState();
         const { l, w, h } = state.dimensions;
         const { x: dX, z: dZ } = state.dividers;
-        const rect = document.getElementById('view-top-placeholder').getBoundingClientRect();
+        const rect = this.dimContainer.getBoundingClientRect();
 
         // Check if update is needed to avoid jitter from DOM recreation
         // Include frustumSize and hiddenSegments in check
@@ -213,8 +209,12 @@ export class LabelSystem {
             hiddenSegs: { ...hiddenSegs }
         };
 
-        this.dimContainer.innerHTML = '';
-        this.dimContainer3D.innerHTML = '';
+        // Clear only labels, do NOT clear canvases
+        const topLabels = this.dimContainer.querySelectorAll('.dim-label, .dim-label-3d');
+        topLabels.forEach(l => l.remove());
+        
+        const oldLabels3D = this.dimContainer3D.querySelectorAll('.dim-label, .dim-label-3d');
+        oldLabels3D.forEach(l => l.remove());
 
         // --- Top View Labels ---
 
@@ -223,8 +223,8 @@ export class LabelSystem {
             const aspect = rect.width / rect.height;
             const frustum = this.sceneManager.frustumSize;
 
-            const w2pX = (wx) => rect.left + rect.width/2 + (wx / (frustum * aspect / 2)) * (rect.width/2);
-            const w2pZ = (wz) => rect.top + rect.height/2 + (wz / (frustum / 2)) * (rect.height/2);
+            const w2pX = (wx) => rect.width/2 + (wx / (frustum * aspect / 2)) * (rect.width/2);
+            const w2pZ = (wz) => rect.height/2 + (wz / (frustum / 2)) * (rect.height/2);
 
             // --- X-axis labels (widths of merged rooms along X) ---
             const sortedX = [-l/2, ...[...dX].sort((a,b) => a-b), l/2];
@@ -339,11 +339,11 @@ export class LabelSystem {
         }
 
         // --- 3D View Labels ---
-        // Labels for L, W, H
+        // Labels for L, W, H using static CSS positions inside the relative container
         const labels3D = [
-            { text: Math.round(l), pos: new THREE.Vector3(0, -h/2 - 10, w/2 + 10), axis: 'l' },
-            { text: Math.round(w), pos: new THREE.Vector3(l/2 + 15, -h/2 - 10, 0), axis: 'w' },
-            { text: Math.round(h), pos: new THREE.Vector3(-l/2 - 15, 0, w/2 + 15), axis: 'h' }
+            { text: Math.round(h), axis: 'h', style: { left: '4%', top: '55%', transform: 'translateY(-50%)' } },
+            { text: Math.round(l), axis: 'l', style: { left: '30%', bottom: '10%', transform: 'translateX(-50%)' } },
+            { text: Math.round(w), axis: 'w', style: { right: '20%', bottom: '15%', transform: 'translateX(50%)' } }
         ];
 
         labels3D.forEach((info) => {
@@ -351,41 +351,11 @@ export class LabelSystem {
                 store.setDimensions({ [info.axis]: nv });
                 store.emit('dimensionsCommitted');
             };
-            const el = this.createEditableLabel(info.text, cb, info.pos);
+            const el = this.createEditableLabel(info.text, cb, null);
             el.id = `label-3d-${info.axis}`;
+            el.classList.add('dim-label-3d');
+            Object.assign(el.style, info.style);
             this.dimContainer3D.appendChild(el);
-        });
-    }
-
-    update3DPositions(camera, rect3D) {
-        if (rect3D.width === 0 || rect3D.height === 0) return;
-
-        const labels = this.dimContainer3D.querySelectorAll('.dim-label-3d');
-        const boxGroup = this.sceneManager.boxGroup;
-
-        const vv = window.visualViewport;
-        const vvLeft = vv ? vv.offsetLeft : 0;
-        const vvTop  = vv ? vv.offsetTop  : 0;
-
-        labels.forEach(el => {
-            const worldPos = JSON.parse(el.dataset.worldPos);
-            const vector = new THREE.Vector3(worldPos.x, worldPos.y, worldPos.z);
-
-            if (boxGroup) vector.applyQuaternion(boxGroup.quaternion);
-
-            vector.project(camera);
-
-            const x = (rect3D.left + vvLeft) + (vector.x * 0.5 + 0.5) * rect3D.width;
-            const y = (rect3D.top  + vvTop)  + (-(vector.y) * 0.5 + 0.5) * rect3D.height;
-
-            if (vector.z < 1) {
-                el.style.display = 'block';
-                el.style.left = `${x}px`;
-                el.style.top = `${y}px`;
-                el.style.transform = 'translate(-50%, -50%)';
-            } else {
-                el.style.display = 'none';
-            }
         });
     }
 }

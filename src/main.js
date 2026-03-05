@@ -12,11 +12,12 @@ import { LogoSystem } from './features/LogoSystem.js';
 
 class App {
     constructor() {
-        const canvas = document.getElementById('main-canvas');
-        const view3D = document.getElementById('view-3d-placeholder');
-        const viewTop = document.getElementById('view-top-placeholder');
+        const canvas3D = document.getElementById('canvas-3d');
+        const canvasTop = document.getElementById('canvas-top');
+        const view3D = document.getElementById('dim-container-3d');
+        const viewTop = document.getElementById('dim-container');
 
-        this.sceneManager = new SceneManager(canvas, view3D, viewTop);
+        this.sceneManager = new SceneManager(canvas3D, canvasTop, view3D, viewTop);
 
         // Initialize Features
         this.features = [

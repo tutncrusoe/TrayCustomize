@@ -1,13 +1,15 @@
 import { store } from '../core/Store.js';
 
 export class SceneManager {
-    constructor(canvas, view3DContainer, viewTopContainer) {
-        this.canvas = canvas;
+    constructor(canvas3D, canvasTop, view3DContainer, viewTopContainer) {
+        this.canvas3D = canvas3D;
+        this.canvasTop = canvasTop;
         this.view3DContainer = view3DContainer;
         this.viewTopContainer = viewTopContainer;
 
         this.scene = null;
-        this.renderer = null;
+        this.renderer3D = null;
+        this.rendererTop = null;
         this.camera3D = null;
         this.cameraTop = null;
         this.boxGroup = null;
@@ -15,6 +17,12 @@ export class SceneManager {
         // Configuration
         this.frustumSize = 250;
         this.lastZoomedMaxDim = 0;
+
+        // Pinch-zoom scene freeze for touchpad on Desktop (same mechanism as Edit Mode).
+        // Freezes animate() during the gesture, then calls autoFitCamera() before resuming.
+        this._isZooming = false;
+        this._zoomEndTimer = null;
+        this._labelContainers = null;
 
         this.init();
         this.bindEvents();
@@ -25,10 +33,14 @@ export class SceneManager {
         this.scene = new THREE.Scene();
 
         // Renderer Setup
-        this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true });
-        this.renderer.setPixelRatio(window.devicePixelRatio);
-        this.renderer.shadowMap.enabled = false;
-        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.renderer3D = new THREE.WebGLRenderer({ canvas: this.canvas3D, antialias: true, alpha: true });
+        this.renderer3D.setPixelRatio(window.devicePixelRatio);
+        this.renderer3D.shadowMap.enabled = false;
+        this.renderer3D.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        this.rendererTop = new THREE.WebGLRenderer({ canvas: this.canvasTop, antialias: true, alpha: true });
+        this.rendererTop.setPixelRatio(window.devicePixelRatio);
+        this.rendererTop.shadowMap.enabled = false;
 
         // Camera Setup
         this.camera3D = new THREE.PerspectiveCamera(40, 1, 1, 1000);
@@ -60,6 +72,26 @@ export class SceneManager {
         // Object Group
         this.boxGroup = new THREE.Group();
         this.scene.add(this.boxGroup);
+
+        // Desktop touchpad pinch-zoom: freeze scene during gesture, refit after.
+        // Only on desktop (width >= 768px); mobile uses the isEditing freeze instead.
+        if (window.visualViewport && window.innerWidth >= 768) {
+            let lastScale = window.visualViewport.scale;
+            window.visualViewport.addEventListener('resize', () => {
+                const currentScale = window.visualViewport.scale;
+                if (Math.abs(currentScale - lastScale) > 0.001) {
+                    lastScale = currentScale;
+                    // Freeze render loop (same as Edit Mode — makes scene a static image)
+                    this._isZooming = true;
+                    clearTimeout(this._zoomEndTimer);
+                    this._zoomEndTimer = setTimeout(() => {
+                        // Refit camera BEFORE unfreeze so first rendered frame is correct
+                        this.autoFitCamera();
+                        this._isZooming = false;
+                    }, 200);
+                }
+            });
+        }
 
         // Start Loop
         this.animate = this.animate.bind(this);
@@ -161,65 +193,46 @@ export class SceneManager {
     animate() {
         requestAnimationFrame(this.animate);
 
-        // Freeze geometry and overlay updates while user is typing on mobile,
-        // allowing natural pinch-to-zoom over a static view.
-        if (store.getState().isEditing) return;
+        // Freeze geometry and overlay updates while user is editing on mobile,
+        // OR while user is pinch-zooming on desktop — both freeze the scene like
+        // a static image so the browser can natively scale without label desync.
+        if (store.getState().isEditing || this._isZooming) return;
 
         // ─── Layout-stable sizing ────────────────────────────────────────────────
-        // CRITICAL: Use document.documentElement.clientWidth/Height ("layout viewport")
-        // instead of canvas.clientWidth/Height.
-        //
-        // On iOS Safari, canvas.clientHeight can track the VISUAL viewport height
-        // (which shrinks during pinch-zoom). document.documentElement.clientHeight
-        // always equals the layout viewport and is NEVER affected by visual zoom.
-        //
-        // getBoundingClientRect() returns coordinates relative to the VISUAL viewport
-        // origin, so we convert to layout space by adding visualViewport.offsetLeft/Top.
-        // Both sides of every calculation now use the same (layout) coordinate space.
-        const docEl = document.documentElement;
-        const width  = docEl.clientWidth;
-        const height = docEl.clientHeight;
-
-        const bufW = Math.round(width  * window.devicePixelRatio);
-        const bufH = Math.round(height * window.devicePixelRatio);
-        if (this.canvas.width !== bufW || this.canvas.height !== bufH || this.renderer.getPixelRatio() !== window.devicePixelRatio) {
-            this.renderer.setPixelRatio(window.devicePixelRatio);
-            this.renderer.setSize(width, height, false);
-            store.emit('viewportResize');
-        }
-
-        const vv          = window.visualViewport;
-        const vvOffsetLeft = vv ? vv.offsetLeft : 0;
-        const vvOffsetTop  = vv ? vv.offsetTop  : 0;
-        this.renderer.setScissorTest(true);
-
-        // Render 3D View
+        // Use exact rects of the containers
         const rect3D = this.view3DContainer.getBoundingClientRect();
-        if (rect3D.width > 0 && rect3D.height > 0) {
-            const x3D = rect3D.left   + vvOffsetLeft;
-            const y3D = height - (rect3D.bottom + vvOffsetTop); // WebGL: bottom-up
 
-            this.renderer.setViewport(x3D, y3D, rect3D.width, rect3D.height);
-            this.renderer.setScissor(x3D, y3D, rect3D.width, rect3D.height);
+        if (rect3D.width > 0 && rect3D.height > 0) {
+            const bufW3D = Math.floor(rect3D.width * window.devicePixelRatio);
+            const bufH3D = Math.floor(rect3D.height * window.devicePixelRatio);
+            if (this.canvas3D.width !== bufW3D || this.canvas3D.height !== bufH3D || this.renderer3D.getPixelRatio() !== window.devicePixelRatio) {
+                this.renderer3D.setPixelRatio(window.devicePixelRatio);
+                this.renderer3D.setSize(rect3D.width, rect3D.height, true);
+            }
+            
+            this.renderer3D.setViewport(0, 0, rect3D.width, rect3D.height);
+            this.renderer3D.setScissorTest(true);
+            this.renderer3D.setScissor(0, 0, rect3D.width, rect3D.height);
+            
             this.camera3D.aspect = rect3D.width / rect3D.height;
             this.camera3D.updateProjectionMatrix();
-            this.renderer.render(this.scene, this.camera3D);
+            this.renderer3D.render(this.scene, this.camera3D);
 
             store.emit('update3DOverlay', { camera: this.camera3D, rect: rect3D, object: this.boxGroup });
         }
 
-        // Render Top View — temporarily zero the rotation so top view is flat
-        const curRot = this.boxGroup.rotation.y;
-        this.boxGroup.rotation.y = 0;
-        this.boxGroup.updateMatrixWorld();
-
         const rectTop = this.viewTopContainer.getBoundingClientRect();
         if (rectTop.width > 0 && rectTop.height > 0) {
-            const xT = rectTop.left   + vvOffsetLeft;
-            const yT = height - (rectTop.bottom + vvOffsetTop);
+            const bufWTop = Math.floor(rectTop.width * window.devicePixelRatio);
+            const bufHTop = Math.floor(rectTop.height * window.devicePixelRatio);
+            if (this.canvasTop.width !== bufWTop || this.canvasTop.height !== bufHTop || this.rendererTop.getPixelRatio() !== window.devicePixelRatio) {
+                this.rendererTop.setPixelRatio(window.devicePixelRatio);
+                this.rendererTop.setSize(rectTop.width, rectTop.height, true);
+            }
 
-            this.renderer.setViewport(xT, yT, rectTop.width, rectTop.height);
-            this.renderer.setScissor(xT, yT, rectTop.width, rectTop.height);
+            this.rendererTop.setViewport(0, 0, rectTop.width, rectTop.height);
+            this.rendererTop.setScissorTest(true);
+            this.rendererTop.setScissor(0, 0, rectTop.width, rectTop.height);
 
             const aspectTop = rectTop.width / rectTop.height;
             this.cameraTop.left   =  this.frustumSize * aspectTop / -2;
@@ -228,12 +241,16 @@ export class SceneManager {
             this.cameraTop.bottom = -this.frustumSize / 2;
             this.cameraTop.updateProjectionMatrix();
 
-            this.renderer.render(this.scene, this.cameraTop);
-        }
+            const curRot = this.boxGroup.rotation.y;
+            this.boxGroup.rotation.y = 0;
+            this.boxGroup.updateMatrixWorld();
+            
+            this.rendererTop.render(this.scene, this.cameraTop);
 
-        // Restore rotation
-        this.boxGroup.rotation.y = curRot;
-        this.boxGroup.updateMatrixWorld();
+            // Restore rotation
+            this.boxGroup.rotation.y = curRot;
+            this.boxGroup.updateMatrixWorld();
+        }
     }
 
     // Helper to get World Coordinates from Screen Coordinates (for Top View)
