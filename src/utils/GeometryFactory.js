@@ -60,11 +60,11 @@ function verticesToShape(vertices) {
     return shape;
 }
 
-function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
-    const edges = [];
-    const cellSet = new Set(cells.map(c => `${c.i},${c.j}`));
+function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR, hiddenSegments, dX, dZ) {
+    const halfEdges = [];
+    const cellEdges = {};
 
-    // 1. Collect all boundary edges
+    // 1. Create 4 directed half-edges for each cell
     cells.forEach(cell => {
         const { i, j } = cell;
         const xMin = sortedX[i];
@@ -72,85 +72,108 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
         const zMin = sortedZ[j];
         const zMax = sortedZ[j+1];
 
-        // Top Edge (min Z) - Direction: Left to Right
-        if (!cellSet.has(`${i},${j-1}`)) {
-            edges.push({
-                u: {x: xMin, z: zMin}, v: {x: xMax, z: zMin},
-                type: 'top'
-            });
+        // u -> v represents the edge direction keeping interior on the LEFT
+        const top = { u: {x: xMin, z: zMin}, v: {x: xMax, z: zMin}, type: 'top', cell, removed: false };
+        const right = { u: {x: xMax, z: zMin}, v: {x: xMax, z: zMax}, type: 'right', cell, removed: false };
+        const bottom = { u: {x: xMax, z: zMax}, v: {x: xMin, z: zMax}, type: 'bottom', cell, removed: false };
+        const left = { u: {x: xMin, z: zMax}, v: {x: xMin, z: zMin}, type: 'left', cell, removed: false };
+
+        // Link them in a CCW loop
+        top.next = right; right.prev = top;
+        right.next = bottom; bottom.prev = right;
+        bottom.next = left; left.prev = bottom;
+        left.next = top; top.prev = left;
+
+        halfEdges.push(top, right, bottom, left);
+        cellEdges[`${i},${j}`] = { top, right, bottom, left };
+    });
+
+    const cellSet = new Set(cells.map(c => `${c.i},${c.j}`));
+
+    // 2. Splice edges corresponding to HIDDEN walls between adjacent cells
+    cells.forEach(cell => {
+        const { i, j } = cell;
+        const my = cellEdges[`${i},${j}`];
+
+        // Check right neighbor
+        if (cellSet.has(`${i+1},${j}`)) {
+            const rawIdx = dX.indexOf(sortedX[i+1]);
+            // If wall is hidden, we remove the barrier between them
+            // In Native CSG logic, walls exist UNLESS explicitly hidden
+            if (rawIdx !== -1 && hiddenSegments[`X_${rawIdx}_${j}`]) {
+                const neighbor = cellEdges[`${i+1},${j}`];
+                const eA = my.right;
+                const eB = neighbor.left;
+                if (!eA.removed && !eB.removed) {
+                    eA.prev.next = eB.next;
+                    eB.next.prev = eA.prev;
+                    eB.prev.next = eA.next;
+                    eA.next.prev = eB.prev;
+                    eA.removed = true;
+                    eB.removed = true;
+                }
+            }
         }
-        // Right Edge (max X) - Direction: Top to Bottom
-        if (!cellSet.has(`${i+1},${j}`)) {
-             edges.push({
-                u: {x: xMax, z: zMin}, v: {x: xMax, z: zMax},
-                type: 'right'
-            });
-        }
-        // Bottom Edge (max Z) - Direction: Right to Left
-        if (!cellSet.has(`${i},${j+1}`)) {
-             edges.push({
-                u: {x: xMax, z: zMax}, v: {x: xMin, z: zMax},
-                type: 'bottom'
-            });
-        }
-        // Left Edge (min X) - Direction: Bottom to Top
-        if (!cellSet.has(`${i-1},${j}`)) {
-             edges.push({
-                u: {x: xMin, z: zMax}, v: {x: xMin, z: zMin},
-                type: 'left'
-            });
+
+        // Check bottom neighbor
+        if (cellSet.has(`${i},${j+1}`)) {
+            const rawIdx = dZ.indexOf(sortedZ[j+1]);
+            if (rawIdx !== -1 && hiddenSegments[`Z_${rawIdx}_${i}`]) {
+                const neighbor = cellEdges[`${i},${j+1}`];
+                const eA = my.bottom;
+                const eB = neighbor.top;
+                if (!eA.removed && !eB.removed) {
+                    eA.prev.next = eB.next;
+                    eB.next.prev = eA.prev;
+                    eB.prev.next = eA.next;
+                    eA.next.prev = eB.prev;
+                    eA.removed = true;
+                    eB.removed = true;
+                }
+            }
         }
     });
 
-    // Filter out zero-length edges
-    const validEdges = edges.filter(e => {
-        const dist = Math.abs(e.u.x - e.v.x) + Math.abs(e.u.z - e.v.z);
-        return dist > 0.0001;
-    });
-
-    if (validEdges.length === 0) return null;
-
-    // 2. Chain edges into loops
-    const key = (p) => `${p.x.toFixed(4)},${p.z.toFixed(4)}`;
-    const edgeMap = new Map();
-    validEdges.forEach(e => edgeMap.set(key(e.u), e));
+    // 3. Extract loops from remaining edges
+    const activeEdges = halfEdges.filter(e => !e.removed);
+    if (activeEdges.length === 0) return null;
 
     const loops = [];
-    const usedEdges = new Set();
-
-    validEdges.forEach(startEdge => {
-        if (usedEdges.has(startEdge)) return;
+    const used = new Set();
+    activeEdges.forEach(startEdge => {
+        if (used.has(startEdge)) return;
 
         const loop = [];
         let curr = startEdge;
-        while (curr) {
-            usedEdges.add(curr);
+        let count = 0;
+        do {
+            used.add(curr);
             loop.push(curr);
+            curr = curr.next;
+            count++;
+            if (count > activeEdges.length * 2) {
+                console.error("Infinite loop in boundary tracing");
+                break;
+            }
+        } while (curr && curr !== startEdge && !used.has(curr));
 
-            const nextKey = key(curr.v);
-            const next = edgeMap.get(nextKey);
-            if (!next) break;
-            if (next === startEdge) break;
-            if (usedEdges.has(next)) break;
-            curr = next;
-        }
-        if (loop.length > 2) loops.push(loop);
+        if (loop.length >= 3) loops.push(loop);
     });
 
     if (loops.length === 0) return null;
 
-    // 3. Identify Outer Loop vs Holes based on Area
-    const polygons = loops.map(loop => loop.map(e => e.u));
-    const getArea = (poly) => {
+    // 4. Identify Outer Loop vs Holes based on signed Area
+    const getArea = (verts) => {
         let area = 0;
-        for (let i = 0; i < poly.length; i++) {
-            const p1 = poly[i];
-            const p2 = poly[(i + 1) % poly.length];
-            area += (p1.x * p2.z - p2.x * p1.z); // Using Z as Y
+        for (let i = 0; i < verts.length; i++) {
+            const p1 = verts[i];
+            const p2 = verts[(i + 1) % verts.length];
+            area += (p1.x * p2.z - p2.x * p1.z);
         }
         return area / 2;
     };
 
+    const polygons = loops.map(loop => loop.map(e => e.u));
     const areas = polygons.map(p => getArea(p));
     let maxArea = -1;
     let outerIdx = -1;
@@ -161,7 +184,7 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
         }
     });
 
-    // 4. Process Vertices (Inset + Radius)
+    // 5. Process Vertices (Inset + Radius + Cap U-turns)
     const processedLoops = loops.map((loop, loopIdx) => {
         const isOuter = (loopIdx === outerIdx);
 
@@ -183,53 +206,55 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
                 if (Math.abs(e.u.x - (-l/2)) < EPS) inset = thick;
                 sx += inset; ex += inset;
             }
-            return {p1: {x: sx, z: sz}, p2: {x: ex, z: ez}, type: e.type};
+            return { p1: {x: sx, z: sz}, p2: {x: ex, z: ez}, type: e.type, origE: e };
         });
 
         const newVerts = [];
         for (let i = 0; i < shiftedLines.length; i++) {
             const l1 = shiftedLines[i];
             const l2 = shiftedLines[(i + 1) % shiftedLines.length];
-            let x, z;
-            if (l1.type === 'top' || l1.type === 'bottom') {
-                z = l1.p1.z;
-                x = l2.p1.x;
+            
+            const isH1 = (l1.type === 'top' || l1.type === 'bottom');
+            const isH2 = (l2.type === 'top' || l2.type === 'bottom');
+
+            if (isH1 !== isH2) {
+                // Perpendicular intersection
+                let x, z;
+                if (isH1) {
+                    z = l1.p1.z; x = l2.p1.x;
+                } else {
+                    x = l1.p1.x; z = l2.p1.z;
+                }
+                const last = newVerts.length > 0 ? newVerts[newVerts.length - 1] : null;
+                if (!last || Math.abs(last.x - x) > 0.001 || Math.abs(last.z - z) > 0.001) {
+                    newVerts.push({x, z, rOrig: l2.origE.u});
+                }
             } else {
-                x = l1.p1.x;
-                z = l2.p1.z;
+                // Parallel (U-turn) or Collinear
+                const p2 = l1.p2;
+                const last = newVerts.length > 0 ? newVerts[newVerts.length - 1] : null;
+                if (!last || Math.abs(last.x - p2.x) > 0.001 || Math.abs(last.z - p2.z) > 0.001) {
+                    // For U-turn cap, physical corner is the end of the segment
+                    newVerts.push({x: p2.x, z: p2.z, rOrig: l1.origE.v}); 
+                }
+                const p1 = l2.p1;
+                if (Math.abs(p2.x - p1.x) > 0.001 || Math.abs(p2.z - p1.z) > 0.001) {
+                    newVerts.push({x: p1.x, z: p1.z, rOrig: l2.origE.u});
+                }
             }
-            newVerts.push({x, z});
         }
 
-        const getPolyArea = (verts) => {
-            let a = 0;
-            for(let k=0; k<verts.length; k++) {
-                const p1 = verts[k];
-                const p2 = verts[(k+1)%verts.length];
-                a += (p1.x * p2.z - p2.x * p1.z);
-            }
-            return a / 2;
+        if (Math.abs(getArea(newVerts)) < 1) return null;
+
+        const isTrayCorner = (p) => Math.abs(Math.abs(p.x) - l/2) < 0.1 && Math.abs(Math.abs(p.z) - w/2) < 0.1;
+        const getRadius = (vertObj) => {
+            const origV = vertObj.rOrig;
+            if (isTrayCorner(origV)) return Math.max(outerR - thick, 0.1);
+            return 4; // Fillet radius for internal wall intersections
         };
 
-        if (Math.abs(getPolyArea(newVerts)) < 1) return null;
+        const vertices = newVerts.map(v => ({ x: v.x, z: v.z, r: getRadius(v) }));
 
-        const isTrayCorner = (p) => {
-            return (Math.abs(Math.abs(p.x) - l/2) < 0.1) && (Math.abs(Math.abs(p.z) - w/2) < 0.1);
-        };
-
-        const getRadius = (idx) => {
-            const origV = loop[(idx + 1) % loop.length].u;
-            if (isTrayCorner(origV)) {
-                return Math.max(outerR - thick, 0.1);
-            }
-            return 4;
-        };
-
-        const vertices = newVerts.map((v, i) => {
-            return { x: v.x, z: v.z, r: getRadius(i) };
-        });
-
-        // Calculate Bounding Box
         let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
         vertices.forEach(v => {
             if (v.x < minX) minX = v.x;
@@ -238,9 +263,7 @@ function traceRoomBoundary(cells, sortedX, sortedZ, thick, l, w, outerR) {
             if (v.z > maxZ) maxZ = v.z;
         });
 
-        // Convert to Shape
         const shape = verticesToShape(vertices);
-
         return { shape, vertices, isOuter, bounds: { minX, maxX, minZ, maxZ } };
     }).filter(l => l !== null);
 
@@ -358,7 +381,7 @@ export function createModel(l, h, w, r, wallThickness, dX, dZ, hiddenSegments = 
 
     // Process Rooms
     rooms.forEach(room => {
-        const res = traceRoomBoundary(room.cells, sortedX, sortedZ, thick, l, w, effectiveOuterR);
+        const res = traceRoomBoundary(room.cells, sortedX, sortedZ, thick, l, w, effectiveOuterR, hiddenSegments, dX, dZ);
         if (res) {
             voids.push({ shape: res.shape, bounds: res.bounds });
             if (res.islands) {
@@ -411,6 +434,11 @@ export function createModel(l, h, w, r, wallThickness, dX, dZ, hiddenSegments = 
         mesh.receiveShadow = true;
         group.add(mesh);
     });
+
+    // NOTE: Internal Walls explicitly generating using BoxGeometry/ExtrudeGeometry has been REMOVED!
+    // The new Half-Edge `traceRoomBoundary` mathematically generates ALL baffle walls from negative space
+    // and naturally offsets/fillets them exactly like the outer tray frame.
+
 
     const baseShape = createRoundedRectShape(l, w, effectiveOuterR);
     const baseGeo = new THREE.ExtrudeGeometry(baseShape, { depth: 2, bevelEnabled: false, curveSegments: 24 });

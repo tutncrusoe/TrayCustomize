@@ -15,6 +15,7 @@ export class LabelSystem {
     bindEvents() {
         store.on('dimensionsChanged', () => this.updateLabels());
         store.on('dividersChanged', () => this.updateLabels());
+        store.on('hiddenSegmentsChanged', () => this.updateLabels());
 
         // Listen for frustum changes to update label positions (Auto-Zoom fix)
         store.on('frustumChanged', () => this.updateLabels());
@@ -32,6 +33,75 @@ export class LabelSystem {
         window.addEventListener('resize', () => {
             setTimeout(() => this.updateVisibility(), 0);
         });
+    }
+
+    /**
+     * Compute merged visible room spans along one axis.
+     * Uses BFS: adjacent segments whose separating wall is fully hidden are merged.
+     *
+     * @param {number[]} sorted  - sorted boundary coords e.g. [-60,-20,20,60]
+     * @param {string}   myAxis  - 'X' or 'Z' (the axis whose dividers we label)
+     * @param {number[]} crossDividers - divider positions on the OTHER axis
+     * @param {object}   hiddenSegs   - store.state.hiddenSegments
+     * @returns {Array<{center:number, size:number}>} visible room labels
+     */
+    getMergedRooms(sorted, myAxis, crossDividers, hiddenSegs) {
+        const n = sorted.length - 1; // number of raw segments
+        const visited = new Array(n).fill(false);
+        const rooms = [];
+
+        for (let start = 0; start < n; start++) {
+            if (visited[start]) continue;
+
+            // BFS along this axis
+            const queue = [start];
+            visited[start] = true;
+            const cells = [start];
+
+            while (queue.length > 0) {
+                const cur = queue.shift();
+
+                // Try merging with cur+1 (right/down neighbor)
+                const right = cur + 1;
+                if (right < n && !visited[right]) {
+                    // The wall between cur and right is the divider at sorted[right]
+                    // It is "absent" (passable) iff ALL its cross-segments are hidden
+                    if (this._wallFullyHidden(myAxis, cur, crossDividers, hiddenSegs)) {
+                        visited[right] = true;
+                        queue.push(right);
+                        cells.push(right);
+                    }
+                }
+            }
+
+            // Compute merged span
+            const minCoord = sorted[Math.min(...cells)];
+            const maxCoord = sorted[Math.max(...cells) + 1];
+            rooms.push({
+                center: (minCoord + maxCoord) / 2,
+                size: maxCoord - minCoord
+            });
+        }
+
+        return rooms;
+    }
+
+    /**
+     * Returns true if the wall AFTER segment index `segIdx` (i.e. at the right/bottom boundary
+     * of that segment) is fully hidden across all cross-divider spans.
+     *
+     * myAxis='X' → we check divider at sortedX[segIdx+1], keys X_rawIdx_j for all j
+     * myAxis='Z' → we check divider at sortedZ[segIdx+1], keys Z_rawIdx_j for all j
+     */
+    _wallFullyHidden(myAxis, segIdx, crossDividers, hiddenSegs) {
+        const rawIdx = segIdx; // array index in the dividers list (already sorted)
+        const crossCount = crossDividers.length + 1; // number of cross-segments
+
+        for (let j = 0; j < crossCount; j++) {
+            const key = `${myAxis}_${rawIdx}_${j}`;
+            if (!hiddenSegs[key]) return false;
+        }
+        return true;
     }
 
     updateVisibility() {
@@ -105,8 +175,9 @@ export class LabelSystem {
         const rect = document.getElementById('view-top-placeholder').getBoundingClientRect();
 
         // Check if update is needed to avoid jitter from DOM recreation
-        // Include frustumSize in check
+        // Include frustumSize and hiddenSegments in check
         const frustum = this.sceneManager.frustumSize;
+        const hiddenSegs = state.hiddenSegments;
         if (this.lastState) {
             const s = this.lastState;
             const dimsMatch = Math.abs(s.l - l) < 0.01 &&
@@ -124,7 +195,9 @@ export class LabelSystem {
 
             const frustumMatch = Math.abs(s.frustum - frustum) < 0.01;
 
-            if (dimsMatch && rectMatch && divXMatch && divZMatch && frustumMatch) return;
+            const hiddenMatch = JSON.stringify(s.hiddenSegs) === JSON.stringify(hiddenSegs);
+
+            if (dimsMatch && rectMatch && divXMatch && divZMatch && frustumMatch && hiddenMatch) return;
         }
 
         this.lastState = {
@@ -133,7 +206,8 @@ export class LabelSystem {
             rectH: rect.height,
             dX: [...dX],
             dZ: [...dZ],
-            frustum
+            frustum,
+            hiddenSegs: { ...hiddenSegs }
         };
 
         this.dimContainer.innerHTML = '';
@@ -149,61 +223,40 @@ export class LabelSystem {
             const w2pX = (wx) => rect.left + rect.width/2 + (wx / (frustum * aspect / 2)) * (rect.width/2);
             const w2pZ = (wz) => rect.top + rect.height/2 + (wz / (frustum / 2)) * (rect.height/2);
 
+            // --- X-axis labels (widths of merged rooms along X) ---
             const sortedX = [-l/2, ...[...dX].sort((a,b) => a-b), l/2];
-            for(let i=0; i < sortedX.length - 1; i++) {
-                const dist = sortedX[i+1] - sortedX[i];
-                if(dist < 1) continue;
+            const sortedZ = [-w/2, ...[...dZ].sort((a,b) => a-b), w/2];
 
-                const segmentStart = sortedX[i];
-                const segmentEnd = sortedX[i+1];
-
+            const mergedX = this.getMergedRooms(sortedX, 'X', dZ, hiddenSegs);
+            mergedX.forEach(room => {
+                if (room.size < 1) return;
                 const cb = (nd) => {
-                    const diff = nd - dist;
+                    const diff = nd - room.size;
                     store.setDimensions({ l: l + diff });
-
-                    const newX = dX.map(d => {
-                        if (d <= segmentStart + 0.001) return d - diff/2;
-                        if (d >= segmentEnd - 0.001) return d + diff/2;
-                        return d;
-                    });
-                    store.updateDividers('x', newX);
                     store.emit('dimensionsCommitted');
                 };
-
-                const el = this.createEditableLabel(Math.round(dist), cb);
-                el.style.left = `${w2pX((sortedX[i] + sortedX[i+1]) / 2)}px`;
+                const el = this.createEditableLabel(Math.round(room.size), cb);
+                el.style.left = `${w2pX(room.center)}px`;
                 el.style.top = `${w2pZ(-w/2) - 25}px`;
                 el.style.transform = 'translateX(-50%)';
                 this.dimContainer.appendChild(el);
-            }
+            });
 
-            const sortedZ = [-w/2, ...[...dZ].sort((a,b) => a-b), w/2];
-            for(let i=0; i < sortedZ.length - 1; i++) {
-                const dist = sortedZ[i+1] - sortedZ[i];
-                if(dist < 1) continue;
-
-                const segmentStart = sortedZ[i];
-                const segmentEnd = sortedZ[i+1];
-
+            // --- Z-axis labels (depths of merged rooms along Z) ---
+            const mergedZ = this.getMergedRooms(sortedZ, 'Z', dX, hiddenSegs);
+            mergedZ.forEach(room => {
+                if (room.size < 1) return;
                 const cb = (nd) => {
-                    const diff = nd - dist;
+                    const diff = nd - room.size;
                     store.setDimensions({ w: w + diff });
-
-                    const newZ = dZ.map(d => {
-                        if (d <= segmentStart + 0.001) return d - diff/2;
-                        if (d >= segmentEnd - 0.001) return d + diff/2;
-                        return d;
-                    });
-                    store.updateDividers('z', newZ);
                     store.emit('dimensionsCommitted');
                 };
-
-                const el = this.createEditableLabel(Math.round(dist), cb);
+                const el = this.createEditableLabel(Math.round(room.size), cb);
                 el.style.left = `${w2pX(-l/2) - 35}px`;
-                el.style.top = `${w2pZ((sortedZ[i] + sortedZ[i+1]) / 2)}px`;
+                el.style.top = `${w2pZ(room.center)}px`;
                 el.style.transform = 'translateY(-50%)';
                 this.dimContainer.appendChild(el);
-            }
+            });
         }
 
         // --- 3D View Labels ---
