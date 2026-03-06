@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cart - Parameterized Tray</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+      body {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        background: radial-gradient(circle at top, #1f2937, #09090b 50%);
+      }
+    </style>
+  </head>
+  <body class="min-h-screen text-zinc-100">
+    <main class="mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-10">
+      <header class="mb-6 flex flex-col gap-3 md:mb-8 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p class="text-xs uppercase tracking-[0.2em] text-zinc-400">Cart</p>
+          <h1 class="text-2xl font-extrabold text-white md:text-3xl">Your Custom Tray Order</h1>
+          <p id="cart-count" class="mt-1 text-sm text-zinc-400">0 items</p>
+        </div>
+        <a
+          href="./index.html"
+          class="inline-flex items-center justify-center rounded-xl border border-white/20 bg-zinc-900/70 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800"
+          >Back to Editor</a
+        >
+      </header>
+
+      <div class="grid gap-6 md:grid-cols-3">
+        <section class="space-y-4 md:col-span-2">
+          <div id="cart-items" class="space-y-4"></div>
+        </section>
+
+        <aside class="rounded-2xl border border-white/10 bg-zinc-900/70 p-5 shadow-2xl">
+          <h2 class="text-lg font-bold text-white">Summary</h2>
+          <div class="mt-4 space-y-2 text-sm">
+            <div class="flex items-center justify-between text-zinc-300">
+              <span>Subtotal</span>
+              <span id="subtotal-price">0 VND</span>
+            </div>
+            <div class="flex items-center justify-between text-zinc-300">
+              <span>Total</span>
+              <span id="total-price" class="text-base font-bold text-white">0 VND</span>
+            </div>
+          </div>
+
+          <div class="my-5 h-px w-full bg-white/10"></div>
+
+          <h2 class="text-lg font-bold text-white">Checkout</h2>
+          <form id="checkout-form" class="mt-4 space-y-3">
+            <div>
+              <label for="customer-name" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-zinc-400"
+                >Name</label
+              >
+              <input
+                id="customer-name"
+                name="name"
+                type="text"
+                class="w-full rounded-xl border border-white/10 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-emerald-400"
+                placeholder="Nguyen Van A"
+              />
+            </div>
+            <div>
+              <label for="customer-phone" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-zinc-400"
+                >Phone</label
+              >
+              <input
+                id="customer-phone"
+                name="phone"
+                type="tel"
+                class="w-full rounded-xl border border-white/10 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-emerald-400"
+                placeholder="0901234567"
+              />
+            </div>
+            <div>
+              <label
+                for="customer-address"
+                class="mb-1 block text-xs font-semibold uppercase tracking-wider text-zinc-400"
+                >Address</label
+              >
+              <textarea
+                id="customer-address"
+                name="address"
+                rows="3"
+                class="w-full rounded-xl border border-white/10 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-emerald-400"
+                placeholder="123 Tran Hung Dao, District 1, HCMC"
+              ></textarea>
+            </div>
+            <button
+              id="place-order-btn"
+              type="submit"
+              class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-500"
+            >
+              Place Order
+            </button>
+          </form>
+
+          <div
+            id="checkout-status"
+            class="mt-4 hidden rounded-xl border px-3 py-2 text-sm"
+            role="status"
+            aria-live="polite"
+          ></div>
+        </aside>
+      </div>
+    </main>
+
+    <script type="module" src="./src/cart.js"></script>
+  </body>
+</html>

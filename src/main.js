@@ -9,6 +9,8 @@ import { TutorialSystem } from './features/TutorialSystem.js';
 import { LabelSystem } from './features/LabelSystem.js';
 import { EditSystem } from './features/EditSystem.js';
 import { LogoSystem } from './features/LogoSystem.js';
+import { calculateTrayPrice, formatVND } from './utils/pricing.js';
+import { addOrMergeCartItem, buildCartItemFromState, getCartTrayCount } from './services/cartService.js';
 
 class App {
     constructor() {
@@ -36,6 +38,7 @@ class App {
 
         this.bindEvents();
         this.setupSidebarControls();
+        this.refreshCartBadge();
 
         if (window.innerWidth < 768) {
             store.setMobileView('3d');
@@ -77,6 +80,12 @@ class App {
              } else {
                  this.handleMobileViewChange(store.getState().mobileView);
              }
+        });
+
+        window.addEventListener('storage', (event) => {
+            if (!event.key || event.key === 'tray_customize_cart_v1') {
+                this.refreshCartBadge();
+            }
         });
     }
 
@@ -161,7 +170,42 @@ class App {
              fileInput.value = '';
         });
 
+        document.getElementById('add-to-cart-btn')?.addEventListener('click', () => {
+            this.handleAddToCart();
+        });
+        document.getElementById('open-cart-btn')?.addEventListener('click', () => {
+            this.handleOpenCart();
+        });
+
         this.updatePrice();
+    }
+
+    handleAddToCart() {
+        try {
+            const item = buildCartItemFromState(store.getState());
+            addOrMergeCartItem(item);
+            this.refreshCartBadge();
+        } catch (error) {
+            console.error('Failed to add item to cart:', error);
+            window.alert('Unable to add item to cart. Please try again.');
+        }
+    }
+
+    handleOpenCart() {
+        window.location.href = './cart.html';
+    }
+
+    refreshCartBadge() {
+        const badge = document.getElementById('cart-badge');
+        if (!badge) return;
+
+        try {
+            const count = getCartTrayCount();
+            badge.innerText = count > 99 ? '99+' : String(count);
+        } catch (error) {
+            console.error('Failed to refresh cart badge:', error);
+            badge.innerText = '0';
+        }
     }
 
     updateActiveColorButton(theme) {
@@ -175,34 +219,10 @@ class App {
     }
 
     updatePrice() {
-        const { l, w, h, wallThickness } = store.getState().dimensions;
-        // Volume Calculation
-        // Approx: Base + Walls
-        // Base: l * w * 2mm (Base thickness fixed at 2mm)
-        // Walls: (2*l + 2*w) * h * wallThickness
-        // Volume in cm3 = (mm3) / 1000
-
-        const baseThick = 2;
-        const volBase = l * w * baseThick;
-        const volWalls = (2 * l + 2 * w) * h * wallThickness;
-        const totalVolMm3 = volBase + volWalls;
-        const totalVolCm3 = totalVolMm3 / 1000;
-
-        // PLA Density ~ 1.25 g/cm3. 10% infill -> ~0.2 effective?
-        // Walls are usually solid in 3D printing if thin (2mm is 4 perimeters).
-        // Let's assume solid for 2mm walls.
-        // Density = 1.25 g/cm3
-
-        const massGrams = totalVolCm3 * 1.25;
-
-        // Price per gram? Let's say 500 VND/g + base fee
-        const pricePerGram = 500;
-        const baseFee = 50000;
-
-        const price = Math.round((massGrams * pricePerGram + baseFee) / 1000) * 1000; // Round to nearest 1000
+        const price = calculateTrayPrice(store.getState().dimensions);
 
         const el = document.getElementById('total-price');
-        if(el) el.innerText = price.toLocaleString('vi-VN') + ' VND';
+        if(el) el.innerText = formatVND(price);
     }
 
     handleMobileViewChange(mode) {

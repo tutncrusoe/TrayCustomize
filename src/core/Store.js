@@ -18,6 +18,7 @@ export class Store extends EventBus {
             hiddenSegments: {},
             isEditing: false,
             mobileView: '3d', // '3d' or 'top'
+            tutorialActive: false,
             tutorialStep: 0,
             colorTheme: 'brown', // 'brown' or 'white'
             logo: null // { type: 'image'|'text', data: string, x: number, z: number, scale: number }
@@ -43,6 +44,7 @@ export class Store extends EventBus {
     }
 
     setDimensions(newDims) {
+        const prevDims = { ...this.state.dimensions };
         const nextDims = { ...this.state.dimensions, ...newDims };
 
         // Clamp wallThickness
@@ -61,16 +63,22 @@ export class Store extends EventBus {
 
         this.state.dimensions = nextDims;
         this.emit('dimensionsChanged', this.state.dimensions);
+
+        const changedKeys = Object.keys(nextDims).filter((key) => Math.abs((nextDims[key] ?? 0) - (prevDims[key] ?? 0)) > 0.0001);
+        if (changedKeys.length > 0) {
+            this.emit('dimensionsPatched', { changedKeys, dimensions: this.state.dimensions });
+        }
     }
 
     addDivider(axis, pos) {
         const arr = axis === 'x' ? this.state.dividers.x : this.state.dividers.z;
         // Prevent duplicates (tolerance 0.1)
-        if (arr.some(v => Math.abs(v - pos) < 0.1)) return;
+        if (arr.some(v => Math.abs(v - pos) < 0.1)) return false;
 
         arr.push(pos);
         arr.sort((a, b) => a - b);
         this.emit('dividersChanged', this.state.dividers);
+        return true;
     }
 
     updateDividers(axis, newDividers) {
@@ -109,6 +117,11 @@ export class Store extends EventBus {
     setTutorialStep(step) {
         this.state.tutorialStep = step;
         this.emit('tutorialStepChanged', this.state.tutorialStep);
+    }
+
+    setTutorialActive(active) {
+        this.state.tutorialActive = !!active;
+        this.emit('tutorialActiveChanged', this.state.tutorialActive);
     }
 
     getState() {

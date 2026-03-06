@@ -845,11 +845,28 @@
                 <i data-lucide="download" class="w-5 h-5"></i>
               </button>
               <button
+                id="add-to-cart-btn"
+                type="button"
                 class="flex-1 py-3 bg-[#2A9D8F] hover:bg-[#268e81] text-white rounded-xl font-bold text-sm shadow-lg shadow-[#2A9D8F]/20 transition-all active:scale-95"
               >
                 Add to Cart
               </button>
               <button
+                id="open-cart-btn"
+                type="button"
+                class="relative w-12 bg-[#264653] hover:bg-[#2f5f5b] text-white rounded-xl font-bold text-sm border border-[#2A9D8F]/35 shadow-lg shadow-[#264653]/30 flex items-center justify-center transition-all active:scale-95 shrink-0"
+                aria-label="Open Cart"
+              >
+                <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                <span
+                  id="cart-badge"
+                  class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#E76F51] text-white text-[10px] font-bold leading-[18px] text-center border border-black/20"
+                >
+                  0
+                </span>
+              </button>
+              <button
+                id="buy-now-btn"
                 class="flex-[1.5] py-3 bg-[#E76F51] hover:bg-[#d65f41] text-white rounded-xl font-bold text-sm shadow-lg shadow-[#E76F51]/20 transition-all active:scale-95"
               >
                 Buy Now
