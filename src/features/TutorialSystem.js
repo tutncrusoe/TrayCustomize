@@ -6,6 +6,7 @@ export class TutorialSystem {
         this.sceneManager = sceneManager;
         this.step = 0;
         this.isActive = false;
+        this.isFirstShow = true;
         this.lastAddedDividerX = null;
         this.lastAddedDividerZ = null;
         this.previousDividersX = [];
@@ -16,7 +17,6 @@ export class TutorialSystem {
         this.underlay = document.getElementById('tutorial-underlay');
         this.blob = document.getElementById('tut-blob');
         this.text = document.getElementById('tut-text');
-        this.arrow = document.getElementById('tut-arrow');
         this.cursor = document.getElementById('ghost-cursor');
         this.skipBtn = document.getElementById('tut-skip');
         this.ghostDivider = document.getElementById('ghost-divider');
@@ -127,6 +127,7 @@ export class TutorialSystem {
 
     start() {
         this.isActive = true;
+        this.isFirstShow = true; // Reset the flag so that every time we restart the tutorial, it sets position instantly without flying
         document.body.classList.add('tutorial-active');
         if (this.skipBtn) this.skipBtn.innerText = "Skip Tutorial";
         this.showStep(0);
@@ -326,16 +327,14 @@ export class TutorialSystem {
         const rect = target.getBoundingClientRect();
         this.text.innerText = text;
 
-        let top, left, arrowRot, arrowTop, arrowLeft;
+        let top, left;
 
         if (target.tagName === 'INPUT' || target.classList.contains('input-group')) {
             top = rect.bottom + 10;
             left = rect.left + rect.width/2 - 50;
-            this.arrow.style.opacity = 0;
-        } else if (target.id && (target.id.startsWith('label-3d-') || target.id.startsWith('dim-'))) {
+        } else if (target.id && (target.id.startsWith('label-3d-') || (target.id.startsWith('dim-') && target.id !== 'dim-container'))) {
             top = rect.top + rect.height/2 - 50;
             left = rect.left + rect.width/2 - 50;
-            this.arrow.style.opacity = 0;
         } else {
             if (side === 'right-offset') {
                 top = rect.top + rect.height / 2 - 50;
@@ -347,58 +346,29 @@ export class TutorialSystem {
                     wallX = coords.x;
                 }
                 left = wallX + 20; // 20px from right edge of the 3D tray
-                this.arrow.style.opacity = 0;
             } else if (side === 'bottom-offset') {
                 top = rect.bottom - 90;
                 let wallY = rect.bottom; // fallback
                 if (this.sceneManager) {
                     const { w } = store.getState().dimensions;
-                    // Bottom wall world coordinate is currently Top View's -w/2, 
-                    // or let's check coordinate logic: getScreenCoordsFromTopWorld(0, w/2)
                     const coords = this.sceneManager.getScreenCoordsFromTopWorld(0, w / 2);
                     wallY = coords.y;
                 }
                 top = wallY + 20;
                 left = rect.left + rect.width / 2 - 70;
-                arrowRot = 270;
-                this.arrow.style.opacity = 0;
             } else if (side === 'right') {
                 // New logic for Drag Z (Horizontal line)
                 top = rect.top + rect.height/2 - 50;
                 left = rect.right + 20;
                 if (left + 140 > window.innerWidth) left = rect.left - 120; // Flip if too far right
-                arrowRot = 180; // Point Left
-                arrowTop = rect.top;
-                arrowLeft = rect.right - 5;
-                this.arrow.style.opacity = 0; // Hide arrow for drag steps anyway as per request/design
-            } else {
+            } else if (side !== 'right-offset') {
+                // Default fallback for other cases
                 top = rect.bottom + 60;
                 left = rect.left + rect.width/2 - 70;
-                arrowRot = 45;
-                arrowTop = rect.bottom + 5;
-                arrowLeft = rect.left + rect.width/2 - 30;
-                if(side !== 'right-offset' && side !== 'bottom-offset') this.arrow.style.opacity = 1;
             }
         }
 
-        // Hide arrow specifically for Drag steps (5 & 6) as we rely on the Hand Cursor
-        if (text === 'Drag to move divider') {
-             this.arrow.style.opacity = 0;
-             // No specific 'right' offset needed anymore since Drag Z now uses 'bottom'
-        }
-
-        // Bounds
-        if (target.id && (target.id.startsWith('label-3d-') || target.id.startsWith('dim-'))) {
-            // Allow going negative slightly to keep center alignment with edge labels
-            if (left < -30) left = -30;
-        } else {
-            if (left < 10) left = 10;
-        }
-        
-        // Remove strict right bound limitation because it prevents manual right offset
-        if (side !== 'right-offset' && left + 140 > window.innerWidth) {
-            left = window.innerWidth - 160;
-        }
+        // No boundary clamping - blob can appear at any position
 
         // Apply scale down on mobile screens
         if (window.innerWidth < 768) {
@@ -407,13 +377,21 @@ export class TutorialSystem {
             this.blob.style.transform = '';
         }
 
+        // Check if it's the first time displaying (e.g., just started) to prevent flying from corner
+        if (this.isFirstShow) {
+            this.blob.style.transition = 'none';
+        }
+
         this.blob.style.top = `${top}px`;
         this.blob.style.left = `${left}px`;
-
-        if (this.arrow.style.opacity !== '0') {
-            this.arrow.style.transform = `rotate(${arrowRot}deg)`;
-            this.arrow.style.top = `${arrowTop}px`;
-            this.arrow.style.left = `${arrowLeft}px`;
+        
+        // Render step delays slightly, but ensure we re-enable transition for next steps
+        if (this.isFirstShow) {
+            this.isFirstShow = false;
+            // Force browser repaint to recognize the position before enabling transition
+            if (this.blob) this.blob.style.display = 'block';
+            this.blob.offsetHeight; 
+            if (this.blob) this.blob.style.transition = 'all 0.5s ease-out, opacity 0.3s ease-in';
         }
     }
 

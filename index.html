@@ -164,7 +164,7 @@
         box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
       }
       #global-dim-input {
-        position: fixed;
+        position: absolute;
         z-index: 9999;
         width: 60px;
         height: 26px;
@@ -223,6 +223,10 @@
       .tutorial-active #tutorial-underlay {
         display: block;
       }
+      .tutorial-active .tutorial-blob {
+        opacity: 1;
+        z-index: 1000;
+      }
 
       .tutorial-skip-btn {
         position: fixed;
@@ -252,11 +256,13 @@
       .tutorial-blob {
         position: absolute;
         width: 100px;
-        transition: all 0.5s ease-out;
+        opacity: 0;
         pointer-events: none;
+        z-index: -99;
+        /* transition managed primarily by JS now */
       }
       .tutorial-blob svg path {
-        fill: #fef08a;
+        fill: transparent;
         stroke: #fff;
         stroke-width: 3px;
         filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.8));
@@ -277,25 +283,13 @@
         font-family: "Patrick Hand", cursive;
         font-size: 12px;
         line-height: 1.3;
-        color: #18181b;
+        color: #fff;
         font-weight: 600;
         transform: rotate(-2deg);
         pointer-events: none;
       }
 
-      .tutorial-arrow {
-        position: absolute;
-        width: 60px;
-        height: 60px;
-        transition: all 0.5s ease-out;
-        z-index: 10000;
-      }
-      .tutorial-arrow svg {
-        width: 100%;
-        height: 100%;
-        stroke: #fff;
-        filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.8));
-      }
+
 
       .ghost-cursor {
         position: absolute;
@@ -516,12 +510,50 @@
         -ms-overflow-style: none;
         scrollbar-width: none;
       }
+      /* Orientation Warning Overlay */
+      #orientation-warning {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 10, 10, 0.95);
+        backdrop-filter: blur(10px);
+        z-index: 100000;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 2rem;
+        color: white;
+      }
+      @media (max-width: 768px) and (orientation: landscape) {
+        #orientation-warning {
+          display: flex;
+        }
+      }
+      .rotate-icon {
+        animation: rotate-phone 2s ease-in-out infinite;
+        margin-bottom: 1.5rem;
+        color: #3b82f6;
+      }
+      @keyframes rotate-phone {
+        0%, 100% { transform: rotate(90deg); }
+        50% { transform: rotate(0deg); }
+      }
     </style>
   </head>
   <body class="relative h-screen w-screen">
+    <!-- Orientation Warning for Mobile Landscape -->
+    <div id="orientation-warning">
+      <div class="rotate-icon">
+        <i data-lucide="smartphone" size="48"></i>
+      </div>
+      <h2 class="text-xl font-bold mb-2">Please Rotate Your Device</h2>
+      <p class="text-zinc-400 text-sm">This app is optimized for portrait mode on mobile devices.</p>
+    </div>
+
     <button id="tut-skip" class="tutorial-skip-btn">Skip Tutorial</button>
     <div id="tutorial-underlay" style="z-index: 15">
-      <div id="tut-blob" class="tutorial-blob">
+      <div id="tut-blob" class="tutorial-blob" style="display: none;">
         <svg
           viewBox="0 0 200 150"
           fill="none"
@@ -532,22 +564,11 @@
             fill="#FFD700"
           />
         </svg>
-        <div id="tut-text" class="tutorial-text">Start here!</div>
+        <div id="tut-text" class="tutorial-text"></div>
       </div>
     </div>
     <div id="tutorial-overlay">
-      <div id="tut-arrow" class="tutorial-arrow">
-        <svg
-          viewBox="0 0 100 100"
-          fill="none"
-          stroke="black"
-          stroke-width="5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M10 90 Q 50 50 80 20 M 80 20 L 50 20 M 80 20 L 80 50" />
-        </svg>
-      </div>
+
       <div id="ghost-cursor" class="ghost-cursor">
         <svg
           viewBox="0 0 24 24"
@@ -862,6 +883,19 @@
       </aside>
     </div>
 
+    <script>
+      // Prevent browser zoom via Ctrl+Scroll
+      window.addEventListener('wheel', (e) => {
+        if (e.ctrlKey) e.preventDefault();
+      }, { passive: false });
+
+      // Prevent browser zoom via Ctrl+Plus / Ctrl+Minus / Ctrl+0
+      window.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0' || e.key === '_')) {
+          e.preventDefault();
+        }
+      });
+    </script>
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>

@@ -5,8 +5,10 @@ export class EditSystem {
     constructor(sceneManager) {
         this.sceneManager = sceneManager;
         this.input = document.getElementById('global-dim-input');
+        this.inputOriginalParent = this.input ? this.input.parentElement : null;
         this.currentCallback = null;
         this.current3DPos = null;
+        this.currentContainer = null; // The container the input is currently anchored to
         this._scrollLockListener = null;
         this._keyboardSettled = false;
 
@@ -42,21 +44,35 @@ export class EditSystem {
         this.currentSourceElement = sourceElement;
         this._keyboardSettled = false;
 
+        // Find the nearest viewport container so the input is anchored inside it.
+        // When the browser is zoomed (Ctrl+/-), the container scales and the input follows.
+        const container = sourceElement
+            ? sourceElement.closest('.viewport-placeholder')
+            : null;
+
+        if (container) {
+            this.currentContainer = container;
+            // Move input into the container so it uses position:absolute relative to it
+            container.appendChild(this.input);
+            // Convert viewport (fixed) coords to coords relative to the container
+            const cRect = container.getBoundingClientRect();
+            this.input.style.left = `${x - cRect.left}px`;
+            this.input.style.top  = `${y - cRect.top}px`;
+        } else {
+            // Fallback: stay in body with viewport coords
+            this.currentContainer = null;
+            this.input.style.left = `${x}px`;
+            this.input.style.top  = `${y}px`;
+        }
+
         this.input.style.display = 'block';
         this.input.value = val;
-
-        // Position at click target (or initial 3D projection)
-        this.input.style.left = `${x}px`;
-        this.input.style.top = `${y}px`;
 
         // PRIMARY FIX: preventScroll tells the browser NOT to scroll
         // the page to bring the input into view -- eliminates the jump
         this.input.focus({ preventScroll: true });
         this.input.select();
 
-        // SECONDARY FIX: Removed _lockScroll() as we now freeze the entire SceneManager render loop.
-        // This allows native browser pinch-zoom to work as if the 3D scene is a static image.
-        
         // Allow 3D position updates only after keyboard has fully animated in
         setTimeout(() => { this._keyboardSettled = true; }, 500);
     }
@@ -84,6 +100,11 @@ export class EditSystem {
         if (this.currentSourceElement) {
             this.currentSourceElement = null;
         }
+        // Move input back to its original parent (body-level)
+        if (this.inputOriginalParent && this.input.parentElement !== this.inputOriginalParent) {
+            this.inputOriginalParent.appendChild(this.input);
+        }
+        this.currentContainer = null;
         this.input.style.display = 'none';
         this.currentCallback = null;
     }
@@ -107,8 +128,16 @@ export class EditSystem {
 
         if (vector.z < 1) {
              this.input.style.display = 'block';
-             this.input.style.left = `${rect3D.left + x}px`;
-             this.input.style.top = `${rect3D.top + y}px`;
+             // If input is anchored in a container, use relative coords;
+             // otherwise fall back to absolute viewport coords
+             if (this.currentContainer) {
+                 const cRect = this.currentContainer.getBoundingClientRect();
+                 this.input.style.left = `${rect3D.left - cRect.left + x}px`;
+                 this.input.style.top  = `${rect3D.top  - cRect.top  + y}px`;
+             } else {
+                 this.input.style.left = `${rect3D.left + x}px`;
+                 this.input.style.top  = `${rect3D.top  + y}px`;
+             }
         } else {
              this.input.style.display = 'none';
         }
