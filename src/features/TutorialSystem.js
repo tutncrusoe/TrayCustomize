@@ -1,5 +1,10 @@
 // src/features/TutorialSystem.js
 import { store } from '../core/Store.js';
+import {
+    TUTORIAL_TOTAL_STEPS,
+    formatTutorialStepLabel,
+    getTutorialWrongActionMessage
+} from './TutorialGuard.js';
 
 export class TutorialSystem {
     constructor(sceneManager) {
@@ -7,10 +12,10 @@ export class TutorialSystem {
         this.step = 0;
         this.isActive = false;
         this.isFirstShow = true;
+        this.isResetting = false;
         this.lastAddedDividerX = null;
         this.lastAddedDividerZ = null;
-        this.previousDividersX = [];
-        this.previousDividersZ = [];
+        this.wrongActionTimer = null;
 
         // DOM Elements
         this.overlay = document.getElementById('tutorial-overlay');
@@ -21,20 +26,25 @@ export class TutorialSystem {
         this.skipBtn = document.getElementById('tut-skip');
         this.ghostDivider = document.getElementById('ghost-divider');
         this.cursorTrail = document.getElementById('cursor-trail');
+        this.sidebar = document.querySelector('aside');
+        this.wrongTooltip = this.createWrongTooltip();
 
         this.pendingStart = false;
+        this.ensureUiLockStyle();
         this.bindEvents();
         this.init();
     }
 
     init() {
+        store.setTutorialActive(false);
         if (!sessionStorage.getItem('tutorial_seen')) {
             this.pendingStart = true;
             sessionStorage.setItem('tutorial_seen', 'true');
         } else {
-            if (this.skipBtn) this.skipBtn.innerText = "Tutorial";
+            if (this.skipBtn) this.skipBtn.innerText = 'Tutorial';
             document.body.classList.remove('tutorial-active');
             if (this.overlay) this.overlay.style.pointerEvents = 'none';
+            this.applyUiLocks(false);
         }
     }
 
@@ -51,73 +61,173 @@ export class TutorialSystem {
             }
         });
 
-        // Subscribe to Store events to advance steps automatically
-        store.on('dimensionsChanged', () => {
-             // Steps 0 (L), 1 (W), 2 (H)
-             if (this.isActive && this.step < 3) {
-                 this.advance();
-             }
+        store.on('dimensionsPatched', ({ changedKeys = [] } = {}) => {
+            if (!this.isActive || this.isResetting) return;
+            if (this.step === 0 && changedKeys.includes('l')) {
+                this.advance();
+            } else if (this.step === 1 && changedKeys.includes('w')) {
+                this.advance();
+            } else if (this.step === 2 && changedKeys.includes('h')) {
+                this.advance();
+            }
         });
 
-        store.on('dividersChanged', (divs) => {
-             // Detect newly added X divider for Step 5 targeting
-             const newX = divs.x;
-             if (newX.length > this.previousDividersX.length) {
-                 // Find the value that is new
-                 const added = newX.find(val => !this.previousDividersX.includes(val));
-                 if (added !== undefined) {
-                     this.lastAddedDividerX = added;
-                 }
-             }
+        store.on('tutorialAction', (action) => {
+            if (!this.isActive || this.isResetting || !action) return;
 
-             // Detect newly added Z divider for Step 6 targeting
-             const newZ = divs.z;
-             if (newZ.length > this.previousDividersZ.length) {
-                 const added = newZ.find(val => !this.previousDividersZ.includes(val));
-                 if (added !== undefined) {
-                     this.lastAddedDividerZ = added;
-                 }
-             }
+            if (action.type === 'addDivider' && action.axis === 'x') {
+                this.lastAddedDividerX = action.pos;
+            }
+            if (action.type === 'addDivider' && action.axis === 'z') {
+                this.lastAddedDividerZ = action.pos;
+            }
 
-             const xMoved = JSON.stringify(newX.sort()) !== JSON.stringify(this.previousDividersX.sort());
-             const zMoved = JSON.stringify(newZ.sort()) !== JSON.stringify(this.previousDividersZ.sort());
+            if (this.step === 3 && action.type === 'addDivider' && action.axis === 'z') {
+                this.advance();
+                return;
+            }
 
-             this.previousDividersX = [...newX];
-             this.previousDividersZ = [...newZ];
+            if (this.step === 4 && action.type === 'addDivider' && action.axis === 'x') {
+                this.advance();
+                return;
+            }
 
-             if (!this.isActive) return;
+            if (this.step === 5 && action.type === 'moveDivider' && action.axis === 'x') {
+                this.advance();
+                return;
+            }
 
-             // Step 3 (Add Horiz/Z)
-             if (this.step === 3 && divs.z.length > 0) {
-                 this.advance();
-                 return;
-             }
+            if (this.step === 6 && action.type === 'moveDivider' && action.axis === 'z') {
+                this.advance();
+                return;
+            }
 
-             // Step 4 (Add Vert/X)
-             if (this.step === 4 && divs.x.length > 0) {
-                 this.advance();
-                 return;
-             }
-
-             // Step 5 (Drag X)
-             if (this.step === 5 && xMoved) {
-                 this.advance();
-                 return;
-             }
-
-             // Step 6 (Drag Z)
-             if (this.step === 6 && zMoved) {
-                 this.advance();
-                 return;
-             }
+            if (this.step === 7 && action.type === 'deleteDividerSegment') {
+                this.complete();
+            }
         });
 
-        // Step 7 (Delete)
-        store.on('hiddenSegmentsChanged', () => {
-             if (this.isActive && this.step === 7) {
-                 this.complete(); // Finish tutorial
-             }
+        store.on('tutorialWrongAction', (payload) => {
+            this.showWrongAction(payload);
         });
+    }
+
+    ensureUiLockStyle() {
+        if (document.getElementById('tutorial-lock-style')) return;
+        const style = document.createElement('style');
+        style.id = 'tutorial-lock-style';
+        style.textContent = `
+            .tutorial-ui-locked {
+                opacity: 0.38 !important;
+                filter: grayscale(0.5);
+                pointer-events: none !important;
+                cursor: not-allowed !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    createWrongTooltip() {
+        let el = document.getElementById('tutorial-wrong-tooltip');
+        if (el) return el;
+
+        el = document.createElement('div');
+        el.id = 'tutorial-wrong-tooltip';
+        el.style.cssText = `
+            position: fixed;
+            z-index: 10004;
+            max-width: 220px;
+            padding: 8px 10px;
+            background: rgba(239, 68, 68, 0.95);
+            color: #fff;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.3;
+            pointer-events: none;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
+            display: none;
+        `;
+        document.body.appendChild(el);
+        return el;
+    }
+
+    getLockControlIds() {
+        return [
+            'reset-btn',
+            'color-brown',
+            'color-white',
+            'color-red',
+            'color-blue',
+            'radius',
+            'wall-thickness',
+            'upload-logo-btn',
+            'add-text-btn',
+            'remove-logo-btn',
+            'export-btn',
+            'add-to-cart-btn',
+            'open-cart-btn',
+            'buy-now-btn',
+            'tab-3d',
+            'tab-top'
+        ];
+    }
+
+    setElementLocked(el, locked) {
+        if (!el) return;
+
+        if (locked) {
+            if (el.dataset.tutorialPrevDisabled === undefined) {
+                el.dataset.tutorialPrevDisabled = ('disabled' in el && el.disabled) ? '1' : '0';
+            }
+            if ('disabled' in el) {
+                el.disabled = true;
+            }
+            el.classList.add('tutorial-ui-locked');
+        } else {
+            if ('disabled' in el && el.dataset.tutorialPrevDisabled !== undefined) {
+                el.disabled = el.dataset.tutorialPrevDisabled === '1';
+            }
+            delete el.dataset.tutorialPrevDisabled;
+            el.classList.remove('tutorial-ui-locked');
+        }
+    }
+
+    applyUiLocks(locked) {
+        this.getLockControlIds().forEach((id) => {
+            this.setElementLocked(document.getElementById(id), locked);
+        });
+        if (this.sidebar) {
+            this.sidebar.classList.toggle('tutorial-ui-locked', locked);
+        }
+    }
+
+    showWrongAction(payload = {}) {
+        if (!this.isActive || !this.wrongTooltip) return;
+
+        const message = payload.message || getTutorialWrongActionMessage(this.step);
+        const blobRect = this.blob?.getBoundingClientRect();
+        const anchorX = payload.anchor?.x ?? (blobRect ? blobRect.left + blobRect.width / 2 : window.innerWidth / 2);
+        const anchorY = payload.anchor?.y ?? (blobRect ? blobRect.bottom + 8 : window.innerHeight / 2);
+
+        this.wrongTooltip.innerText = message;
+        this.wrongTooltip.style.display = 'block';
+
+        const tooltipRect = this.wrongTooltip.getBoundingClientRect();
+        const left = Math.min(Math.max(12, anchorX - tooltipRect.width / 2), window.innerWidth - tooltipRect.width - 12);
+        const top = Math.min(Math.max(12, anchorY + 10), window.innerHeight - tooltipRect.height - 12);
+
+        this.wrongTooltip.style.left = `${left}px`;
+        this.wrongTooltip.style.top = `${top}px`;
+        this.wrongTooltip.style.opacity = '1';
+
+        clearTimeout(this.wrongActionTimer);
+        this.wrongActionTimer = setTimeout(() => this.hideWrongAction(), 1200);
+    }
+
+    hideWrongAction() {
+        if (!this.wrongTooltip) return;
+        this.wrongTooltip.style.display = 'none';
     }
 
     toggle() {
@@ -125,19 +235,53 @@ export class TutorialSystem {
         else this.start();
     }
 
+    resetToTutorialPreset() {
+        const preset = { l: 120, w: 120, h: 40, radius: 8, wallThickness: 2 };
+        store.setDimensions(preset);
+        store.updateDividers('x', []);
+        store.updateDividers('z', []);
+        store.setHiddenSegments({});
+        store.setLogo(null);
+        store.setColorTheme('brown');
+
+        const radiusInput = document.getElementById('radius');
+        if (radiusInput) radiusInput.value = String(preset.radius);
+        const wallInput = document.getElementById('wall-thickness');
+        if (wallInput) wallInput.value = String(preset.wallThickness);
+
+        ['brown', 'white', 'red', 'blue'].forEach((theme) => {
+            document.getElementById(`color-${theme}`)?.classList.remove('border-white', 'scale-105');
+        });
+        document.getElementById('color-brown')?.classList.add('border-white');
+    }
+
     start() {
         this.isActive = true;
-        this.isFirstShow = true; // Reset the flag so that every time we restart the tutorial, it sets position instantly without flying
+        this.isFirstShow = true;
+        this.isResetting = true;
+        this.lastAddedDividerX = null;
+        this.lastAddedDividerZ = null;
+
+        store.setTutorialActive(true);
         document.body.classList.add('tutorial-active');
-        if (this.skipBtn) this.skipBtn.innerText = "Skip Tutorial";
+        this.applyUiLocks(true);
+        if (this.skipBtn) this.skipBtn.innerText = 'Skip Tutorial';
+
+        this.resetToTutorialPreset();
+
+        this.isResetting = false;
         this.showStep(0);
     }
 
     complete() {
         this.isActive = false;
+        this.isResetting = false;
         document.body.classList.remove('tutorial-active');
-        if (this.skipBtn) this.skipBtn.innerText = "Tutorial";
+        this.applyUiLocks(false);
+        if (this.skipBtn) this.skipBtn.innerText = 'Tutorial';
         if (this.overlay) this.overlay.style.pointerEvents = 'none';
+        this.hideWrongAction();
+        store.setTutorialActive(false);
         store.emit('tutorialCompleted');
     }
 
@@ -173,13 +317,17 @@ export class TutorialSystem {
             this.underlay.style.zIndex = (stepIndex === 3 || stepIndex === 4) ? '50' : '15';
         }
 
-        if (stepIndex > 7) {
+        if (stepIndex >= TUTORIAL_TOTAL_STEPS) {
             this.complete();
             return;
         }
 
         // Wait for potential transitions
         setTimeout(() => this.renderStep(stepIndex), 100);
+    }
+
+    withProgress(text, stepIndex) {
+        return `${formatTutorialStepLabel(stepIndex)} - ${text}`;
     }
 
     renderStep(stepIndex) {
@@ -195,23 +343,23 @@ export class TutorialSystem {
 
         switch(stepIndex) {
             case 0: // Set Length
-                this.positionHint(getLabel3D('l'), 'Set Length', 'left');
+                this.positionHint(getLabel3D('l'), this.withProgress('Set Length', stepIndex), 'left');
                 break;
             case 1: // Set Width
-                this.positionHint(getLabel3D('w'), 'Set Width', 'right');
+                this.positionHint(getLabel3D('w'), this.withProgress('Set Width', stepIndex), 'right');
                 break;
             case 2: // Set Height
-                this.positionHint(getLabel3D('h'), 'Set Height', 'top');
+                this.positionHint(getLabel3D('h'), this.withProgress('Set Height', stepIndex), 'top');
                 break;
             case 3: // Add Horizontal (Add Z)
-                this.positionHint(topView, 'Add Horizontal', 'right-offset');
+                this.positionHint(topView, this.withProgress('Add Horizontal', stepIndex), 'right-offset');
                 this.playAnimation('cursor-scan-h', topView, 'right-edge-outer');
                 break;
             case 4: // Add Vertical (Add X)
-                this.positionHint(topView, 'Add Vertical', 'bottom-offset');
+                this.positionHint(topView, this.withProgress('Add Vertical', stepIndex), 'bottom-offset');
                 this.playAnimation('cursor-scan-v', topView, 'bottom-edge-outer');
                 break;
-            case 5: // Drag X
+            case 5: { // Drag X
                 let dragTargetX = topView;
                 if (this.sceneManager) {
                     const state = store.getState();
@@ -243,10 +391,11 @@ export class TutorialSystem {
                         };
                     }
                 }
-                this.positionHint(dragTargetX, 'Drag to move divider', 'bottom');
+                this.positionHint(dragTargetX, this.withProgress('Drag to move divider', stepIndex), 'bottom');
                 this.playDragAnimation(dragTargetX, 'x');
                 break;
-            case 6: // Drag Z
+            }
+            case 6: { // Drag Z
                 let dragTargetZ = topView;
                 if (this.sceneManager) {
                     const state = store.getState();
@@ -260,7 +409,6 @@ export class TutorialSystem {
                     }
 
                     if (targetZ !== null) {
-                        // For Z dividers (horizontal lines), X is 0 (center), Z is the position
                         const coords = this.sceneManager.getScreenCoordsFromTopWorld(0, targetZ);
                         dragTargetZ = {
                             getBoundingClientRect: () => ({
@@ -279,10 +427,11 @@ export class TutorialSystem {
                         };
                     }
                 }
-                this.positionHint(dragTargetZ, 'Drag to move divider', 'bottom');
+                this.positionHint(dragTargetZ, this.withProgress('Drag to move divider', stepIndex), 'bottom');
                 this.playDragAnimation(dragTargetZ, 'z');
                 break;
-            case 7: // Delete
+            }
+            case 7: { // Delete
                 let deleteTarget = topView;
                 if (this.sceneManager) {
                     const state = store.getState();
@@ -314,20 +463,22 @@ export class TutorialSystem {
                         };
                     }
                 }
-                this.positionHint(topView, 'Double click to delete', 'bottom-offset');
+                this.positionHint(topView, this.withProgress('Double click to delete', stepIndex), 'bottom-offset');
                 this.playDeleteAnimation(deleteTarget);
                 break;
+            }
             default:
                 this.complete();
         }
     }
 
     positionHint(target, text, side) {
-        if(!target) return;
+        if(!target || !this.text || !this.blob) return;
         const rect = target.getBoundingClientRect();
         this.text.innerText = text;
 
-        let top, left;
+        let top;
+        let left;
 
         if (target.tagName === 'INPUT' || target.classList.contains('input-group')) {
             top = rect.bottom + 10;
@@ -341,13 +492,11 @@ export class TutorialSystem {
                 let wallX = rect.right; // fallback
                 if (this.sceneManager) {
                     const { l } = store.getState().dimensions;
-                    // Right wall world coordinate is l/2
                     const coords = this.sceneManager.getScreenCoordsFromTopWorld(l / 2, 0);
                     wallX = coords.x;
                 }
-                left = wallX + 20; // 20px from right edge of the 3D tray
+                left = wallX + 20;
             } else if (side === 'bottom-offset') {
-                top = rect.bottom - 90;
                 let wallY = rect.bottom; // fallback
                 if (this.sceneManager) {
                     const { w } = store.getState().dimensions;
@@ -357,57 +506,48 @@ export class TutorialSystem {
                 top = wallY + 20;
                 left = rect.left + rect.width / 2 - 70;
             } else if (side === 'right') {
-                // New logic for Drag Z (Horizontal line)
                 top = rect.top + rect.height/2 - 50;
                 left = rect.right + 20;
-                if (left + 140 > window.innerWidth) left = rect.left - 120; // Flip if too far right
-            } else if (side !== 'right-offset') {
-                // Default fallback for other cases
+                if (left + 140 > window.innerWidth) left = rect.left - 120;
+            } else {
                 top = rect.bottom + 60;
                 left = rect.left + rect.width/2 - 70;
             }
         }
 
-        // No boundary clamping - blob can appear at any position
-
-        // Apply scale down on mobile screens
         if (window.innerWidth < 768) {
             this.blob.style.transform = 'scale(0.8)';
         } else {
             this.blob.style.transform = '';
         }
 
-        // Check if it's the first time displaying (e.g., just started) to prevent flying from corner
         if (this.isFirstShow) {
             this.blob.style.transition = 'none';
         }
 
         this.blob.style.top = `${top}px`;
         this.blob.style.left = `${left}px`;
-        
-        // Render step delays slightly, but ensure we re-enable transition for next steps
+
         if (this.isFirstShow) {
             this.isFirstShow = false;
-            // Force browser repaint to recognize the position before enabling transition
-            if (this.blob) this.blob.style.display = 'block';
-            this.blob.offsetHeight; 
-            if (this.blob) this.blob.style.transition = 'all 0.5s ease-out, opacity 0.3s ease-in';
+            this.blob.style.display = 'block';
+            this.blob.offsetHeight;
+            this.blob.style.transition = 'all 0.5s ease-out, opacity 0.3s ease-in';
         }
     }
 
     playAnimation(animName, target, edge) {
-        if(!target || !this.cursor) return;
+        if(!target || !this.cursor || !this.cursorTrail) return;
         const rect = target.getBoundingClientRect();
 
         if (edge === 'right-edge-outer') {
-            let wallX = rect.right; // fallback
+            let wallX = rect.right;
             if (this.sceneManager) {
                 const { l } = store.getState().dimensions;
-                // Right wall world coordinate is l/2
                 const coords = this.sceneManager.getScreenCoordsFromTopWorld(l / 2, 0);
                 wallX = coords.x;
             }
-            const cursorX = wallX + 5; // 5px from right wall
+            const cursorX = wallX + 5;
             const cursorYStart = rect.top + rect.height/2;
             this.cursor.style.left = `${cursorX}px`;
             this.cursor.style.top = `${cursorYStart}px`;
@@ -418,15 +558,14 @@ export class TutorialSystem {
             this.cursorTrail.style.height = '150px';
             this.cursorTrail.style.width = '4px';
         } else if (edge === 'bottom-edge-outer') {
-            let wallY = rect.bottom; // fallback
+            let wallY = rect.bottom;
             if (this.sceneManager) {
                 const { w } = store.getState().dimensions;
-                // Bottom wall world coordinate is w/2
                 const coords = this.sceneManager.getScreenCoordsFromTopWorld(0, w / 2);
                 wallY = coords.y;
             }
             const cursorX = rect.left + rect.width/2 - 75;
-            const cursorY = wallY + 5; // 5px below bottom wall
+            const cursorY = wallY + 5;
             this.cursor.style.left = `${cursorX}px`;
             this.cursor.style.top = `${cursorY}px`;
 
@@ -441,7 +580,7 @@ export class TutorialSystem {
     }
 
     playDragAnimation(target, axis) {
-        if(!target) return;
+        if(!target || !this.cursor || !this.ghostDivider) return;
         const rect = target.getBoundingClientRect();
         const startX = rect.left + rect.width/2;
         const startY = rect.top + rect.height/2;
@@ -450,7 +589,6 @@ export class TutorialSystem {
         this.cursor.style.top = `${startY}px`;
         this.cursor.style.transform = 'translate(-50%, -50%)';
         this.cursor.style.opacity = '1';
-        // Grab/Fist Icon
         this.cursor.innerHTML = '<svg viewBox="0 0 24 24" fill="white" stroke="black" stroke-width="2" xmlns="http://www.w3.org/2000/svg"><path d="M20 10.95V7c0-1.1-.9-2-2-2s-2 .9-2 2v2.5h-1V5c0-1.1-.9-2-2-2s-2 .9-2 2v4.5h-1V6c0-1.1-.9-2-2-2s-2 .9-2 2v7.5c0 3.31 2.69 6 6 6s6-2.69 6-6z" /></svg>';
 
         const anim = axis === 'z' ? 'cursor-wiggle-y' : 'cursor-wiggle-x';
@@ -463,18 +601,16 @@ export class TutorialSystem {
         this.ghostDivider.style.animation = 'none';
 
         if (axis === 'z') {
-            // Horizontal Line, Move Y
             this.ghostDivider.style.width = '180px';
             this.ghostDivider.style.height = '4px';
         } else {
-            // Vertical Line, Move X
             this.ghostDivider.style.width = '4px';
             this.ghostDivider.style.height = '180px';
         }
     }
 
     playDeleteAnimation(target) {
-        if(!target) return;
+        if(!target || !this.cursor) return;
         const rect = target.getBoundingClientRect();
         const startX = rect.left + rect.width/2;
         const startY = rect.top + rect.height/2;

@@ -1,5 +1,6 @@
 // src/features/LabelSystem.js
 import { store } from '../core/Store.js';
+import { getTutorialWrongActionMessage, isTutorialActionAllowed } from './TutorialGuard.js';
 
 export class LabelSystem {
     constructor(sceneManager) {
@@ -122,7 +123,7 @@ export class LabelSystem {
         this.updateLabels();
     }
 
-    createEditableLabel(text, cb, worldPos3D = null) {
+    createEditableLabel(text, cb, worldPos3D = null, actionMeta = null) {
         const el = document.createElement('div');
         el.className = 'dim-label';
         el.innerText = text;
@@ -151,6 +152,28 @@ export class LabelSystem {
             e.stopPropagation();
             e.preventDefault();
             const r = el.getBoundingClientRect();
+
+            const tutorialState = store.getState();
+            if (tutorialState.tutorialActive) {
+                const allowed = isTutorialActionAllowed(
+                    actionMeta?.actionType || 'unknown',
+                    actionMeta || {},
+                    tutorialState.tutorialStep,
+                    tutorialState.tutorialActive
+                );
+
+                if (!allowed) {
+                    store.emit('tutorialWrongAction', {
+                        message: getTutorialWrongActionMessage(tutorialState.tutorialStep),
+                        anchor: {
+                            x: r.left + r.width / 2,
+                            y: r.top + r.height / 2
+                        }
+                    });
+                    return;
+                }
+            }
+
             // Emit event to request Global Input to appear
             store.emit('REQUEST_EDIT', {
                 x: r.left + r.width/2,
@@ -276,7 +299,10 @@ export class LabelSystem {
                     }
                     store.emit('dimensionsCommitted');
                 };
-                const el = this.createEditableLabel(Math.round(room.size), cb);
+                const xLabelActionMeta = dX.length === 0
+                    ? { actionType: 'editDimension', axis: 'l' }
+                    : { actionType: 'editSegment', axis: 'x' };
+                const el = this.createEditableLabel(Math.round(room.size), cb, null, xLabelActionMeta);
                 el.style.left = `${w2pX(room.center)}px`;
                 el.style.top = `${w2pZ(-w/2) - 25}px`;
                 el.style.transform = 'translateX(-50%)';
@@ -330,7 +356,10 @@ export class LabelSystem {
                     }
                     store.emit('dimensionsCommitted');
                 };
-                const el = this.createEditableLabel(Math.round(room.size), cb);
+                const zLabelActionMeta = dZ.length === 0
+                    ? { actionType: 'editDimension', axis: 'w' }
+                    : { actionType: 'editSegment', axis: 'z' };
+                const el = this.createEditableLabel(Math.round(room.size), cb, null, zLabelActionMeta);
                 el.style.left = `${w2pX(-l/2) - 35}px`;
                 el.style.top = `${w2pZ(room.center)}px`;
                 el.style.transform = 'translateY(-50%)';
@@ -351,7 +380,10 @@ export class LabelSystem {
                 store.setDimensions({ [info.axis]: nv });
                 store.emit('dimensionsCommitted');
             };
-            const el = this.createEditableLabel(info.text, cb, null);
+            const el = this.createEditableLabel(info.text, cb, null, {
+                actionType: 'editDimension',
+                axis: info.axis
+            });
             el.id = `label-3d-${info.axis}`;
             el.classList.add('dim-label-3d');
             Object.assign(el.style, info.style);

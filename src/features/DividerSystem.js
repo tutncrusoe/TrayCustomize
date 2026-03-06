@@ -1,5 +1,6 @@
 // src/features/DividerSystem.js
 import { store } from '../core/Store.js';
+import { getTutorialWrongActionMessage, isTutorialActionAllowed } from './TutorialGuard.js';
 
 export class DividerSystem {
     constructor() {
@@ -79,12 +80,36 @@ export class DividerSystem {
         }
     }
 
+    canUseTutorialAction(actionType, payload = {}, client = null, silent = false) {
+        const state = store.getState();
+        const allowed = isTutorialActionAllowed(actionType, payload, state.tutorialStep, state.tutorialActive);
+
+        if (!allowed && !silent) {
+            const anchor = client ? { x: client.x, y: client.y } : null;
+            store.emit('tutorialWrongAction', {
+                message: getTutorialWrongActionMessage(state.tutorialStep),
+                anchor
+            });
+        }
+
+        return allowed;
+    }
+
     onMove({ world, client }) {
         const state = store.getState();
         const { l, w } = state.dimensions;
 
         // Handle Dragging
         if (this.draggingDivider) {
+            if (this.draggingDivider.deleteOnly) {
+                return;
+            }
+
+            const dragAxis = this.draggingDivider.type === 'X' ? 'x' : 'z';
+            if (!this.canUseTutorialAction('moveDivider', { axis: dragAxis }, client, true)) {
+                return;
+            }
+
             this.draggingDivider.hasMoved = true;
 
             const { radius } = state.dimensions;
@@ -120,13 +145,24 @@ export class DividerSystem {
         const hit = this.checkHit(world.x, world.z, l, w, state.dividers);
 
         if (hit) {
-            this.pendingAction = { type: 'remove', ...hit };
+            const hitAxis = hit.axis === 'X' ? 'x' : 'z';
+            const canMove = this.canUseTutorialAction('moveDivider', { axis: hitAxis }, client, true);
+            const canDelete = this.canUseTutorialAction('deleteDividerSegment', { axis: hitAxis }, client, true);
+
+            if (!canMove && !canDelete) {
+                this.pendingAction = null;
+                this.hideUI();
+                return;
+            }
+
+            this.pendingAction = { type: 'remove', ...hit, canMove, canDelete };
             const isConfirming = this.selectedForRemoval &&
                                  this.selectedForRemoval.axis === hit.axis &&
                                  this.selectedForRemoval.lineIdx === hit.lineIdx &&
                                  this.selectedForRemoval.segIdx === hit.segIdx;
 
-            this.updateIndicator(client, '-', 'active' + (isConfirming ? ' remove-confirm' : ' move'));
+            const isDeleteOnly = canDelete && !canMove;
+            this.updateIndicator(client, '-', 'active' + (isConfirming || isDeleteOnly ? ' remove-confirm' : ' move'));
             this.previewLine.style.display = 'none';
         } else {
             // Check Add Preview
@@ -211,6 +247,15 @@ export class DividerSystem {
         const hit = this.checkHit(world.x, world.z, l, w, state.dividers);
 
         if (hit) {
+            const axis = hit.axis === 'X' ? 'x' : 'z';
+            const canMove = this.canUseTutorialAction('moveDivider', { axis }, client, true);
+            const canDelete = this.canUseTutorialAction('deleteDividerSegment', { axis }, client, true);
+
+            if (!canMove && !canDelete) {
+                this.canUseTutorialAction('moveDivider', { axis }, client, false);
+                return;
+            }
+
             // Start Drag - Lock boundaries to prevent index-swapping chaos
             const isX = hit.axis === 'X';
             const divs = isX ? state.dividers.x : state.dividers.z;
@@ -222,6 +267,7 @@ export class DividerSystem {
                 index: dIndex, 
                 segment: hit.segIdx, 
                 hasMoved: false,
+                deleteOnly: canDelete && !canMove,
                 leftBound: dIndex === 0 ? -maxDim / 2 : divs[dIndex - 1],
                 rightBound: dIndex === divs.length - 1 ? maxDim / 2 : divs[dIndex + 1]
             };
@@ -233,7 +279,15 @@ export class DividerSystem {
 
             if (!isTouch && this.pendingAction && (this.pendingAction.type === 'addX' || this.pendingAction.type === 'addZ')) {
                 const pos = this.pendingAction.pos;
-                store.addDivider(this.pendingAction.type === 'addX' ? 'x' : 'z', pos);
+                const axis = this.pendingAction.type === 'addX' ? 'x' : 'z';
+                if (!this.canUseTutorialAction('addDivider', { axis }, client, false)) {
+                    return;
+                }
+
+                const added = store.addDivider(axis, pos);
+                if (added) {
+                    store.emit('tutorialAction', { type: 'addDivider', axis, pos });
+                }
             }
 
             if (isTouch) {
@@ -257,6 +311,10 @@ export class DividerSystem {
                     const key = `${hit.axis}_${hit.lineIdx}_${hit.segIdx}`;
                     const newHidden = { ...store.getState().hiddenSegments, [key]: true };
                     store.setHiddenSegments(newHidden);
+                    store.emit('tutorialAction', {
+                        type: 'deleteDividerSegment',
+                        axis: hit.axis === 'X' ? 'x' : 'z'
+                    });
 
                     this.selectedForRemoval = null;
                     this.cleanupDividers();
@@ -266,12 +324,24 @@ export class DividerSystem {
                 }
             } else {
                 this.selectedForRemoval = null;
+                if (!this.draggingDivider.deleteOnly) {
+                    store.emit('tutorialAction', {
+                        type: 'moveDivider',
+                        axis: this.draggingDivider.type === 'X' ? 'x' : 'z'
+                    });
+                }
             }
             this.draggingDivider = null;
 
         } else if (this.isTouchInteracting) {
             if (this.pendingAction && (this.pendingAction.type === 'addX' || this.pendingAction.type === 'addZ')) {
-                 store.addDivider(this.pendingAction.type === 'addX' ? 'x' : 'z', this.pendingAction.pos);
+                const axis = this.pendingAction.type === 'addX' ? 'x' : 'z';
+                if (this.canUseTutorialAction('addDivider', { axis }, null, false)) {
+                    const added = store.addDivider(axis, this.pendingAction.pos);
+                    if (added) {
+                        store.emit('tutorialAction', { type: 'addDivider', axis, pos: this.pendingAction.pos });
+                    }
+                }
             }
             this.isTouchInteracting = false;
             this.hideUI();
