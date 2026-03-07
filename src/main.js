@@ -231,12 +231,55 @@ class App {
 
     handleAddToCart() {
         try {
-            const item = buildCartItemFromState(store.getState());
+            const topViewPreview = this.captureTopViewPreview();
+            const item = buildCartItemFromState(store.getState(), { topViewPreview });
             addOrMergeCartItem(item);
             this.refreshCartBadge();
         } catch (error) {
             console.error('Failed to add item to cart:', error);
             window.alert('Unable to add item to cart. Please try again.');
+        }
+    }
+
+    captureTopViewPreview() {
+        const sourceCanvas = document.getElementById('canvas-top');
+        if (!sourceCanvas || sourceCanvas.width < 4 || sourceCanvas.height < 4) {
+            return null;
+        }
+
+        try {
+            const size = 80;
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+
+            const ctx = canvas.getContext('2d', { alpha: false });
+            if (!ctx) return null;
+
+            ctx.fillStyle = '#111827';
+            ctx.fillRect(0, 0, size, size);
+            ctx.drawImage(sourceCanvas, 0, 0, sourceCanvas.width, sourceCanvas.height, 0, 0, size, size);
+
+            const pixels = ctx.getImageData(0, 0, size, size).data;
+            let sum = 0;
+            let sumSq = 0;
+            for (let i = 0; i < pixels.length; i += 4) {
+                const lum = (pixels[i] * 0.299) + (pixels[i + 1] * 0.587) + (pixels[i + 2] * 0.114);
+                sum += lum;
+                sumSq += lum * lum;
+            }
+            const count = pixels.length / 4;
+            const mean = sum / count;
+            const variance = (sumSq / count) - (mean * mean);
+
+            // If top canvas is visually flat/empty, skip capture and let cart fallback to SVG preview.
+            if (!Number.isFinite(variance) || variance < 15) {
+                return null;
+            }
+
+            return canvas.toDataURL('image/jpeg', 0.4);
+        } catch (_error) {
+            return null;
         }
     }
 
