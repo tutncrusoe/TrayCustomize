@@ -155,8 +155,12 @@ export class DividerSystem {
                 return;
             }
 
+            if (!canDelete) {
+                this.selectedForRemoval = null;
+            }
+
             this.pendingAction = { type: 'remove', ...hit, canMove, canDelete };
-            const isConfirming = this.selectedForRemoval &&
+            const isConfirming = canDelete && this.selectedForRemoval &&
                                  this.selectedForRemoval.axis === hit.axis &&
                                  this.selectedForRemoval.lineIdx === hit.lineIdx &&
                                  this.selectedForRemoval.segIdx === hit.segIdx;
@@ -267,6 +271,7 @@ export class DividerSystem {
                 index: dIndex, 
                 segment: hit.segIdx, 
                 hasMoved: false,
+                canDelete,
                 deleteOnly: canDelete && !canMove,
                 leftBound: dIndex === 0 ? -maxDim / 2 : divs[dIndex - 1],
                 rightBound: dIndex === divs.length - 1 ? maxDim / 2 : divs[dIndex + 1]
@@ -302,8 +307,10 @@ export class DividerSystem {
         if (this.draggingDivider) {
             if (!this.draggingDivider.hasMoved) {
                 const hit = { axis: this.draggingDivider.type, lineIdx: this.draggingDivider.index, segIdx: this.draggingDivider.segment };
+                const canDelete = !!this.draggingDivider.canDelete;
 
-                if (this.selectedForRemoval &&
+                if (canDelete &&
+                    this.selectedForRemoval &&
                     this.selectedForRemoval.axis === hit.axis &&
                     this.selectedForRemoval.lineIdx === hit.lineIdx &&
                     this.selectedForRemoval.segIdx === hit.segIdx) {
@@ -319,8 +326,10 @@ export class DividerSystem {
                     this.selectedForRemoval = null;
                     this.cleanupDividers();
 
-                } else {
+                } else if (canDelete) {
                     this.selectedForRemoval = hit;
+                } else {
+                    this.selectedForRemoval = null;
                 }
             } else {
                 this.selectedForRemoval = null;

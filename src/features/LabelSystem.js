@@ -89,8 +89,8 @@ export class LabelSystem {
      * Returns true if the wall AFTER segment index `segIdx` (i.e. at the right/bottom boundary
      * of that segment) is fully hidden across all cross-divider spans.
      *
-     * myAxis='X' → we check divider at sortedX[segIdx+1], keys X_rawIdx_j for all j
-     * myAxis='Z' → we check divider at sortedZ[segIdx+1], keys Z_rawIdx_j for all j
+     * myAxis='X' -> we check divider at sortedX[segIdx+1], keys X_rawIdx_j for all j
+     * myAxis='Z' -> we check divider at sortedZ[segIdx+1], keys Z_rawIdx_j for all j
      */
     _wallFullyHidden(myAxis, segIdx, crossDividers, hiddenSegs) {
         const rawIdx = segIdx; // array index in the dividers list (already sorted)
@@ -103,6 +103,19 @@ export class LabelSystem {
         return true;
     }
 
+    getInnerEdgeDeduction(room, halfExtent, wallThickness) {
+        const EPS = 0.001;
+        const leftIsOuter = Math.abs(room.minCoord + halfExtent) < EPS;
+        const rightIsOuter = Math.abs(room.maxCoord - halfExtent) < EPS;
+        const leftDeduction = leftIsOuter ? wallThickness : wallThickness / 2;
+        const rightDeduction = rightIsOuter ? wallThickness : wallThickness / 2;
+        return leftDeduction + rightDeduction;
+    }
+
+    toDisplayedSpan(room, halfExtent, wallThickness, useInnerMeasure) {
+        if (!useInnerMeasure) return room.size;
+        return Math.max(0, room.size - this.getInnerEdgeDeduction(room, halfExtent, wallThickness));
+    }
     updateVisibility() {
         const isMobile = window.innerWidth < 768;
         const mobileView = store.getState().mobileView;
@@ -174,12 +187,25 @@ export class LabelSystem {
                 }
             }
 
+            const onCommit = (nextValue) => {
+                if (typeof cb === 'function') {
+                    cb(nextValue);
+                }
+
+                if (actionMeta?.actionType) {
+                    store.emit('tutorialAction', {
+                        type: actionMeta.actionType,
+                        axis: actionMeta.axis
+                    });
+                }
+            };
+
             // Emit event to request Global Input to appear
             store.emit('REQUEST_EDIT', {
                 x: r.left + r.width/2,
                 y: r.top + r.height/2,
                 value: parseFloat(text),
-                callback: cb,
+                callback: onCommit,
                 worldPos3D: worldPos3D,
                 sourceElement: el
             });
@@ -192,7 +218,7 @@ export class LabelSystem {
 
     updateLabels() {
         const state = store.getState();
-        const { l, w, h } = state.dimensions;
+        const { l, w, h, wallThickness } = state.dimensions;
         const { x: dX, z: dZ } = state.dividers;
         const rect = this.dimContainer.getBoundingClientRect();
 
@@ -252,14 +278,20 @@ export class LabelSystem {
             // --- X-axis labels (widths of merged rooms along X) ---
             const sortedX = [-l/2, ...[...dX].sort((a,b) => a-b), l/2];
             const sortedZ = [-w/2, ...[...dZ].sort((a,b) => a-b), w/2];
+            const useInnerMeasureX = dX.length > 0;
+            const useInnerMeasureZ = dZ.length > 0;
 
             const mergedX = this.getMergedRooms(sortedX, 'X', dZ, hiddenSegs);
             mergedX.forEach(room => {
                 if (room.size < 1) return;
+                const displaySize = this.toDisplayedSpan(room, l / 2, wallThickness, useInnerMeasureX);
                 const cb = (inputNd) => {
                     const { radius, wallThickness } = state.dimensions;
                     const minSize = (radius * 2) + 1;
-                    let nd = Math.max(minSize, inputNd); // Always clamp min
+                    const deduction = useInnerMeasureX
+                        ? this.getInnerEdgeDeduction(room, l / 2, wallThickness)
+                        : 0;
+                    let nd = Math.max(minSize, inputNd + deduction); // Clamp by center-line span
                     
                     let moved = false;
                     const newDX = [...dX];
@@ -302,7 +334,7 @@ export class LabelSystem {
                 const xLabelActionMeta = dX.length === 0
                     ? { actionType: 'editDimension', axis: 'l' }
                     : { actionType: 'editSegment', axis: 'x' };
-                const el = this.createEditableLabel(Math.round(room.size), cb, null, xLabelActionMeta);
+                const el = this.createEditableLabel(Math.round(displaySize), cb, null, xLabelActionMeta);
                 el.style.left = `${w2pX(room.center)}px`;
                 el.style.top = `${w2pZ(-w/2) - 25}px`;
                 el.style.transform = 'translateX(-50%)';
@@ -313,10 +345,14 @@ export class LabelSystem {
             const mergedZ = this.getMergedRooms(sortedZ, 'Z', dX, hiddenSegs);
             mergedZ.forEach(room => {
                 if (room.size < 1) return;
+                const displaySize = this.toDisplayedSpan(room, w / 2, wallThickness, useInnerMeasureZ);
                 const cb = (inputNd) => {
                     const { radius, wallThickness } = state.dimensions;
                     const minSize = (radius * 2) + 1;
-                    let nd = Math.max(minSize, inputNd);
+                    const deduction = useInnerMeasureZ
+                        ? this.getInnerEdgeDeduction(room, w / 2, wallThickness)
+                        : 0;
+                    let nd = Math.max(minSize, inputNd + deduction);
                     
                     let moved = false;
                     const newDZ = [...dZ];
@@ -359,7 +395,7 @@ export class LabelSystem {
                 const zLabelActionMeta = dZ.length === 0
                     ? { actionType: 'editDimension', axis: 'w' }
                     : { actionType: 'editSegment', axis: 'z' };
-                const el = this.createEditableLabel(Math.round(room.size), cb, null, zLabelActionMeta);
+                const el = this.createEditableLabel(Math.round(displaySize), cb, null, zLabelActionMeta);
                 el.style.left = `${w2pX(-l/2) - 35}px`;
                 el.style.top = `${w2pZ(room.center)}px`;
                 el.style.transform = 'translateY(-50%)';

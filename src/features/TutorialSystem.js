@@ -35,11 +35,35 @@ export class TutorialSystem {
         this.init();
     }
 
+    hasSeenTutorial() {
+        const key = 'tutorial_seen';
+        try {
+            if (localStorage.getItem(key) === 'true') return true;
+        } catch (_) {}
+
+        try {
+            return sessionStorage.getItem(key) === 'true';
+        } catch (_) {
+            return false;
+        }
+    }
+
+    markTutorialSeen() {
+        const key = 'tutorial_seen';
+        try {
+            localStorage.setItem(key, 'true');
+        } catch (_) {}
+
+        try {
+            sessionStorage.setItem(key, 'true');
+        } catch (_) {}
+    }
+
     init() {
         store.setTutorialActive(false);
-        if (!sessionStorage.getItem('tutorial_seen')) {
+        if (!this.hasSeenTutorial()) {
             this.pendingStart = true;
-            sessionStorage.setItem('tutorial_seen', 'true');
+            this.markTutorialSeen();
         } else {
             if (this.skipBtn) this.skipBtn.innerText = 'Tutorial';
             document.body.classList.remove('tutorial-active');
@@ -74,6 +98,21 @@ export class TutorialSystem {
 
         store.on('tutorialAction', (action) => {
             if (!this.isActive || this.isResetting || !action) return;
+
+            if (this.step === 0 && action.type === 'editDimension' && action.axis === 'l') {
+                this.advance();
+                return;
+            }
+
+            if (this.step === 1 && action.type === 'editDimension' && action.axis === 'w') {
+                this.advance();
+                return;
+            }
+
+            if (this.step === 2 && action.type === 'editDimension' && action.axis === 'h') {
+                this.advance();
+                return;
+            }
 
             if (action.type === 'addDivider' && action.axis === 'x') {
                 this.lastAddedDividerX = action.pos;
@@ -118,8 +157,8 @@ export class TutorialSystem {
         style.id = 'tutorial-lock-style';
         style.textContent = `
             .tutorial-ui-locked {
-                opacity: 0.38 !important;
-                filter: grayscale(0.5);
+                opacity: 1 !important;
+                filter: none !important;
                 pointer-events: none !important;
                 cursor: not-allowed !important;
             }
@@ -142,7 +181,8 @@ export class TutorialSystem {
             color: #fff;
             border-radius: 8px;
             font-size: 12px;
-            font-weight: 700;
+            font-family: "Patrick Hand", cursive;
+            font-weight: 600;
             line-height: 1.3;
             pointer-events: none;
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);

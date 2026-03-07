@@ -3,35 +3,35 @@ export const TUTORIAL_TOTAL_STEPS = 8;
 const STEP_CONFIGS = {
     0: {
         instruction: 'Set Length',
-        wrongActionMessage: 'Hay chinh chieu dai (Length) truoc.'
+        wrongActionMessage: 'Please set Length first.'
     },
     1: {
         instruction: 'Set Width',
-        wrongActionMessage: 'Hay chinh chieu rong (Width) truoc.'
+        wrongActionMessage: 'Please set Width first.'
     },
     2: {
         instruction: 'Set Height',
-        wrongActionMessage: 'Hay chinh chieu cao (Height) truoc.'
+        wrongActionMessage: 'Please set Height first.'
     },
     3: {
         instruction: 'Add Horizontal',
-        wrongActionMessage: 'Hay them divider ngang (Z) theo huong dan.'
+        wrongActionMessage: 'Please add a Horizontal divider first.'
     },
     4: {
         instruction: 'Add Vertical',
-        wrongActionMessage: 'Hay them divider doc (X) theo huong dan.'
+        wrongActionMessage: 'Please add a Vertical divider first.'
     },
     5: {
         instruction: 'Drag to move divider',
-        wrongActionMessage: 'Hay keo divider doc (X) theo huong dan.'
+        wrongActionMessage: 'Please drag the Vertical divider first.'
     },
     6: {
         instruction: 'Drag to move divider',
-        wrongActionMessage: 'Hay keo divider ngang (Z) theo huong dan.'
+        wrongActionMessage: 'Please drag the Horizontal divider first.'
     },
     7: {
         instruction: 'Double click to delete',
-        wrongActionMessage: 'Hay double click de xoa divider theo huong dan.'
+        wrongActionMessage: 'Please double click to delete the divider segment.'
     }
 };
 
@@ -41,7 +41,7 @@ export function getTutorialStepConfig(step) {
 
 export function getTutorialWrongActionMessage(step) {
     const config = getTutorialStepConfig(step);
-    return config?.wrongActionMessage || 'Hay thuc hien dung buoc hien tai truoc.';
+    return config?.wrongActionMessage || 'Please complete the current tutorial step first.';
 }
 
 export function formatTutorialStepLabel(step) {
