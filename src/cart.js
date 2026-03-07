@@ -9,6 +9,15 @@ import {
 import { formatVND } from './utils/pricing.js';
 
 const CHECKOUT_INFO_STORAGE_KEY = 'tray_customize_checkout_info_v1';
+const THUMB_SIZE = 72;
+const ITEM_INFO_GAP_PX = 10;
+
+const THUMB_THEME_COLORS = {
+    brown: { bg: '#111827', wall: '#8D6E63', inner: '#2A2320', divider: '#E0C3B5' },
+    white: { bg: '#111827', wall: '#F8F9FA', inner: '#6B7280', divider: '#D1D5DB' },
+    red: { bg: '#111827', wall: '#EF5350', inner: '#3C1E22', divider: '#FCA5A5' },
+    blue: { bg: '#111827', wall: '#42A5F5', inner: '#1C2F4B', divider: '#93C5FD' }
+};
 
 function readCheckoutInfo() {
     if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
@@ -65,6 +74,11 @@ function capitalize(value) {
     return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+function toFinite(value, fallback) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 function buildConfigSummary(configSnapshot = {}) {
     const dimensions = configSnapshot.dimensions || {};
     const dividers = configSnapshot.dividers || { x: [], z: [] };
@@ -93,10 +107,117 @@ class CartPage {
         this.nameInput = document.getElementById('customer-name');
         this.phoneInput = document.getElementById('customer-phone');
         this.addressInput = document.getElementById('customer-address');
+        this.thumbnailFallbackCache = new Map();
 
         this.bindEvents();
         this.restoreCheckoutInfo();
         this.render();
+    }
+
+    getThemeColors(theme) {
+        return THUMB_THEME_COLORS[theme] || THUMB_THEME_COLORS.brown;
+    }
+
+    formatSvgNumber(value) {
+        return Number(value).toFixed(2);
+    }
+
+    buildFallbackTopViewThumbnail(configSnapshot = {}) {
+        const dims = configSnapshot.dimensions || {};
+        const dividers = configSnapshot.dividers || { x: [], z: [] };
+        const hiddenSegments = configSnapshot.hiddenSegments || {};
+        const colors = this.getThemeColors(configSnapshot.colorTheme || 'brown');
+
+        const l = Math.max(1, toFinite(dims.l, 120));
+        const w = Math.max(1, toFinite(dims.w, 120));
+        const radius = Math.max(0, toFinite(dims.radius, 8));
+        const wallThickness = Math.max(0.5, toFinite(dims.wallThickness, 2));
+
+        const size = THUMB_SIZE;
+        const pad = 6;
+        const drawArea = size - (pad * 2);
+        const scale = drawArea / Math.max(l, w);
+
+        const trayW = l * scale;
+        const trayH = w * scale;
+        const cx = size / 2;
+        const cy = size / 2;
+
+        const outerX = cx - (trayW / 2);
+        const outerY = cy - (trayH / 2);
+        const outerR = Math.max(1, Math.min(Math.min(trayW, trayH) / 2, (radius + wallThickness) * scale));
+
+        const wallPx = Math.max(1, wallThickness * scale);
+        const innerX = outerX + wallPx;
+        const innerY = outerY + wallPx;
+        const innerW = Math.max(1, trayW - (wallPx * 2));
+        const innerH = Math.max(1, trayH - (wallPx * 2));
+        const innerR = Math.max(0.5, Math.min(Math.min(innerW, innerH) / 2, radius * scale));
+
+        const sortedX = Array.isArray(dividers.x)
+            ? [...dividers.x].map((value) => toFinite(value, 0)).sort((a, b) => a - b)
+            : [];
+        const sortedZ = Array.isArray(dividers.z)
+            ? [...dividers.z].map((value) => toFinite(value, 0)).sort((a, b) => a - b)
+            : [];
+
+        const xBounds = [-l / 2, ...sortedX, l / 2];
+        const zBounds = [-w / 2, ...sortedZ, w / 2];
+        const lineWidth = Math.max(1, Math.min(3, wallPx));
+        const lineSegments = [];
+
+        for (let i = 0; i < sortedX.length; i += 1) {
+            const x = cx + (sortedX[i] * scale);
+            for (let j = 0; j < zBounds.length - 1; j += 1) {
+                if (hiddenSegments[`X_${i}_${j}`]) continue;
+                const y1 = cy + (zBounds[j] * scale);
+                const y2 = cy + (zBounds[j + 1] * scale);
+                lineSegments.push(
+                    `<line x1="${this.formatSvgNumber(x)}" y1="${this.formatSvgNumber(y1)}" x2="${this.formatSvgNumber(x)}" y2="${this.formatSvgNumber(y2)}" />`
+                );
+            }
+        }
+
+        for (let i = 0; i < sortedZ.length; i += 1) {
+            const y = cy + (sortedZ[i] * scale);
+            for (let j = 0; j < xBounds.length - 1; j += 1) {
+                if (hiddenSegments[`Z_${i}_${j}`]) continue;
+                const x1 = cx + (xBounds[j] * scale);
+                const x2 = cx + (xBounds[j + 1] * scale);
+                lineSegments.push(
+                    `<line x1="${this.formatSvgNumber(x1)}" y1="${this.formatSvgNumber(y)}" x2="${this.formatSvgNumber(x2)}" y2="${this.formatSvgNumber(y)}" />`
+                );
+            }
+        }
+
+        const svg = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+              <rect width="${size}" height="${size}" fill="${colors.bg}" />
+              <rect x="${this.formatSvgNumber(outerX)}" y="${this.formatSvgNumber(outerY)}" width="${this.formatSvgNumber(trayW)}" height="${this.formatSvgNumber(trayH)}" rx="${this.formatSvgNumber(outerR)}" ry="${this.formatSvgNumber(outerR)}" fill="${colors.wall}" />
+              <rect x="${this.formatSvgNumber(innerX)}" y="${this.formatSvgNumber(innerY)}" width="${this.formatSvgNumber(innerW)}" height="${this.formatSvgNumber(innerH)}" rx="${this.formatSvgNumber(innerR)}" ry="${this.formatSvgNumber(innerR)}" fill="${colors.inner}" />
+              <g stroke="${colors.divider}" stroke-width="${this.formatSvgNumber(lineWidth)}" stroke-linecap="round">
+                ${lineSegments.join('')}
+              </g>
+            </svg>
+        `;
+
+        return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+    }
+
+    getItemThumbnail(item) {
+        const preview = typeof item?.topViewPreview === 'string' ? item.topViewPreview.trim() : '';
+        // Old snapshots may contain flat/empty JPEG captures; prefer fallback if preview is suspiciously tiny.
+        if (preview.startsWith('data:image/') && preview.length >= 1800) {
+            return preview;
+        }
+
+        const cacheKey = item?.fingerprint || JSON.stringify(item?.configSnapshot || {});
+        const cached = this.thumbnailFallbackCache.get(cacheKey);
+        if (cached) return cached;
+
+        const generated = this.buildFallbackTopViewThumbnail(item?.configSnapshot || {});
+        this.thumbnailFallbackCache.set(cacheKey, generated);
+        return generated;
     }
 
     bindEvents() {
@@ -185,51 +306,63 @@ class CartPage {
 
     renderItem(item) {
         const summary = buildConfigSummary(item.configSnapshot);
+        const thumbSrc = this.getItemThumbnail(item);
 
         return `
             <article class="rounded-2xl border border-white/10 bg-zinc-900/70 p-4 shadow-xl">
-              <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                <div class="space-y-1">
-                  <h3 class="text-base font-bold text-white">${escapeHtml(item.name)}</h3>
-                  <p class="text-sm text-zinc-300">Size: ${escapeHtml(summary.size)}</p>
-                  <p class="text-xs text-zinc-400">${escapeHtml(summary.details)}</p>
-                  <p class="text-xs text-zinc-500">${escapeHtml(summary.extras)}</p>
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0 flex flex-1 items-start" style="gap: ${ITEM_INFO_GAP_PX}px;">
+                  <img
+                    src="${escapeHtml(thumbSrc)}"
+                    alt="Top view preview of ${escapeHtml(item.name)}"
+                    width="${THUMB_SIZE}"
+                    height="${THUMB_SIZE}"
+                    loading="lazy"
+                    decoding="async"
+                    class="h-[72px] w-[72px] shrink-0 rounded-lg border border-white/10 bg-zinc-950/80 object-cover"
+                  />
+                  <div class="min-w-0">
+                    <h3 class="text-base font-bold text-white">${escapeHtml(item.name)}</h3>
+                    <p class="text-sm text-zinc-300">Size: ${escapeHtml(summary.size)}</p>
+                    <p class="text-xs text-zinc-400">${escapeHtml(summary.details)}</p>
+                    <p class="text-xs text-zinc-500">${escapeHtml(summary.extras)}</p>
+
+                    <div class="mt-4 flex flex-wrap items-center gap-2">
+                      <div class="inline-flex items-center overflow-hidden rounded-xl border border-white/15">
+                        <button
+                          type="button"
+                          data-action="decrease"
+                          data-fingerprint="${escapeHtml(item.fingerprint)}"
+                          class="px-3 py-2 text-sm font-bold text-zinc-300 transition hover:bg-zinc-800 hover:text-white"
+                        >
+                          -
+                        </button>
+                        <span class="min-w-10 bg-zinc-800/70 px-3 py-2 text-center text-sm font-semibold text-white">${item.quantity}</span>
+                        <button
+                          type="button"
+                          data-action="increase"
+                          data-fingerprint="${escapeHtml(item.fingerprint)}"
+                          class="px-3 py-2 text-sm font-bold text-zinc-300 transition hover:bg-zinc-800 hover:text-white"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        data-action="remove"
+                        data-fingerprint="${escapeHtml(item.fingerprint)}"
+                        class="rounded-xl border border-red-500/40 px-3 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-950/40"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div class="md:text-right">
+                <div class="shrink-0 text-right">
                   <p class="text-xs uppercase tracking-wider text-zinc-400">Unit Price</p>
                   <p class="text-sm font-semibold text-zinc-200">${formatVND(item.unitPrice)}</p>
                   <p class="mt-1 text-lg font-bold text-white">${formatVND(item.lineTotal)}</p>
                 </div>
-              </div>
-
-              <div class="mt-4 flex flex-wrap items-center gap-2">
-                <div class="inline-flex items-center overflow-hidden rounded-xl border border-white/15">
-                  <button
-                    type="button"
-                    data-action="decrease"
-                    data-fingerprint="${escapeHtml(item.fingerprint)}"
-                    class="px-3 py-2 text-sm font-bold text-zinc-300 transition hover:bg-zinc-800 hover:text-white"
-                  >
-                    -
-                  </button>
-                  <span class="min-w-10 bg-zinc-800/70 px-3 py-2 text-center text-sm font-semibold text-white">${item.quantity}</span>
-                  <button
-                    type="button"
-                    data-action="increase"
-                    data-fingerprint="${escapeHtml(item.fingerprint)}"
-                    class="px-3 py-2 text-sm font-bold text-zinc-300 transition hover:bg-zinc-800 hover:text-white"
-                  >
-                    +
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  data-action="remove"
-                  data-fingerprint="${escapeHtml(item.fingerprint)}"
-                  class="rounded-xl border border-red-500/40 px-3 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-950/40"
-                >
-                  Remove
-                </button>
               </div>
             </article>
         `;

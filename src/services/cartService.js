@@ -2,6 +2,7 @@ import { calculateTrayPrice } from '../utils/pricing.js';
 
 const CART_STORAGE_KEY = 'tray_customize_cart_v1';
 const ORDER_STORAGE_KEY = 'tray_customize_orders_v1';
+const MAX_TOP_VIEW_PREVIEW_LENGTH = 24000;
 
 const DEFAULT_CART_STATE = {
     items: [],
@@ -94,6 +95,15 @@ function sanitizeConfigSnapshot(snapshot = {}) {
     };
 }
 
+function sanitizeTopViewPreview(preview) {
+    if (typeof preview !== 'string') return null;
+    const trimmed = preview.trim();
+    if (!trimmed) return null;
+    if (trimmed.length > MAX_TOP_VIEW_PREVIEW_LENGTH) return null;
+    if (!/^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(trimmed)) return null;
+    return trimmed;
+}
+
 function buildConfigSnapshotFromState(state = {}) {
     return sanitizeConfigSnapshot({
         dimensions: state.dimensions,
@@ -162,11 +172,13 @@ function normalizeCartItem(rawItem) {
         typeof rawItem.name === 'string' && rawItem.name.trim().length > 0
             ? rawItem.name.trim()
             : buildTrayName(configSnapshot);
+    const topViewPreview = sanitizeTopViewPreview(rawItem.topViewPreview);
 
     return {
         fingerprint: rawItem.fingerprint,
         name,
         configSnapshot,
+        topViewPreview,
         unitPrice,
         quantity,
         lineTotal: unitPrice * quantity,
@@ -258,16 +270,18 @@ function generateOrderId(date = new Date()) {
     return `ORD-${yyyy}${mm}${dd}-${random}`;
 }
 
-export function buildCartItemFromState(state) {
+export function buildCartItemFromState(state, options = {}) {
     const configSnapshot = buildConfigSnapshotFromState(state);
     const fingerprint = createFingerprint(configSnapshot);
     const unitPrice = calculateTrayPrice(configSnapshot.dimensions);
     const now = new Date().toISOString();
+    const topViewPreview = sanitizeTopViewPreview(options.topViewPreview);
 
     return {
         fingerprint,
         name: buildTrayName(configSnapshot),
         configSnapshot,
+        topViewPreview,
         unitPrice,
         quantity: 1,
         lineTotal: unitPrice,
@@ -298,10 +312,12 @@ export function addOrMergeCartItem(cartItem) {
     if (existingIndex >= 0) {
         const existing = cart.items[existingIndex];
         const mergedQuantity = existing.quantity + normalized.quantity;
+        const mergedPreview = normalized.topViewPreview || existing.topViewPreview || null;
         cart.items[existingIndex] = {
             ...existing,
             name: normalized.name,
             configSnapshot: normalized.configSnapshot,
+            topViewPreview: mergedPreview,
             unitPrice: normalized.unitPrice,
             quantity: mergedQuantity,
             lineTotal: normalized.unitPrice * mergedQuantity,
@@ -310,6 +326,7 @@ export function addOrMergeCartItem(cartItem) {
     } else {
         cart.items.push({
             ...normalized,
+            topViewPreview: normalized.topViewPreview || null,
             addedAt: normalized.addedAt || now,
             updatedAt: now,
             lineTotal: normalized.unitPrice * normalized.quantity
