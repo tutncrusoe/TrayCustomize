@@ -54,6 +54,10 @@
         background: rgba(255, 255, 255, 0.2);
         border-radius: 2px;
       }
+      .slider-safe-zone {
+        width: 85%;
+        margin: 0 auto;
+      }
       .view-label {
         position: absolute;
         top: 1rem;
@@ -186,6 +190,43 @@
         #global-dim-input {
           font-size: 16px !important;
         }
+        .slider-safe-zone {
+          width: 100%;
+          margin: 0;
+          padding-left: max(24px, calc(env(safe-area-inset-left, 0px) + 12px));
+          padding-right: max(24px, calc(env(safe-area-inset-right, 0px) + 12px));
+        }
+        #radius,
+        #wall-thickness {
+          height: 42px;
+        }
+        #radius::-webkit-slider-thumb,
+        #wall-thickness::-webkit-slider-thumb {
+          height: 28px;
+          width: 28px;
+          margin-top: -11px;
+        }
+        #radius::-webkit-slider-runnable-track,
+        #wall-thickness::-webkit-slider-runnable-track {
+          height: 6px;
+          border-radius: 999px;
+        }
+        #radius::-moz-range-thumb,
+        #wall-thickness::-moz-range-thumb {
+          height: 28px;
+          width: 28px;
+          border: none;
+          border-radius: 50%;
+          background: #ffffff;
+          box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+        #radius::-moz-range-track,
+        #wall-thickness::-moz-range-track {
+          height: 6px;
+          border: none;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.2);
+        }
       }
       .dim-label-3d {
         background: rgba(24, 24, 27, 0.85);
@@ -208,6 +249,8 @@
       #tutorial-overlay {
         position: fixed;
         inset: 0;
+        background: transparent !important;
+        backdrop-filter: none !important;
         pointer-events: none;
         z-index: 9999;
         display: none;
@@ -215,6 +258,8 @@
       #tutorial-underlay {
         position: fixed;
         inset: 0;
+        background: transparent !important;
+        backdrop-filter: none !important;
         pointer-events: none;
         z-index: 5;
         display: none;
@@ -246,6 +291,18 @@
         text-transform: uppercase;
         letter-spacing: 0.05em;
         z-index: 10003;
+      }
+      @media (max-width: 768px) {
+        .tutorial-skip-btn {
+          top: calc(env(safe-area-inset-top, 0px) + 30px);
+          right: 12px;
+          bottom: auto;
+          left: auto;
+          padding: 7px 12px;
+          font-size: 11px;
+          border-radius: 14px;
+          z-index: 10005;
+        }
       }
       .tutorial-skip-btn:hover {
         background: rgba(255, 255, 255, 0.2);
@@ -689,7 +746,7 @@
               <!-- Reset Button -->
               <button
                 id="reset-btn"
-                class="text-[10px] text-zinc-500 hover:text-white uppercase font-bold tracking-wider transition-colors"
+                class="text-[10px] text-zinc-200 hover:text-white uppercase font-extrabold tracking-wider transition-colors"
               >
                 Reset
               </button>
@@ -738,16 +795,18 @@
                 >8mm</span
               >
             </div>
-            <input
-              type="range"
-              id="radius"
-              class="w-[85%] mx-auto block"
-              aria-label="Corner Radius"
-              min="2"
-              max="30"
-              value="8"
-              step="1"
-            />
+            <div class="slider-safe-zone">
+              <input
+                type="range"
+                id="radius"
+                class="w-full block"
+                aria-label="Corner Radius"
+                min="2"
+                max="30"
+                value="8"
+                step="1"
+              />
+            </div>
           </div>
 
           <!-- Wall Thickness -->
@@ -762,16 +821,18 @@
                 >2mm</span
               >
             </div>
-            <input
-              type="range"
-              id="wall-thickness"
-              class="w-[85%] mx-auto block"
-              aria-label="Wall Thickness"
-              min="2"
-              max="10"
-              value="2"
-              step="0.5"
-            />
+            <div class="slider-safe-zone">
+              <input
+                type="range"
+                id="wall-thickness"
+                class="w-full block"
+                aria-label="Wall Thickness"
+                min="2"
+                max="10"
+                value="2"
+                step="0.5"
+              />
+            </div>
           </div>
 
           <!-- Logo / Text -->
