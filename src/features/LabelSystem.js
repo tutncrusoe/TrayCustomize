@@ -218,7 +218,7 @@ export class LabelSystem {
 
     updateLabels() {
         const state = store.getState();
-        const { l, w, h, wallThickness } = state.dimensions;
+        const { l, w, h, radius, wallThickness } = state.dimensions;
         const { x: dX, z: dZ } = state.dividers;
         const rect = this.dimContainer.getBoundingClientRect();
 
@@ -230,7 +230,9 @@ export class LabelSystem {
             const s = this.lastState;
             const dimsMatch = Math.abs(s.l - l) < 0.01 &&
                               Math.abs(s.w - w) < 0.01 &&
-                              Math.abs(s.h - h) < 0.01;
+                              Math.abs(s.h - h) < 0.01 &&
+                              Math.abs(s.radius - radius) < 0.01 &&
+                              Math.abs(s.wallThickness - wallThickness) < 0.01;
 
             const rectMatch = Math.abs(s.rectW - rect.width) < 0.1 &&
                               Math.abs(s.rectH - rect.height) < 0.1;
@@ -249,7 +251,7 @@ export class LabelSystem {
         }
 
         this.lastState = {
-            l, w, h,
+            l, w, h, radius, wallThickness,
             rectW: rect.width,
             rectH: rect.height,
             dX: [...dX],
@@ -287,7 +289,7 @@ export class LabelSystem {
                 const displaySize = this.toDisplayedSpan(room, l / 2, wallThickness, useInnerMeasureX);
                 const cb = (inputNd) => {
                     const { radius, wallThickness } = state.dimensions;
-                    const minSize = (radius * 2) + 1;
+                    const minSize = radius * 2;
                     const deduction = useInnerMeasureX
                         ? this.getInnerEdgeDeduction(room, l / 2, wallThickness)
                         : 0;
@@ -348,7 +350,7 @@ export class LabelSystem {
                 const displaySize = this.toDisplayedSpan(room, w / 2, wallThickness, useInnerMeasureZ);
                 const cb = (inputNd) => {
                     const { radius, wallThickness } = state.dimensions;
-                    const minSize = (radius * 2) + 1;
+                    const minSize = radius * 2;
                     const deduction = useInnerMeasureZ
                         ? this.getInnerEdgeDeduction(room, w / 2, wallThickness)
                         : 0;

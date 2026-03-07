@@ -17,6 +17,8 @@ export class SceneManager {
         // Configuration
         this.frustumSize = 250;
         this.lastZoomedMaxDim = 0;
+        this.maxPixelRatio = 2;
+        this._lostContexts = new Set();
 
         // Pinch-zoom scene freeze for touchpad on Desktop (same mechanism as Edit Mode).
         // Freezes animate() during the gesture, then calls autoFitCamera() before resuming.
@@ -34,13 +36,14 @@ export class SceneManager {
 
         // Renderer Setup
         this.renderer3D = new THREE.WebGLRenderer({ canvas: this.canvas3D, antialias: true, alpha: true });
-        this.renderer3D.setPixelRatio(window.devicePixelRatio);
+        this.renderer3D.setPixelRatio(this.getTargetPixelRatio());
         this.renderer3D.shadowMap.enabled = false;
         this.renderer3D.shadowMap.type = THREE.PCFSoftShadowMap;
 
         this.rendererTop = new THREE.WebGLRenderer({ canvas: this.canvasTop, antialias: true, alpha: true });
-        this.rendererTop.setPixelRatio(window.devicePixelRatio);
+        this.rendererTop.setPixelRatio(this.getTargetPixelRatio());
         this.rendererTop.shadowMap.enabled = false;
+        this.bindContextEvents();
 
         // Camera Setup
         this.camera3D = new THREE.PerspectiveCamera(40, 1, 1, 1000);
@@ -112,14 +115,71 @@ export class SceneManager {
         });
     }
 
+    getTargetPixelRatio() {
+        return Math.min(window.devicePixelRatio || 1, this.maxPixelRatio);
+    }
+
+    bindContextEvents() {
+        this.bindRendererContextEvents(this.canvas3D, '3d');
+        this.bindRendererContextEvents(this.canvasTop, 'top');
+    }
+
+    bindRendererContextEvents(canvas, key) {
+        if (!canvas) return;
+        canvas.addEventListener('webglcontextlost', (event) => {
+            event.preventDefault();
+            this._lostContexts.add(key);
+            console.warn(`[SceneManager] WebGL context lost (${key}).`);
+        });
+        canvas.addEventListener('webglcontextrestored', () => {
+            this._lostContexts.delete(key);
+            console.info(`[SceneManager] WebGL context restored (${key}).`);
+            store.emit('webglContextRestored', { key });
+        });
+    }
+
+    canUpdateMesh() {
+        return this._lostContexts.size === 0;
+    }
+
+    disposeMaterial(material) {
+        if (!material) return;
+        Object.keys(material).forEach((key) => {
+            const value = material[key];
+            if (value && value.isTexture) {
+                value.dispose();
+            }
+        });
+        material.dispose();
+    }
+
+    disposeObjectResources(object3D) {
+        if (!object3D || typeof object3D.traverse !== 'function') return;
+        object3D.traverse((node) => {
+            if (node.geometry) {
+                node.geometry.dispose();
+            }
+            if (node.material) {
+                const materials = Array.isArray(node.material) ? node.material : [node.material];
+                materials.forEach((material) => this.disposeMaterial(material));
+            }
+        });
+    }
+
     updateMesh(mesh) {
+        if (!this.canUpdateMesh()) {
+            return false;
+        }
         // Clear existing children
         while(this.boxGroup.children.length > 0) {
-            this.boxGroup.remove(this.boxGroup.children[0]);
+            const child = this.boxGroup.children[0];
+            this.boxGroup.remove(child);
+            this.disposeObjectResources(child);
         }
-        if (mesh) {
+        if (mesh && mesh.isObject3D) {
             this.boxGroup.add(mesh);
         }
+        return true;
     }
 
     // Camera Auto-Fit Logic
@@ -196,17 +256,18 @@ export class SceneManager {
         // Freeze geometry and overlay updates while user is editing on mobile,
         // OR while user is pinch-zooming on desktop — both freeze the scene like
         // a static image so the browser can natively scale without label desync.
-        if (store.getState().isEditing || this._isZooming) return;
+        if (store.getState().isEditing || this._isZooming || !this.canUpdateMesh()) return;
 
         // ─── Layout-stable sizing ────────────────────────────────────────────────
         // Use exact rects of the containers
         const rect3D = this.view3DContainer.getBoundingClientRect();
 
         if (rect3D.width > 0 && rect3D.height > 0) {
-            const bufW3D = Math.floor(rect3D.width * window.devicePixelRatio);
-            const bufH3D = Math.floor(rect3D.height * window.devicePixelRatio);
-            if (this.canvas3D.width !== bufW3D || this.canvas3D.height !== bufH3D || this.renderer3D.getPixelRatio() !== window.devicePixelRatio) {
-                this.renderer3D.setPixelRatio(window.devicePixelRatio);
+            const pixelRatio = this.getTargetPixelRatio();
+            const bufW3D = Math.floor(rect3D.width * pixelRatio);
+            const bufH3D = Math.floor(rect3D.height * pixelRatio);
+            if (this.canvas3D.width !== bufW3D || this.canvas3D.height !== bufH3D || this.renderer3D.getPixelRatio() !== pixelRatio) {
+                this.renderer3D.setPixelRatio(pixelRatio);
                 this.renderer3D.setSize(rect3D.width, rect3D.height, true);
             }
             
@@ -223,10 +284,11 @@ export class SceneManager {
 
         const rectTop = this.viewTopContainer.getBoundingClientRect();
         if (rectTop.width > 0 && rectTop.height > 0) {
-            const bufWTop = Math.floor(rectTop.width * window.devicePixelRatio);
-            const bufHTop = Math.floor(rectTop.height * window.devicePixelRatio);
-            if (this.canvasTop.width !== bufWTop || this.canvasTop.height !== bufHTop || this.rendererTop.getPixelRatio() !== window.devicePixelRatio) {
-                this.rendererTop.setPixelRatio(window.devicePixelRatio);
+            const pixelRatio = this.getTargetPixelRatio();
+            const bufWTop = Math.floor(rectTop.width * pixelRatio);
+            const bufHTop = Math.floor(rectTop.height * pixelRatio);
+            if (this.canvasTop.width !== bufWTop || this.canvasTop.height !== bufHTop || this.rendererTop.getPixelRatio() !== pixelRatio) {
+                this.rendererTop.setPixelRatio(pixelRatio);
                 this.rendererTop.setSize(rectTop.width, rectTop.height, true);
             }
 
