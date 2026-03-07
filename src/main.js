@@ -70,6 +70,10 @@ class App {
         });
 
         store.on('mobileViewChanged', (view) => this.handleMobileViewChange(view));
+        store.on('webglContextRestored', () => {
+            this.updateModel();
+            this.sceneManager.autoFitCamera();
+        });
 
         window.addEventListener('resize', () => {
              if (window.innerWidth >= 768) {
@@ -87,6 +91,51 @@ class App {
                 this.refreshCartBadge();
             }
         });
+    }
+
+    isFiniteArraySample(arrayLike) {
+        if (!arrayLike || arrayLike.length === 0) return false;
+        const len = arrayLike.length;
+        const headCount = Math.min(64, len);
+        for (let i = 0; i < headCount; i++) {
+            if (!Number.isFinite(arrayLike[i])) return false;
+        }
+
+        const tailStart = Math.max(headCount, len - 64);
+        for (let i = tailStart; i < len; i++) {
+            if (!Number.isFinite(arrayLike[i])) return false;
+        }
+
+        const steps = 24;
+        for (let i = 1; i <= steps; i++) {
+            const idx = Math.floor((i / (steps + 1)) * (len - 1));
+            if (!Number.isFinite(arrayLike[idx])) return false;
+        }
+
+        return true;
+    }
+
+    isModelStructurallyValid(model) {
+        if (!model || !model.isObject3D || typeof model.traverse !== 'function') return false;
+        let hasMesh = false;
+        let valid = true;
+
+        model.traverse((node) => {
+            if (!valid || !node.isMesh) return;
+            hasMesh = true;
+
+            const geometry = node.geometry;
+            const positionArray = geometry?.attributes?.position?.array;
+            if (!positionArray || !positionArray.length) {
+                valid = false;
+                return;
+            }
+            if (!this.isFiniteArraySample(positionArray)) {
+                valid = false;
+            }
+        });
+
+        return hasMesh && valid;
     }
 
     setupSidebarControls() {
@@ -267,10 +316,35 @@ class App {
 
         const wallDisplay = document.getElementById('wall-thickness-val');
         if(wallDisplay) wallDisplay.innerText = `${Math.round(wallThickness * 10) / 10}mm`;
+        if (!this.sceneManager.canUpdateMesh()) {
+            return;
+        }
 
-        const model = createModel(l, h, w, effectiveR, wallThickness, dX, dZ, state.hiddenSegments, state.colorTheme);
-        this.sceneManager.updateMesh(model);
-        store.emit('modelRegenerated');
+        let model = null;
+        try {
+            model = createModel(l, h, w, effectiveR, wallThickness, dX, dZ, state.hiddenSegments, state.colorTheme);
+        } catch (error) {
+            console.error('[App] Model generation failed:', error);
+            return;
+        }
+
+        if (!this.isModelStructurallyValid(model)) {
+            console.warn('[App] Generated geometry is invalid; keeping previous mesh.');
+            this.sceneManager.disposeObjectResources(model);
+            return;
+        }
+
+        try {
+            const swapped = this.sceneManager.updateMesh(model);
+            if (!swapped) {
+                this.sceneManager.disposeObjectResources(model);
+                return;
+            }
+            store.emit('modelRegenerated');
+        } catch (error) {
+            console.error('[App] Mesh update failed:', error);
+            this.sceneManager.disposeObjectResources(model);
+        }
     }
 
     getMinSegmentSize(totalSize, dividers) {
