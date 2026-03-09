@@ -2,6 +2,7 @@ import {
     calculateCartTotals,
     createLocalOrder,
     getCart,
+    isValidGmail,
     isValidVietnamPhone,
     removeCartItem,
     updateItemQuantity
@@ -21,21 +22,22 @@ const THUMB_THEME_COLORS = {
 
 function readCheckoutInfo() {
     if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
-        return { name: '', phone: '', address: '' };
+        return { name: '', email: '', phone: '', address: '' };
     }
 
     try {
         const raw = window.localStorage.getItem(CHECKOUT_INFO_STORAGE_KEY);
-        if (!raw) return { name: '', phone: '', address: '' };
+        if (!raw) return { name: '', email: '', phone: '', address: '' };
 
         const parsed = JSON.parse(raw);
         return {
             name: typeof parsed?.name === 'string' ? parsed.name : '',
+            email: typeof parsed?.email === 'string' ? parsed.email : '',
             phone: typeof parsed?.phone === 'string' ? parsed.phone : '',
             address: typeof parsed?.address === 'string' ? parsed.address : ''
         };
     } catch (error) {
-        return { name: '', phone: '', address: '' };
+        return { name: '', email: '', phone: '', address: '' };
     }
 }
 
@@ -44,6 +46,7 @@ function saveCheckoutInfo(info) {
 
     const payload = {
         name: typeof info?.name === 'string' ? info.name : '',
+        email: typeof info?.email === 'string' ? info.email : '',
         phone: typeof info?.phone === 'string' ? info.phone : '',
         address: typeof info?.address === 'string' ? info.address : ''
     };
@@ -105,6 +108,7 @@ class CartPage {
         this.placeOrderBtn = document.getElementById('place-order-btn');
         this.statusEl = document.getElementById('checkout-status');
         this.nameInput = document.getElementById('customer-name');
+        this.emailInput = document.getElementById('customer-email');
         this.phoneInput = document.getElementById('customer-phone');
         this.addressInput = document.getElementById('customer-address');
         this.thumbnailFallbackCache = new Map();
@@ -225,6 +229,7 @@ class CartPage {
         this.itemsEl?.addEventListener('click', (event) => this.handleItemAction(event));
         this.checkoutForm?.addEventListener('submit', (event) => this.handleCheckoutSubmit(event));
         this.nameInput?.addEventListener('input', () => this.persistCheckoutInfo());
+        this.emailInput?.addEventListener('input', () => this.persistCheckoutInfo());
         this.phoneInput?.addEventListener('input', () => this.persistCheckoutInfo());
         this.addressInput?.addEventListener('input', () => this.persistCheckoutInfo());
     }
@@ -232,6 +237,7 @@ class CartPage {
     restoreCheckoutInfo() {
         const info = readCheckoutInfo();
         if (this.nameInput) this.nameInput.value = info.name;
+        if (this.emailInput) this.emailInput.value = info.email;
         if (this.phoneInput) this.phoneInput.value = info.phone;
         if (this.addressInput) this.addressInput.value = info.address;
     }
@@ -239,6 +245,7 @@ class CartPage {
     persistCheckoutInfo() {
         saveCheckoutInfo({
             name: this.nameInput?.value || '',
+            email: this.emailInput?.value || '',
             phone: this.phoneInput?.value || '',
             address: this.addressInput?.value || ''
         });
@@ -274,6 +281,8 @@ class CartPage {
 
     getValidationError(customer) {
         if (!customer.name.trim()) return 'Please enter your name.';
+        if (!customer.email.trim()) return 'Please enter your Gmail.';
+        if (!isValidGmail(customer.email)) return 'Please enter a valid Gmail address.';
         if (!customer.phone.trim()) return 'Please enter your phone number.';
         if (!isValidVietnamPhone(customer.phone)) return 'Please enter a valid Vietnam phone number.';
         if (!customer.address.trim()) return 'Please enter your address.';
@@ -285,6 +294,7 @@ class CartPage {
 
         const customer = {
             name: this.nameInput?.value || '',
+            email: this.emailInput?.value || '',
             phone: this.phoneInput?.value || '',
             address: this.addressInput?.value || ''
         };
@@ -422,9 +432,11 @@ class CartPage {
 
         const focusTarget =
             (this.nameInput && !this.nameInput.value.trim() && this.nameInput) ||
+            (this.emailInput && !this.emailInput.value.trim() && this.emailInput) ||
             (this.phoneInput && !this.phoneInput.value.trim() && this.phoneInput) ||
             (this.addressInput && !this.addressInput.value.trim() && this.addressInput) ||
             this.nameInput ||
+            this.emailInput ||
             this.phoneInput ||
             this.addressInput;
 
