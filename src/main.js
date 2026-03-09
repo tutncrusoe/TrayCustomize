@@ -9,6 +9,7 @@ import { TutorialSystem } from './features/TutorialSystem.js';
 import { LabelSystem } from './features/LabelSystem.js';
 import { EditSystem } from './features/EditSystem.js';
 import { LogoSystem } from './features/LogoSystem.js';
+import { AuthSystem } from './features/AuthSystem.js';
 import { calculateTrayPrice, formatVND } from './utils/pricing.js';
 import { addOrMergeCartItem, buildCartItemFromState, getCartTrayCount } from './services/cartService.js';
 
@@ -33,7 +34,8 @@ class App {
             new TutorialSystem(this.sceneManager),
             new LabelSystem(this.sceneManager),
             new EditSystem(this.sceneManager),
-            new LogoSystem(this.sceneManager)
+            new LogoSystem(this.sceneManager),
+            new AuthSystem()
         ];
 
         this.bindEvents();

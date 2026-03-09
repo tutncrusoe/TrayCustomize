@@ -736,6 +736,14 @@
         <div
           class="h-full overflow-y-auto p-5 md:p-6 flex flex-col gap-5 pb-32"
         >
+          <!-- Login -->
+          <div class="flex justify-start">
+            <button id="login-btn" class="w-full justify-center px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-extrabold text-sm transition-all flex items-center gap-2 shadow-[0_4px_15px_rgba(79,70,229,0.5)] hover:shadow-[0_6px_20px_rgba(79,70,229,0.7)] hover:-translate-y-0.5 active:translate-y-0 border border-white/20">
+              <i data-lucide="user" class="w-4 h-4"></i>
+              <span id="login-btn-text">Log in</span>
+            </button>
+          </div>
+
           <!-- Color Selection -->
           <div>
             <div class="flex justify-between items-center mb-2">
@@ -959,6 +967,60 @@
           </div>
         </div>
       </aside>
+    </div>
+
+    <!-- Logout Modal -->
+    <div id="logout-modal" class="fixed inset-0 z-[999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
+      <div id="logout-modal-content" class="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl scale-95 transition-transform duration-200 relative p-6 text-center">
+        <div class="w-12 h-12 bg-red-600/20 rounded-xl flex items-center justify-center mx-auto mb-4 border border-red-500/30">
+          <i data-lucide="log-out" class="w-6 h-6 text-red-400"></i>
+        </div>
+        <h2 class="text-xl font-bold text-white mb-2">Sign out</h2>
+        <p class="text-sm text-zinc-400 mb-6">Are you sure you want to log out of your account?</p>
+        
+        <div class="flex gap-3">
+          <button id="cancel-logout-btn" class="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold text-sm transition-all border border-white/10">
+            Cancel
+          </button>
+          <button id="confirm-logout-btn" class="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold text-sm shadow-md transition-all border border-red-500/50 active:scale-95">
+            Log out
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="fixed inset-0 z-[999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
+      <div id="login-modal-content" class="bg-zinc-900 border border-white/10 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl scale-95 transition-transform duration-200 relative">
+        <button id="close-login-modal" class="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+        <div class="p-6">
+          <div class="w-12 h-12 bg-blue-600/20 rounded-xl flex items-center justify-center mb-4 border border-blue-500/30">
+            <i data-lucide="shield-check" class="w-6 h-6 text-blue-400"></i>
+          </div>
+          <h2 id="login-title" class="text-xl font-bold text-white mb-1">Sign in</h2>
+          <p id="login-desc" class="text-xs text-zinc-400 mb-6">via secure email token</p>
+          
+          <form id="login-form" class="flex flex-col gap-4">
+            <div>
+              <label for="login-email" class="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">Email Address</label>
+              <input type="email" id="login-email" required class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-medium placeholder:text-zinc-600" placeholder="hello@example.com">
+            </div>
+
+            <div id="login-token-container" class="hidden">
+              <label for="login-token" class="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">Verification Token</label>
+              <input type="text" id="login-token" class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-medium text-center tracking-[0.5em]" placeholder="000000" maxlength="6">
+            </div>
+
+            <p id="login-error" class="text-xs text-red-400 font-medium hidden text-center"></p>
+
+            <button type="submit" id="login-submit-btn" class="w-full py-3 mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-2">
+              Send Token
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
 
     <script>

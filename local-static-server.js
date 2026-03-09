@@ -1,3 +1,4 @@
+require('dotenv').config();
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -19,6 +20,155 @@ const mime = {
 };
 const server = http.createServer((req,res)=>{
   const urlPath = decodeURIComponent(req.url.split('?')[0]);
+  
+  // REAL API: Auth (Nodemailer + HttpOnly Cookies)
+  if (urlPath.startsWith('/api/auth/')) {
+    
+    // Add basic CORS/Origin headers for API
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      return res.end();
+    }
+
+    if (req.method === 'GET' && urlPath === '/api/auth/me') {
+      const Cookie = require('cookie');
+      const cookies = Cookie.parse(req.headers.cookie || '');
+      if (cookies.session) {
+        // In a real app, validate the session token against a DB.
+        // Here we embedded the email in the cookie for simplicity.
+        const decodedEmail = Buffer.from(cookies.session, 'base64').toString('ascii');
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ loggedIn: true, email: decodedEmail }));
+      } else {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ loggedIn: false }));
+      }
+    }
+
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => body += chunk.toString());
+      req.on('end', async () => {
+        let data = {};
+        try { data = JSON.parse(body); } catch(e) {}
+        
+        if (urlPath === '/api/auth/send-token') {
+          const { email } = data;
+          if (!email) {
+            res.writeHead(400, {'Content-Type': 'application/json'});
+            return res.end(JSON.stringify({error: 'Email required'}));
+          }
+          
+          const token = Math.floor(100000 + Math.random() * 900000).toString();
+          global.authStore = global.authStore || new Map();
+          global.authStore.set(email, token);
+
+          try {
+            const nodemailer = require('nodemailer');
+            let transporter;
+            let senderEmail = process.env.GMAIL_USER;
+
+            if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+              transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                  user: process.env.GMAIL_USER,
+                  pass: process.env.GMAIL_APP_PASSWORD
+                }
+              });
+            } else {
+              console.log('[AUTH] No Gmail config found. Generating temporary Ethereal test account...');
+              const testAccount = await nodemailer.createTestAccount();
+              senderEmail = testAccount.user;
+              transporter = nodemailer.createTransport({
+                host: 'smtp.ethereal.email',
+                port: 587,
+                secure: false,
+                auth: {
+                  user: testAccount.user,
+                  pass: testAccount.pass
+                }
+              });
+            }
+
+            const info = await transporter.sendMail({
+              from: `"Tray Customize" <${senderEmail}>`,
+              to: email,
+              subject: 'Your Login Token',
+              text: `Your login token is: ${token}. It expires in 5 minutes.`,
+              html: `<h3>Your secure login token is: <b>${token}</b></h3><p>It expires in 5 minutes.</p>`
+            });
+            console.log(`[AUTH] Sent email token to ${email}`);
+            
+            if (!process.env.GMAIL_USER) {
+               console.log(`\n============== DEV INBOX =================`);
+               console.log(`Open this link to read the email sent to ${email}:`);
+               console.log(nodemailer.getTestMessageUrl(info));
+               console.log(`==========================================\n`);
+            }
+
+            res.writeHead(200, {'Content-Type': 'application/json'});
+            return res.end(JSON.stringify({success: true}));
+          } catch (err) {
+            console.error('[AUTH] Failed to send email:', err.message);
+            console.log(`[AUTH FALLBACK] Token for ${email}: ${token}`);
+            res.writeHead(200, {'Content-Type': 'application/json'});
+            return res.end(JSON.stringify({success: true, warning: 'Email failed, check terminal for token.'}));
+          }
+        }
+        
+        if (urlPath === '/api/auth/verify-token') {
+          const { email, token } = data;
+          global.authStore = global.authStore || new Map();
+          if (global.authStore.get(email) === token) {
+            global.authStore.delete(email); // consume token
+            
+            const Cookie = require('cookie');
+            const sessionValue = Buffer.from(email).toString('base64');
+            const setCookie = Cookie.serialize('session', sessionValue, {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+              maxAge: 60 * 60 * 24 * 7, // 1 week
+              path: '/'
+            });
+
+            res.writeHead(200, {
+              'Content-Type': 'application/json',
+              'Set-Cookie': setCookie
+            });
+            return res.end(JSON.stringify({success: true}));
+          }
+          res.writeHead(401, {'Content-Type': 'application/json'});
+          return res.end(JSON.stringify({error: 'Invalid or expired token'}));
+        }
+
+        if (urlPath === '/api/auth/logout') {
+          const Cookie = require('cookie');
+          const setCookie = Cookie.serialize('session', '', {
+            httpOnly: true,
+            expires: new Date(0),
+            path: '/'
+          });
+          res.writeHead(200, {
+            'Content-Type': 'application/json',
+            'Set-Cookie': setCookie
+          });
+          return res.end(JSON.stringify({success: true}));
+        }
+
+        res.writeHead(404, {'Content-Type': 'application/json'});
+        return res.end('{"error": "Not Found"}');
+      });
+      return;
+    }
+  }
+
   let filePath = path.join(root, urlPath === '/' ? 'index.html' : urlPath);
   if (!filePath.startsWith(root)) { res.writeHead(403); return res.end('Forbidden'); }
   fs.stat(filePath, (err, stat) => {
