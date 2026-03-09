@@ -9,6 +9,7 @@ import { TutorialSystem } from './features/TutorialSystem.js';
 import { LabelSystem } from './features/LabelSystem.js';
 import { EditSystem } from './features/EditSystem.js';
 import { LogoSystem } from './features/LogoSystem.js';
+import { LayoutTransitionController } from './features/LayoutTransitionController.js';
 import { calculateTrayPrice, formatVND } from './utils/pricing.js';
 import { addOrMergeCartItem, buildCartItemFromState, getCartTrayCount } from './services/cartService.js';
 
@@ -20,6 +21,7 @@ class App {
         const viewTop = document.getElementById('dim-container');
 
         this.sceneManager = new SceneManager(canvas3D, canvasTop, view3D, viewTop);
+        this.layoutController = new LayoutTransitionController();
 
         // Initialize Features
         this.features = [
@@ -39,12 +41,8 @@ class App {
         this.bindEvents();
         this.setupSidebarControls();
         this.refreshCartBadge();
-
-        if (window.innerWidth < 768) {
-            store.setMobileView('3d');
-        } else {
-            this.handleMobileViewChange('3d');
-        }
+        this.handleLayoutStateChange(store.getState().layoutState);
+        this.handleMobileViewChange(store.getState().mobileView);
 
         const tab3d = document.getElementById('tab-3d');
         const tabTop = document.getElementById('tab-top');
@@ -70,20 +68,10 @@ class App {
         });
 
         store.on('mobileViewChanged', (view) => this.handleMobileViewChange(view));
+        store.on('layoutStateChanged', (layoutState) => this.handleLayoutStateChange(layoutState));
         store.on('webglContextRestored', () => {
             this.updateModel();
             this.sceneManager.autoFitCamera();
-        });
-
-        window.addEventListener('resize', () => {
-             if (window.innerWidth >= 768) {
-                 const v3 = document.getElementById('view-3d-wrapper');
-                 const vt = document.getElementById('view-top-wrapper');
-                 v3.classList.remove('hidden', 'flex-1');
-                 vt.classList.remove('hidden', 'flex-1');
-             } else {
-                 this.handleMobileViewChange(store.getState().mobileView);
-             }
         });
 
         window.addEventListener('storage', (event) => {
@@ -317,27 +305,57 @@ class App {
         if(el) el.innerText = formatVND(price);
     }
 
-    handleMobileViewChange(mode) {
-        if (window.innerWidth >= 768) return;
+    handleLayoutStateChange(layoutState) {
+        const v3 = document.getElementById('view-3d-wrapper');
+        const vt = document.getElementById('view-top-wrapper');
+        const tabs = document.getElementById('mobile-view-tabs');
 
+        if (!v3 || !vt) return;
+
+        v3.classList.remove('hidden');
+        vt.classList.remove('hidden');
+        v3.classList.add('flex-1');
+        vt.classList.add('flex-1');
+
+        if (tabs) {
+            tabs.classList.toggle('is-visible', !!layoutState?.isSingleView);
+        }
+
+        if (layoutState?.isSingleView) {
+            this.handleMobileViewChange(store.getState().mobileView);
+        }
+    }
+
+    handleMobileViewChange(mode) {
+        const layoutState = store.getState().layoutState;
         const v3 = document.getElementById('view-3d-wrapper');
         const vt = document.getElementById('view-top-wrapper');
         const t3 = document.getElementById('tab-3d');
         const tt = document.getElementById('tab-top');
+
+        if (!v3 || !vt) return;
 
         v3.classList.remove('hidden', 'flex-1');
         vt.classList.remove('hidden', 'flex-1');
         if(t3) t3.className = 'px-6 py-2 rounded-lg text-xs font-bold transition-all';
         if(tt) tt.className = 'px-6 py-2 rounded-lg text-xs font-bold transition-all';
 
+        if (!layoutState?.isSingleView) {
+            v3.classList.add('flex-1');
+            vt.classList.add('flex-1');
+            if(t3) t3.classList.add('bg-zinc-600', 'text-white', 'shadow-sm');
+            if(tt) tt.classList.add('text-zinc-400', 'hover:text-white');
+            return;
+        }
+
         if (mode === '3d') {
             v3.classList.add('flex-1');
-            vt.classList.add('hidden', 'md:block', 'md:flex-1');
+            vt.classList.add('hidden');
             if(t3) t3.classList.add('bg-zinc-600', 'text-white', 'shadow-sm');
             if(tt) tt.classList.add('text-zinc-400', 'hover:text-white');
         } else {
             vt.classList.add('flex-1');
-            v3.classList.add('hidden', 'md:block', 'md:flex-1');
+            v3.classList.add('hidden');
             if(tt) tt.classList.add('bg-zinc-600', 'text-white', 'shadow-sm');
             if(t3) t3.classList.add('text-zinc-400', 'hover:text-white');
         }
@@ -441,8 +459,19 @@ window.addEventListener('load', () => {
         fixMobileHeight();
     });
 
-    window.app = new App();
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
+    requestAnimationFrame(() => {
+        window.app = new App();
+    });
+
+    const hydrateIcons = () => {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    };
+
+    if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(hydrateIcons, { timeout: 1000 });
+    } else {
+        setTimeout(hydrateIcons, 180);
     }
 });

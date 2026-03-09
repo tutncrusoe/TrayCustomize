@@ -26,6 +26,9 @@ export class LabelSystem {
         store.on('mobileViewChanged', () => {
             setTimeout(() => this.updateVisibility(), 0);
         });
+        store.on('layoutStateChanged', () => {
+            setTimeout(() => this.updateVisibility(), 0);
+        });
 
         window.addEventListener('resize', () => {
             setTimeout(() => this.updateVisibility(), 0);
@@ -117,7 +120,7 @@ export class LabelSystem {
         return Math.max(0, room.size - this.getInnerEdgeDeduction(room, halfExtent, wallThickness));
     }
     updateVisibility() {
-        const isMobile = window.innerWidth < 768;
+        const isMobile = !!store.getState().layoutState?.isSingleView;
         const mobileView = store.getState().mobileView;
 
         if (!isMobile) {

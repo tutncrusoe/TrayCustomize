@@ -27,7 +27,8 @@ export class TutorialSystem {
         this.ghostDivider = document.getElementById('ghost-divider');
         this.cursorTrail = document.getElementById('cursor-trail');
         this.sidebar = document.querySelector('aside');
-        this.wrongTooltip = this.createWrongTooltip();
+        this.wrongTooltip = null;
+        this.startTimer = null;
 
         this.pendingStart = false;
         this.ensureUiLockStyle();
@@ -81,7 +82,7 @@ export class TutorialSystem {
         store.on('modelRegenerated', () => {
             if (this.pendingStart) {
                 this.pendingStart = false;
-                this.start();
+                this.scheduleDeferredStart();
             }
         });
 
@@ -243,6 +244,9 @@ export class TutorialSystem {
     }
 
     showWrongAction(payload = {}) {
+        if (!this.wrongTooltip) {
+            this.wrongTooltip = this.createWrongTooltip();
+        }
         if (!this.isActive || !this.wrongTooltip) return;
 
         const message = payload.message || getTutorialWrongActionMessage(this.step);
@@ -272,7 +276,22 @@ export class TutorialSystem {
 
     toggle() {
         if (this.isActive) this.complete();
-        else this.start();
+        else this.start(true);
+    }
+
+    scheduleDeferredStart() {
+        clearTimeout(this.startTimer);
+        const startWhenIdle = () => {
+            this.start(false);
+        };
+
+        if (typeof window.requestIdleCallback === 'function') {
+            this.startTimer = window.requestIdleCallback(() => {
+                window.setTimeout(startWhenIdle, 120);
+            }, { timeout: 1200 });
+        } else {
+            this.startTimer = window.setTimeout(startWhenIdle, 650);
+        }
     }
 
     resetToTutorialPreset() {
@@ -295,7 +314,11 @@ export class TutorialSystem {
         document.getElementById('color-brown')?.classList.add('border-white');
     }
 
-    start() {
+    start(forceImmediate = false) {
+        if (!forceImmediate && document.visibilityState === 'hidden') {
+            this.pendingStart = true;
+            return;
+        }
         this.isActive = true;
         this.isFirstShow = true;
         this.isResetting = true;
@@ -347,7 +370,7 @@ export class TutorialSystem {
         if (this.cursorTrail) this.cursorTrail.style.opacity = 0;
 
         // Mobile View Switching
-        if (window.innerWidth < 768) {
+        if (store.getState().layoutState?.isSingleView) {
             if (stepIndex >= 3) store.setMobileView('top');
             else store.setMobileView('3d');
         }
@@ -555,7 +578,7 @@ export class TutorialSystem {
             }
         }
 
-        if (window.innerWidth < 768) {
+        if (store.getState().layoutState?.isSingleView) {
             this.blob.style.transform = 'scale(0.8)';
         } else {
             this.blob.style.transform = '';

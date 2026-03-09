@@ -18,6 +18,14 @@ export class Store extends EventBus {
             hiddenSegments: {},
             isEditing: false,
             mobileView: '3d', // '3d' or 'top'
+            layoutState: {
+                mode: 'desktop',
+                layoutProgress: 0,
+                editorWidthRatio: 1,
+                sidebarWidthPx: 288,
+                isSingleView: false,
+                isDocked: false
+            },
             tutorialActive: false,
             tutorialStep: 0,
             colorTheme: 'brown', // 'brown' or 'white'
@@ -112,6 +120,17 @@ export class Store extends EventBus {
     setMobileView(view) {
         this.state.mobileView = view;
         this.emit('mobileViewChanged', this.state.mobileView);
+    }
+
+    setLayoutState(layoutPatch) {
+        const nextLayoutState = { ...this.state.layoutState, ...layoutPatch };
+        const prevLayoutState = this.state.layoutState;
+
+        const changed = Object.keys(nextLayoutState).some((key) => nextLayoutState[key] !== prevLayoutState[key]);
+        if (!changed) return;
+
+        this.state.layoutState = nextLayoutState;
+        this.emit('layoutStateChanged', this.state.layoutState);
     }
 
     setTutorialStep(step) {

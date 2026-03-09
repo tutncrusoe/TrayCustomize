@@ -20,6 +20,177 @@
         margin: 0;
         overflow: hidden;
       }
+      #editor-shell {
+        --sidebar-width: 288px;
+        --workspace-gap: 32px;
+        --workspace-padding: 32px;
+        --docked-sidebar-height: 320px;
+        --workspace-main-height: 520px;
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+      #editor-shell[data-app-ready="false"] *,
+      #editor-shell[data-app-ready="false"] *::before,
+      #editor-shell[data-app-ready="false"] *::after {
+        transition: none !important;
+        animation: none !important;
+      }
+      #workspace-shell {
+        min-height: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) var(--sidebar-width);
+        grid-template-rows: minmax(0, 1fr);
+        transition:
+          grid-template-columns 0.26s ease,
+          grid-template-rows 0.26s ease;
+      }
+      html[data-initial-layout="mobile"] #editor-shell {
+        --workspace-gap: 0px;
+        --workspace-padding: 0px;
+      }
+      html[data-initial-layout="mobile"] #workspace-shell {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr) auto;
+      }
+      html[data-initial-layout="mobile"] #editor-shell[data-app-ready="false"] #workspace-shell {
+        grid-template-rows: minmax(0, 1fr);
+      }
+      html[data-initial-layout="mobile"] #viewports-container {
+        flex-direction: column;
+        gap: 0;
+        padding-left: 0;
+        padding-right: 0;
+        padding-bottom: 0;
+      }
+      html[data-initial-layout="mobile"] #editor-shell[data-app-ready="false"] #viewports-container {
+        padding-bottom: 0;
+      }
+      html[data-initial-layout="mobile"] #control-sidebar {
+        width: 100%;
+        max-height: none;
+      }
+      html[data-initial-layout="mobile"] #editor-shell[data-app-ready="false"] #control-sidebar {
+        display: none;
+      }
+      html[data-initial-layout="mobile"] #mobile-view-tabs {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0) scale(0.8);
+      }
+      html[data-initial-layout="mobile"] #editor-shell[data-app-ready="false"] #view-top-wrapper {
+        display: none;
+      }
+      html[data-initial-layout="mobile"] #editor-shell[data-app-ready="false"] #view-3d-wrapper {
+        display: flex;
+        flex: 1 1 0;
+      }
+      html[data-initial-layout="mobile"] .view-title {
+        display: none !important;
+      }
+      #editor-shell[data-layout-mode="sidebar-docked"] #workspace-shell,
+      #editor-shell[data-layout-mode="views-compress"] #workspace-shell,
+      #editor-shell[data-layout-mode="mobile-merged"] #workspace-shell {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(320px, var(--workspace-main-height)) auto;
+      }
+      #viewports-container {
+        min-width: 0;
+        min-height: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: row;
+        gap: var(--workspace-gap);
+        padding: 0 var(--workspace-padding) var(--workspace-padding);
+        align-items: stretch;
+        transition:
+          gap 0.26s ease,
+          padding 0.26s ease,
+          height 0.26s ease,
+          transform 0.26s ease;
+      }
+      #editor-shell[data-layout-mode="mobile-merged"] #viewports-container {
+        flex-direction: column;
+        gap: 0;
+        padding-left: 0;
+        padding-right: 0;
+        padding-bottom: 0;
+      }
+      .viewport-stage {
+        min-width: 0;
+        min-height: 0;
+        flex: 1 1 0;
+        transition:
+          flex-basis 0.26s ease,
+          min-height 0.26s ease,
+          opacity 0.18s ease;
+      }
+      #control-sidebar {
+        width: 100%;
+        min-width: 0;
+        min-height: 0;
+        height: 100%;
+        transition:
+          width 0.26s ease,
+          max-height 0.26s ease,
+          transform 0.26s ease;
+      }
+      #editor-shell[data-layout-mode="desktop"] #control-sidebar,
+      #editor-shell[data-layout-mode="sidebar-compress"] #control-sidebar {
+        width: var(--sidebar-width);
+        max-height: 100%;
+      }
+      #editor-shell[data-layout-mode="sidebar-docked"] #control-sidebar,
+      #editor-shell[data-layout-mode="views-compress"] #control-sidebar,
+      #editor-shell[data-layout-mode="mobile-merged"] #control-sidebar {
+        width: 100%;
+        max-height: var(--docked-sidebar-height);
+      }
+      #mobile-view-tabs {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-8px) scale(0.96);
+        transition:
+          opacity 0.2s ease,
+          transform 0.2s ease;
+      }
+      #mobile-view-tabs.is-visible {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0) scale(0.8);
+      }
+      #editor-shell[data-single-view="false"] .view-title {
+        display: block;
+      }
+      #editor-shell[data-single-view="true"] .view-title {
+        display: none;
+      }
+      @media (max-width: 768px) {
+        #editor-shell {
+          --workspace-gap: 0px;
+          --workspace-padding: 0px;
+        }
+        #workspace-shell {
+          grid-template-columns: minmax(0, 1fr);
+          grid-template-rows: minmax(0, 1fr) auto;
+          transition: none;
+        }
+        #viewports-container {
+          transition: none;
+        }
+        .viewport-stage {
+          transition: none;
+        }
+        #control-sidebar {
+          max-height: none;
+          transition: none;
+        }
+        #mobile-view-tabs {
+          transition: none;
+        }
+      }
       .floating-panel {
         background: rgba(30, 30, 30, 0.7);
         backdrop-filter: blur(20px);
@@ -592,6 +763,12 @@
         margin-bottom: 1.5rem;
         color: #3b82f6;
       }
+      .upsale-noise {
+        background:
+          radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.06) 0, transparent 35%),
+          radial-gradient(circle at 80% 30%, rgba(255, 255, 255, 0.04) 0, transparent 28%),
+          radial-gradient(circle at 50% 80%, rgba(255, 255, 255, 0.03) 0, transparent 24%);
+      }
       @keyframes rotate-phone {
         0%, 100% { transform: rotate(90deg); }
         50% { transform: rotate(0deg); }
@@ -599,6 +776,9 @@
     </style>
   </head>
   <body class="relative h-screen w-screen">
+    <script>
+      document.documentElement.dataset.initialLayout = window.innerWidth <= 768 ? 'mobile' : 'desktop';
+    </script>
     <!-- Orientation Warning for Mobile Landscape -->
     <div id="orientation-warning">
       <div class="rotate-icon">
@@ -647,9 +827,14 @@
       aria-label="Global Dimension Editor"
     />
     <div
-      class="absolute inset-0 flex flex-col pointer-events-auto overflow-hidden"
+      id="editor-shell"
+      data-layout-mode="desktop"
+      data-single-view="false"
+      data-app-ready="false"
+      class="pointer-events-auto overflow-hidden"
     >
       <header
+        id="editor-header"
         class="relative z-20 w-full p-4 md:p-6 flex justify-between items-center pointer-events-none shrink-0"
       >
         <div class="flex items-center gap-3 pointer-events-auto">
@@ -671,11 +856,12 @@
         </div>
       </header>
 
+      <div id="workspace-shell" class="min-h-0">
       <main
         id="viewports-container"
-        class="w-full md:w-4/5 h-[45%] shrink-0 md:h-auto md:flex-1 flex flex-col md:flex-row relative p-0 md:p-8 gap-0 md:gap-8"
+        class="relative shrink-0"
       >
-        <div class="absolute top-4 right-4 z-40 md:hidden pointer-events-auto">
+        <div id="mobile-view-tabs" class="absolute top-4 right-4 z-40 pointer-events-auto">
           <div
             class="bg-zinc-800/90 backdrop-blur-md p-1 rounded-xl flex gap-1 border border-white/10 shadow-lg scale-[0.8]"
           >
@@ -696,9 +882,9 @@
 
         <div
           id="view-3d-wrapper"
-          class="h-full w-full md:h-auto md:flex-1 flex flex-col min-h-0 relative"
+          class="viewport-stage h-full w-full flex flex-col min-h-0 relative"
         >
-          <h2 class="text-white font-bold mb-3 text-sm ml-1 hidden md:block">
+          <h2 class="view-title text-white font-bold mb-3 text-sm ml-1 hidden md:block">
             3D View
           </h2>
           <div
@@ -713,9 +899,9 @@
         </div>
         <div
           id="view-top-wrapper"
-          class="h-full w-full md:h-auto md:flex-1 flex flex-col min-h-0 hidden md:flex relative"
+          class="viewport-stage h-full w-full flex flex-col min-h-0 relative"
         >
-          <h2 class="text-white font-bold mb-3 text-sm ml-1 hidden md:block">
+          <h2 class="view-title text-white font-bold mb-3 text-sm ml-1 hidden md:block">
             Top View
           </h2>
           <div
@@ -731,7 +917,8 @@
       </main>
 
       <aside
-        class="relative z-50 bg-[#1e1e1e] border-t md:border-t-0 md:border-l border-white/10 flex flex-col w-full flex-1 rounded-none md:fixed md:top-0 md:right-0 md:w-1/5 md:h-full overflow-hidden transition-all duration-300 pointer-events-auto shadow-[0_-4px_30px_rgba(0,0,0,0.6)] md:shadow-none shrink-0"
+        id="control-sidebar"
+        class="relative z-50 bg-[#1e1e1e] border-t md:border-t-0 md:border-l border-white/10 flex flex-col rounded-none overflow-hidden transition-all duration-300 pointer-events-auto shadow-[0_-4px_30px_rgba(0,0,0,0.6)] md:shadow-none shrink-0"
       >
         <div
           class="h-full overflow-y-auto p-5 md:p-6 flex flex-col gap-5 pb-32"
@@ -953,12 +1140,13 @@
                 >Upsale Area</span
               >
               <div
-                class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"
+                class="absolute inset-0 upsale-noise opacity-30"
               ></div>
             </div>
           </div>
         </div>
       </aside>
+      </div>
     </div>
 
     <script>

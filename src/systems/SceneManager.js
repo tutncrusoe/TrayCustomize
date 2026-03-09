@@ -25,6 +25,7 @@ export class SceneManager {
         this._isZooming = false;
         this._zoomEndTimer = null;
         this._labelContainers = null;
+        this._autoFitTimer = null;
 
         this.init();
         this.bindEvents();
@@ -89,7 +90,7 @@ export class SceneManager {
                     clearTimeout(this._zoomEndTimer);
                     this._zoomEndTimer = setTimeout(() => {
                         // Refit camera BEFORE unfreeze so first rendered frame is correct
-                        this.autoFitCamera();
+                        this.scheduleAutoFit(0);
                         this._isZooming = false;
                     }, 200);
                 }
@@ -104,15 +105,20 @@ export class SceneManager {
     bindEvents() {
         // Refit camera when mobile view changes (view visibility changes)
         store.on('mobileViewChanged', () => {
-            setTimeout(() => {
-                this.autoFitCamera();
-            }, 50);
+            this.scheduleAutoFit(90);
         });
 
-        // Refit camera when window is resized OR desktop browser zoom changes (Ctrl+)
+        // Refit camera when layout transitions settle.
         store.on('viewportResize', () => {
-            this.autoFitCamera();
+            this.scheduleAutoFit(90);
         });
+    }
+
+    scheduleAutoFit(delay = 60) {
+        clearTimeout(this._autoFitTimer);
+        this._autoFitTimer = setTimeout(() => {
+            this.autoFitCamera();
+        }, delay);
     }
 
     getTargetPixelRatio() {
