@@ -79,34 +79,9 @@ const server = http.createServer((req, res) => {
           global.authStore.set(email, token);
 
           try {
-            const nodemailer = require('nodemailer');
-            let transporter;
-            let senderEmail = process.env.GMAIL_USER;
-
-            if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
-              transporter = nodemailer.createTransport({
-                host: 'smtp.gmail.com',
-                port: 465,
-                secure: true,
-                auth: {
-                  user: process.env.GMAIL_USER,
-                  pass: process.env.GMAIL_APP_PASSWORD
-                }
-              });
-            } else {
-              console.log('[AUTH] No Gmail config found. Generating temporary Ethereal test account...');
-              const testAccount = await nodemailer.createTestAccount();
-              senderEmail = testAccount.user;
-              transporter = nodemailer.createTransport({
-                host: 'smtp.ethereal.email',
-                port: 587,
-                secure: false,
-                auth: {
-                  user: testAccount.user,
-                  pass: testAccount.pass
-                }
-              });
-            }
+            const { Resend } = require('resend');
+            const resend = new Resend(process.env.RESEND_API_KEY);
+            const senderEmail = process.env.RESEND_SENDER || 'onboarding@resend.dev'; // Default to Resend testing domain
 
             const htmlTemplate = `
               <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; background-color: #18181b; padding: 40px 20px; text-align: center; color: #fff;">
@@ -123,26 +98,24 @@ const server = http.createServer((req, res) => {
               </div>
             `;
 
-            const info = await transporter.sendMail({
+            const { data: emailData, error } = await resend.emails.send({
               from: `"tecton3d.cloud" <${senderEmail}>`,
-              to: email,
+              to: email, // Note: For Resend free tier, this MUST be the verified email address until a domain is verified
               subject: 'Your Login Token',
-              text: `Your login token is: ${token}. It expires in 5 minutes.`,
               html: htmlTemplate
             });
-            console.log(`[AUTH] Sent email token to ${email}`);
 
-            if (!process.env.GMAIL_USER) {
-              console.log(`\n============== DEV INBOX =================`);
-              console.log(`Open this link to read the email sent to ${email}:`);
-              console.log(nodemailer.getTestMessageUrl(info));
-              console.log(`==========================================\n`);
+            if (error) {
+                console.error('[AUTH] Resend API error:', error);
+                throw new Error(error.message);
             }
+
+            console.log(`[AUTH] Sent email token via Resend to ${email} (ID: ${emailData?.id})`);
 
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: true }));
           } catch (err) {
-            console.error('[AUTH] Failed to send email:', err.message);
+            console.error('[AUTH] Failed to send email via Resend:', err.message);
             console.log(`[AUTH FALLBACK] Token for ${email}: ${token}`);
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: true, warning: 'Email failed, check terminal for token.' }));
