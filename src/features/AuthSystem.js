@@ -22,8 +22,7 @@ export class AuthSystem {
 
         this.step = 'email'; // 'email' or 'token'
         this.currentUser = null;
-        this.isGithubPages = window.location.hostname.includes('github.io');
-        this.apiBaseUrl = this.isGithubPages ? 'https://tecton3d-cloud.onrender.com' : '';
+        this.apiBaseUrl = window.location.hostname.includes('github.io') ? 'https://tecton3d-cloud.onrender.com' : '';
         this.initSession().then(() => {
             this.updateUI();
             this.bindEvents();
