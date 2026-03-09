@@ -217,6 +217,10 @@ function normalizePhone(phone) {
     return String(phone || '').replace(/[\s.-]/g, '');
 }
 
+export function isValidGmail(email) {
+    return /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(String(email || '').trim());
+}
+
 export function isValidVietnamPhone(phone) {
     const normalized = normalizePhone(phone);
     return /^(?:\+84|0)\d{8,10}$/.test(normalized);
@@ -225,6 +229,7 @@ export function isValidVietnamPhone(phone) {
 function validateCustomerInfo(customerInfo = {}) {
     const customer = {
         name: String(customerInfo.name || '').trim(),
+        email: String(customerInfo.email || '').trim(),
         phone: normalizePhone(customerInfo.phone),
         address: String(customerInfo.address || '').trim()
     };
@@ -235,6 +240,14 @@ function validateCustomerInfo(customerInfo = {}) {
 
     if (!customer.phone) {
         throw new Error('Phone number is required.');
+    }
+
+    if (!customer.email) {
+        throw new Error('Gmail is required.');
+    }
+
+    if (!isValidGmail(customer.email)) {
+        throw new Error('Invalid Gmail format.');
     }
 
     if (!isValidVietnamPhone(customer.phone)) {
