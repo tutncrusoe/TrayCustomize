@@ -22,6 +22,7 @@ export class AuthSystem {
 
         this.step = 'email'; // 'email' or 'token'
         this.currentUser = null;
+        this.isGithubPages = window.location.hostname.includes('github.io');
 
         // Initialize session securely from server
         this.initSession().then(() => {
@@ -31,6 +32,14 @@ export class AuthSystem {
     }
 
     async initSession() {
+        if (this.isGithubPages) {
+            const saved = localStorage.getItem('tray_user');
+            if (saved) {
+                try { this.currentUser = JSON.parse(saved); } catch (e) {}
+            }
+            return;
+        }
+
         try {
             const res = await fetch('/api/auth/me', { credentials: 'include' });
             if (res.ok) {
@@ -173,6 +182,21 @@ export class AuthSystem {
         this.errorText.classList.add('hidden');
         this.setLoading(true);
 
+        if (this.isGithubPages) {
+            setTimeout(() => {
+                alert(`[GITHUB PAGES DEMO]\nTính năng gửi Email thật chỉ hoạt động với Node.js backend.\n\nMã OTP giả lập của bạn là: 123456`);
+                this.step = 'token';
+                this.emailInput.disabled = true;
+                this.tokenContainer.classList.remove('hidden');
+                this.title.innerText = 'Enter Token';
+                this.desc.innerText = `Sent to ${email}`;
+                this.tokenInput.required = true;
+                setTimeout(() => this.tokenInput.focus(), 100);
+                this.setLoading(false);
+            }, 800);
+            return;
+        }
+
         try {
             const res = await fetch('/api/auth/send-token', {
                 method: 'POST',
@@ -208,6 +232,21 @@ export class AuthSystem {
         this.errorText.classList.add('hidden');
         this.setLoading(true);
 
+        if (this.isGithubPages) {
+            setTimeout(() => {
+                if (token === '123456') {
+                    this.currentUser = { email };
+                    localStorage.setItem('tray_user', JSON.stringify(this.currentUser));
+                    this.updateUI();
+                    this.closeModal();
+                } else {
+                    this.showError('Mã token không đúng (Gợi ý: 123456)');
+                }
+                this.setLoading(false);
+            }, 800);
+            return;
+        }
+
         try {
             const res = await fetch('/api/auth/verify-token', {
                 method: 'POST',
@@ -232,6 +271,13 @@ export class AuthSystem {
     }
 
     async logout() {
+        if (this.isGithubPages) {
+            localStorage.removeItem('tray_user');
+            this.currentUser = null;
+            this.updateUI();
+            return;
+        }
+
         try {
             await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
         } catch (e) {

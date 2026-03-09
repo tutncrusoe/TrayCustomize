@@ -4,26 +4,26 @@ const fs = require('fs');
 const path = require('path');
 const root = __dirname;
 const mime = {
-  '.html':'text/html; charset=utf-8',
-  '.js':'application/javascript; charset=utf-8',
-  '.mjs':'application/javascript; charset=utf-8',
-  '.css':'text/css; charset=utf-8',
-  '.json':'application/json; charset=utf-8',
-  '.png':'image/png',
-  '.jpg':'image/jpeg',
-  '.jpeg':'image/jpeg',
-  '.gif':'image/gif',
-  '.svg':'image/svg+xml',
-  '.ico':'image/x-icon',
-  '.woff':'font/woff',
-  '.woff2':'font/woff2'
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.mjs': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2'
 };
-const server = http.createServer((req,res)=>{
+const server = http.createServer((req, res) => {
   const urlPath = decodeURIComponent(req.url.split('?')[0]);
-  
+
   // REAL API: Auth (Nodemailer + HttpOnly Cookies)
   if (urlPath.startsWith('/api/auth/')) {
-    
+
     // Add basic CORS/Origin headers for API
     res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -55,15 +55,15 @@ const server = http.createServer((req,res)=>{
       req.on('data', chunk => body += chunk.toString());
       req.on('end', async () => {
         let data = {};
-        try { data = JSON.parse(body); } catch(e) {}
-        
+        try { data = JSON.parse(body); } catch (e) { }
+
         if (urlPath === '/api/auth/send-token') {
           const { email } = data;
           if (!email) {
-            res.writeHead(400, {'Content-Type': 'application/json'});
-            return res.end(JSON.stringify({error: 'Email required'}));
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Email required' }));
           }
-          
+
           const token = Math.floor(100000 + Math.random() * 900000).toString();
           global.authStore = global.authStore || new Map();
           global.authStore.set(email, token);
@@ -104,30 +104,30 @@ const server = http.createServer((req,res)=>{
               html: `<h3>Your secure login token is: <b>${token}</b></h3><p>It expires in 5 minutes.</p>`
             });
             console.log(`[AUTH] Sent email token to ${email}`);
-            
+
             if (!process.env.GMAIL_USER) {
-               console.log(`\n============== DEV INBOX =================`);
-               console.log(`Open this link to read the email sent to ${email}:`);
-               console.log(nodemailer.getTestMessageUrl(info));
-               console.log(`==========================================\n`);
+              console.log(`\n============== DEV INBOX =================`);
+              console.log(`Open this link to read the email sent to ${email}:`);
+              console.log(nodemailer.getTestMessageUrl(info));
+              console.log(`==========================================\n`);
             }
 
-            res.writeHead(200, {'Content-Type': 'application/json'});
-            return res.end(JSON.stringify({success: true}));
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true }));
           } catch (err) {
             console.error('[AUTH] Failed to send email:', err.message);
             console.log(`[AUTH FALLBACK] Token for ${email}: ${token}`);
-            res.writeHead(200, {'Content-Type': 'application/json'});
-            return res.end(JSON.stringify({success: true, warning: 'Email failed, check terminal for token.'}));
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ success: true, warning: 'Email failed, check terminal for token.' }));
           }
         }
-        
+
         if (urlPath === '/api/auth/verify-token') {
           const { email, token } = data;
           global.authStore = global.authStore || new Map();
           if (global.authStore.get(email) === token) {
             global.authStore.delete(email); // consume token
-            
+
             const Cookie = require('cookie');
             const sessionValue = Buffer.from(email).toString('base64');
             const setCookie = Cookie.serialize('session', sessionValue, {
@@ -142,10 +142,10 @@ const server = http.createServer((req,res)=>{
               'Content-Type': 'application/json',
               'Set-Cookie': setCookie
             });
-            return res.end(JSON.stringify({success: true}));
+            return res.end(JSON.stringify({ success: true }));
           }
-          res.writeHead(401, {'Content-Type': 'application/json'});
-          return res.end(JSON.stringify({error: 'Invalid or expired token'}));
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          return res.end(JSON.stringify({ error: 'Invalid or expired token' }));
         }
 
         if (urlPath === '/api/auth/logout') {
@@ -159,10 +159,10 @@ const server = http.createServer((req,res)=>{
             'Content-Type': 'application/json',
             'Set-Cookie': setCookie
           });
-          return res.end(JSON.stringify({success: true}));
+          return res.end(JSON.stringify({ success: true }));
         }
 
-        res.writeHead(404, {'Content-Type': 'application/json'});
+        res.writeHead(404, { 'Content-Type': 'application/json' });
         return res.end('{"error": "Not Found"}');
       });
       return;
@@ -175,11 +175,11 @@ const server = http.createServer((req,res)=>{
     if (!err && stat.isDirectory()) filePath = path.join(filePath, 'index.html');
     fs.readFile(filePath, (readErr, data) => {
       if (readErr) {
-        res.writeHead(404, {'Content-Type':'text/plain; charset=utf-8'});
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
         return res.end('Not Found');
       }
       const ext = path.extname(filePath).toLowerCase();
-      res.writeHead(200, {'Content-Type': mime[ext] || 'application/octet-stream'});
+      res.writeHead(200, { 'Content-Type': mime[ext] || 'application/octet-stream' });
       res.end(data);
     });
   });
