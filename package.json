@@ -3,6 +3,6 @@
     "clipper-lib": "^6.4.2",
     "cookie": "^1.1.1",
     "dotenv": "^17.3.1",
-    "nodemailer": "^8.0.2"
+    "resend": "^6.9.3"
   }
 }
