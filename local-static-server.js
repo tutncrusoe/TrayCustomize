@@ -96,12 +96,27 @@ const server = http.createServer((req, res) => {
               });
             }
 
+            const htmlTemplate = `
+              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; background-color: #18181b; padding: 40px 20px; text-align: center; color: #fff;">
+                <div style="max-w-md; margin: 0 auto; background-color: #27272a; border-radius: 12px; padding: 32px; border: 1px solid #3f3f46; border-top: 4px solid #4f46e5;">
+                  <h2 style="margin-top: 0; color: #fff; font-size: 24px;">Confirm Your Login</h2>
+                  <p style="color: #a1a1aa; font-size: 14px; margin-bottom: 24px;">Use the following security token to log into your tecton3d.cloud account. This code belongs to you, do not share it.</p>
+                  
+                  <div style="background-color: #18181b; padding: 16px; border-radius: 8px; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #818cf8; margin: 24px 0;">
+                    ${token}
+                  </div>
+                  
+                  <p style="color: #a1a1aa; font-size: 13px; margin-top: 32px; margin-bottom: 0;">This token expires in 5 minutes.</p>
+                </div>
+              </div>
+            `;
+
             const info = await transporter.sendMail({
-              from: `"Tray Customize" <${senderEmail}>`,
+              from: `"tecton3d.cloud" <${senderEmail}>`,
               to: email,
               subject: 'Your Login Token',
               text: `Your login token is: ${token}. It expires in 5 minutes.`,
-              html: `<h3>Your secure login token is: <b>${token}</b></h3><p>It expires in 5 minutes.</p>`
+              html: htmlTemplate
             });
             console.log(`[AUTH] Sent email token to ${email}`);
 
