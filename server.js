@@ -21,8 +21,8 @@ const mime = {
 const server = http.createServer((req, res) => {
   const urlPath = decodeURIComponent(req.url.split('?')[0]);
 
-  // REAL API: Auth (Nodemailer + HttpOnly Cookies)
-  if (urlPath.startsWith('/api/auth/')) {
+  // REAL API: Auth & Health
+  if (urlPath.startsWith('/api/')) {
 
     // Add basic CORS/Origin headers for API
     const origin = req.headers.origin;
@@ -38,6 +38,11 @@ const server = http.createServer((req, res) => {
     if (req.method === 'OPTIONS') {
       res.writeHead(204);
       return res.end();
+    }
+
+    if (req.method === 'GET' && urlPath === '/api/health') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
     }
 
     if (req.method === 'GET' && urlPath === '/api/auth/me') {
@@ -80,7 +85,9 @@ const server = http.createServer((req, res) => {
 
             if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
               transporter = nodemailer.createTransport({
-                service: 'gmail',
+                host: 'smtp.gmail.com',
+                port: 465,
+                secure: true,
                 auth: {
                   user: process.env.GMAIL_USER,
                   pass: process.env.GMAIL_APP_PASSWORD
@@ -204,7 +211,7 @@ const server = http.createServer((req, res) => {
     });
   });
 });
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`[SERVER] Running at port ${PORT}`);
 });
