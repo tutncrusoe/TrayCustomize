@@ -25,10 +25,15 @@ const server = http.createServer((req, res) => {
   if (urlPath.startsWith('/api/auth/')) {
 
     // Add basic CORS/Origin headers for API
-    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     if (req.method === 'OPTIONS') {
       res.writeHead(204);
@@ -199,4 +204,7 @@ const server = http.createServer((req, res) => {
     });
   });
 });
-server.listen(8000, '0.0.0.0');
+const PORT = process.env.PORT || 8000;
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`[SERVER] Running at port ${PORT}`);
+});
