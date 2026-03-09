@@ -112,6 +112,7 @@ class CartPage {
         this.bindEvents();
         this.restoreCheckoutInfo();
         this.render();
+        this.focusCheckoutIfRequested();
     }
 
     getThemeColors(theme) {
@@ -411,6 +412,35 @@ class CartPage {
         const cart = getCart();
         this.renderItems(cart.items);
         this.renderSummary(cart);
+    }
+
+    focusCheckoutIfRequested() {
+        if (typeof window === 'undefined') return;
+
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('checkout') !== '1') return;
+
+        const focusTarget =
+            (this.nameInput && !this.nameInput.value.trim() && this.nameInput) ||
+            (this.phoneInput && !this.phoneInput.value.trim() && this.phoneInput) ||
+            (this.addressInput && !this.addressInput.value.trim() && this.addressInput) ||
+            this.nameInput ||
+            this.phoneInput ||
+            this.addressInput;
+
+        const form = this.checkoutForm;
+        if (form && typeof form.scrollIntoView === 'function') {
+            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        if (focusTarget && typeof focusTarget.focus === 'function') {
+            window.setTimeout(() => {
+                focusTarget.focus();
+            }, 150);
+        }
+
+        url.searchParams.delete('checkout');
+        window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
     }
 
     showStatus(message, type) {
