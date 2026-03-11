@@ -231,6 +231,15 @@ class App {
             this.handleOpenCart();
         });
 
+        document.getElementById('buy-now-btn')?.addEventListener('click', () => {
+             this.handleBuyNow();
+        });
+
+        document.getElementById('close-payment-modal')?.addEventListener('click', () => {
+             const modal = document.getElementById('payment-modal');
+             if(modal) modal.classList.add('hidden');
+        });
+
         this.updatePrice();
     }
 
@@ -304,6 +313,30 @@ class App {
         }
 
         window.location.href = targetUrl.toString();
+    }
+
+    handleBuyNow() {
+        const priceText = document.getElementById('total-price')?.innerText || "0 VND";
+        const price = parseInt(priceText.replace(/[^0-9]/g, ''), 10);
+        
+        if (!price || isNaN(price) || price <= 0) {
+            window.alert('Price is invalid for payment.');
+            return;
+        }
+
+        const bankId = 'ACB';
+        const accountNo = '29557197';
+        const addInfo = 'Tray Customize Order';
+
+        const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${price}&addInfo=${encodeURIComponent(addInfo)}`;
+
+        const qrImg = document.getElementById('qr-image');
+        const modal = document.getElementById('payment-modal');
+
+        if(qrImg && modal) {
+            qrImg.src = qrUrl;
+            modal.classList.remove('hidden');
+        }
     }
 
     refreshCartBadge() {
