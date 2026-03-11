@@ -79,10 +79,6 @@ const server = http.createServer((req, res) => {
           global.authStore.set(email, token);
 
           try {
-            const { Resend } = require('resend');
-            const resend = new Resend(process.env.RESEND_API_KEY);
-            const senderEmail = process.env.RESEND_SENDER || 'onboarding@resend.dev'; // Default to Resend testing domain
-
             const htmlTemplate = `
               <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; background-color: #18181b; padding: 40px 20px; text-align: center; color: #fff;">
                 <div style="max-w-md; margin: 0 auto; background-color: #27272a; border-radius: 12px; padding: 32px; border: 1px solid #3f3f46; border-top: 4px solid #4f46e5;">
@@ -98,24 +94,36 @@ const server = http.createServer((req, res) => {
               </div>
             `;
 
-            const { data: emailData, error } = await resend.emails.send({
-              from: `"tecton3d.cloud" <${senderEmail}>`,
-              to: email, // Note: For Resend free tier, this MUST be the verified email address until a domain is verified
-              subject: 'Your Login Token',
-              html: htmlTemplate
-            });
-
-            if (error) {
-                console.error('[AUTH] Resend API error:', error);
-                throw new Error(error.message);
+            // Call Google Apps Script Webhook
+            const gasUrl = process.env.GOOGLE_APPS_SCRIPT_URL;
+            if (!gasUrl) {
+                throw new Error("GOOGLE_APPS_SCRIPT_URL is not defined in .env");
             }
 
-            console.log(`[AUTH] Sent email token via Resend to ${email} (ID: ${emailData?.id})`);
+            const response = await fetch(gasUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: email,
+                    subject: 'Your Login Token',
+                    html: htmlTemplate
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.error) {
+                throw new Error(result.error);
+            }
+
+            console.log(`[AUTH] Sent email token via Google Apps Script to ${email}`);
 
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: true }));
           } catch (err) {
-            console.error('[AUTH] Failed to send email via Resend:', err.message);
+            console.error('[AUTH] Failed to send email via Gmail:', err.message);
             console.log(`[AUTH FALLBACK] Token for ${email}: ${token}`);
             res.writeHead(200, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ success: true, warning: 'Email failed, check terminal for token.' }));
