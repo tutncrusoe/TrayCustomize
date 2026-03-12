@@ -258,10 +258,7 @@ class App {
     }
 
     handleBuyNow() {
-        const added = this.handleAddToCart();
-        if (!added) return;
-
-        this.handleOpenCart({ checkout: true });
+        // Redirected to real handleBuyNow below (QR payment flow)
     }
 
     captureTopViewPreview() {
@@ -315,26 +312,42 @@ class App {
         window.location.href = targetUrl.toString();
     }
 
+    generateOrderId() {
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let random = '';
+        for (let i = 0; i < 6; i++) {
+            random += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return `ORD-${yyyy}${mm}${dd}-${random}`;
+    }
+
     handleBuyNow() {
         const priceText = document.getElementById('total-price')?.innerText || "0 VND";
         const price = parseInt(priceText.replace(/[^0-9]/g, ''), 10);
-        
+
         if (!price || isNaN(price) || price <= 0) {
             window.alert('Price is invalid for payment.');
             return;
         }
 
+        const orderId = this.generateOrderId();
         const bankId = 'ACB';
         const accountNo = '29557197';
-        const addInfo = 'Tray Customize Order';
+        const addInfo = orderId;
 
         const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${price}&addInfo=${encodeURIComponent(addInfo)}`;
 
         const qrImg = document.getElementById('qr-image');
         const modal = document.getElementById('payment-modal');
+        const orderIdEl = document.getElementById('payment-order-id');
 
-        if(qrImg && modal) {
+        if (qrImg && modal) {
             qrImg.src = qrUrl;
+            if (orderIdEl) orderIdEl.textContent = orderId;
             modal.classList.remove('hidden');
         }
     }
