@@ -308,10 +308,27 @@ class CartPage {
         try {
             const result = createLocalOrder(customer);
             this.persistCheckoutInfo();
-            this.showStatus(`Order placed successfully. Order ID: ${result.orderId}`, 'success');
+            this.showStatus(`Đặt hàng thành công! Mã đơn: ${result.orderId} — Vui lòng thanh toán qua QR bên dưới.`, 'success');
             this.render();
+            this.showPaymentQR(result.orderId, result.total);
         } catch (error) {
             this.showStatus(error?.message || 'Unable to place order. Please try again.', 'error');
+        }
+    }
+
+    showPaymentQR(orderId, total) {
+        const bankId = 'ACB';
+        const accountNo = '29557197';
+        const qrUrl = `https://img.vietqr.io/image/${bankId}-${accountNo}-compact2.png?amount=${total}&addInfo=${encodeURIComponent(orderId)}`;
+
+        const modal = document.getElementById('cart-payment-modal');
+        const qrImg = document.getElementById('cart-qr-image');
+        const orderIdEl = document.getElementById('cart-payment-order-id');
+
+        if (modal && qrImg) {
+            qrImg.src = qrUrl;
+            if (orderIdEl) orderIdEl.textContent = orderId;
+            modal.classList.remove('hidden');
         }
     }
 
