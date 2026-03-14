@@ -40,6 +40,37 @@ const server = http.createServer((req, res) => {
       return res.end();
     }
 
+    if (req.method === 'GET' && urlPath === '/api/health-check') {
+      const memUsage = process.memoryUsage();
+      const toMB = (bytes) => (bytes / 1024 / 1024).toFixed(2) + ' MB';
+      const healthData = {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: {
+          seconds: Math.floor(process.uptime()),
+          human: (() => {
+            const s = Math.floor(process.uptime());
+            const h = Math.floor(s / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            const sec = s % 60;
+            return `${h}h ${m}m ${sec}s`;
+          })()
+        },
+        memory: {
+          rss: toMB(memUsage.rss),
+          heapUsed: toMB(memUsage.heapUsed),
+          heapTotal: toMB(memUsage.heapTotal),
+          external: toMB(memUsage.external)
+        },
+        environment: process.env.NODE_ENV || 'development',
+        nodeVersion: process.version,
+        pid: process.pid
+      };
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify(healthData, null, 2));
+    }
+
+    // Keep legacy /api/health as alias
     if (req.method === 'GET' && urlPath === '/api/health') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
@@ -195,4 +226,29 @@ const server = http.createServer((req, res) => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`[SERVER] Running at port ${PORT}`);
+
+    // ─── Periodic Health Monitor ──────────────────────────────────────────────
+    const HEALTH_INTERVAL_MS = 30_000; // every 30 seconds
+    const HEALTH_URL = `http://127.0.0.1:${PORT}/api/health-check`;
+
+    async function runHealthCheck() {
+      const now = new Date().toISOString();
+      try {
+        const res = await fetch(HEALTH_URL, { signal: AbortSignal.timeout(5000) });
+        if (res.ok) {
+          const data = await res.json();
+          console.log(`[HEALTH ✓] ${now} | uptime: ${data.uptime.human} | heap: ${data.memory.heapUsed} / ${data.memory.heapTotal} | pid: ${data.pid}`);
+        } else {
+          console.warn(`[HEALTH ✗] ${now} | Unexpected status ${res.status}`);
+        }
+      } catch (err) {
+        console.error(`[HEALTH ✗] ${now} | Service unreachable: ${err.message}`);
+      }
+    }
+
+    // Run immediately once, then on interval
+    runHealthCheck();
+    setInterval(runHealthCheck, HEALTH_INTERVAL_MS);
+    console.log(`[HEALTH] Periodic monitor started — checking every ${HEALTH_INTERVAL_MS / 1000}s`);
+    // ─────────────────────────────────────────────────────────────────────────
 });
